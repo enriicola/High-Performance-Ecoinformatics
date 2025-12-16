@@ -1,0 +1,91 @@
+Bootstrap: docker
+From: rocker/r-devel:latest
+
+%labels
+    Author YourName
+    System Cineca Leonardo
+    R_Version 4.6 (Devel)
+    Description Ecological Modelling Container (Biomod2, Terra, Tidyverse)
+
+%help
+    This container runs R (Development Version >= 4.6).
+    Contains full stack for ecological modelling: biomod2, terra, maxnet, Hmisc, etc.
+    
+    Usage on Leonardo:
+    apptainer run --bind $WORK:/work,$CINECA_SCRATCH:/scratch tesi.sif
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    
+    # 1. Install System Dependencies
+    # Added 'libudunits2-dev' which is critical for many spatial R packages
+    apt-get update && apt-get install -y \
+        build-essential \
+        gfortran \
+        libxml2-dev \
+        libcurl4-openssl-dev \
+        libssl-dev \
+        libfontconfig1-dev \
+        libharfbuzz-dev \
+        libfribidi-dev \
+        libfreetype6-dev \
+        libpng-dev \
+        libtiff5-dev \
+        libjpeg-dev \
+        libgdal-dev \
+        libgeos-dev \
+        libproj-dev \
+        libsqlite3-dev \
+        libudunits2-dev \
+        cmake \
+        git \
+        vim
+
+    # 2. Create Cineca-specific mount points
+    mkdir -p /leonardo
+    mkdir -p /work
+    mkdir -p /scratch
+    mkdir -p /data
+
+    # 3. Install R Packages
+    # We use Ncpus to use multiple cores during compilation to speed up the build.
+    # 'pROCK' was corrected to 'pROC'.
+    # 'gdal' is handled by system libraries + terra.
+    
+    Rscript -e 'install.packages(c(
+        "Hmisc",
+        "biomod2",
+        "terra",
+        "sp",
+        "reshape",
+        "reshape2",
+        "abind",
+        "foreach",
+        "ggplot2",
+        "gbm",
+        "rpart",
+        "MASS",
+        "pROC",
+        "PresenceAbsence",
+        "dplyr",
+        "maxnet",
+        "mda",
+        "nnet"
+    ), repos="https://cloud.r-project.org/", Ncpus=4, dependencies=TRUE)'
+
+    # 4. Clean up to reduce image size
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+    rm -rf /tmp/downloaded_packages
+
+%environment
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+
+%runscript
+    echo "Starting Ecological Modelling Container..."
+    exec R "$@"
+
+%test
+    # Verify critical libraries load
+    Rscript -e "library(terra); library(biomod2); library(dplyr); print('Core libraries loaded successfully')"
