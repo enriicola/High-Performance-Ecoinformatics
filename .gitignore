@@ -54,3 +54,4 @@ secrets*
 tesi.sif
 *.tif
 data_1km_EUNIS.txt
+*.log
