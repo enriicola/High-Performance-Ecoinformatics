@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# 1. Identify all R files that are "staged" (ready to be committed)
+#    grep -E '\.[rR]$'  -> Looks for files ending in .r or .R
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.[rR]$')
+
+# 2. If no R files are being committed, stop here.
+if [ -z "$FILES" ]; then
+    exit 0
+fi
+
+echo "Running styler on staged R files..."
+
+# 3. Loop through each file carefully
+echo "$FILES" | while read file; do
+    if [ -f "$file" ]; then
+        # Run styler using the ROBUST method (same as your tasks.json)
+        # We pass the filename as an argument to avoid syntax errors with spaces/symbols
+        Rscript -e "styler::style_file(commandArgs(TRUE))" "$file" > /dev/null 2>&1
+        
+        # 4. Add the file back to the 'stage'
+        # If we don't do this, the formatted version stays in your working directory
+        # but the OLD messy version gets committed.
+        git add "$file"
+    fi
+done
+
+exit 0
