@@ -1,14 +1,14 @@
 Bootstrap: docker
-From: rocker/r-devel:latest
+From: rocker/r-ver:latest
 
 %labels
-    Author YourName
+    Author Enrico Pezzano
     System Cineca Leonardo
-    R_Version 4.6 (Devel)
+    R_Version (Stable)
     Description Ecological Modelling Container (Biomod2, Terra, Tidyverse)
 
 %help
-    This container runs R (Development Version >= 4.6).
+    This container runs R (Stable Version).
     Contains full stack for ecological modelling: biomod2, terra, maxnet, Hmisc, etc.
     
     Usage on Leonardo:
@@ -16,10 +16,16 @@ From: rocker/r-devel:latest
 
 %post
     export DEBIAN_FRONTEND=noninteractive
+    export TMPDIR=/var/tmp
+    export TMP=/var/tmp
+    mkdir -p "$TMPDIR"
     
     # 1. Install System Dependencies
-    # Added 'libudunits2-dev' which is critical for many spatial R packages
-    apt-get update && apt-get install -y \
+    # Use dist-upgrade to properly handle dependency changes
+    apt-get update && apt-get dist-upgrade -y
+    
+    # Install required packages
+    apt-get install -y \
         build-essential \
         gfortran \
         libxml2-dev \
@@ -49,10 +55,10 @@ From: rocker/r-devel:latest
 
     # 3. Install R Packages
     # We use Ncpus to use multiple cores during compilation to speed up the build.
-    # 'pROCK' was corrected to 'pROC'.
-    # 'gdal' is handled by system libraries + terra.
+    # Removed quiet=TRUE to see actual errors during installation
+    # Added explicit error checking to fail build if packages don't install
     
-    Rscript -e 'install.packages(c(
+    Rscript -e 'packages <- c(
         "Hmisc",
         "biomod2",
         "terra",
@@ -71,10 +77,28 @@ From: rocker/r-devel:latest
         "maxnet",
         "mda",
         "nnet"
-    ), repos="https://cloud.r-project.org/", Ncpus=4, dependencies=TRUE)'
+    )
+    install.packages(packages,
+        repos="https://cloud.r-project.org/",
+        Ncpus=4,
+        dependencies=TRUE)
+    
+    # Verify all packages installed
+    failed <- c()
+    for (pkg in packages) {
+        if (!require(pkg, character.only=TRUE, quietly=TRUE)) {
+            failed <- c(failed, pkg)
+        }
+    }
+    if (length(failed) > 0) {
+        cat("\n\nFAILED TO INSTALL:\n")
+        cat(paste(failed, collapse="\n"))
+        quit(status=1)
+    }
+    cat("\n\nAll packages installed successfully!\n")'
 
     # 4. Clean up to reduce image size
-    apt-get clean
+    apt-get clean > /dev/null
     rm -rf /var/lib/apt/lists/*
     rm -rf /tmp/downloaded_packages
 
@@ -87,5 +111,6 @@ From: rocker/r-devel:latest
     exec R "$@"
 
 %test
+    echo "running apptainer test..."
     # Verify critical libraries load
-    Rscript -e "library(terra); library(biomod2); library(dplyr); print('Core libraries loaded successfully')"
+    Rscript -e "library(terra); library(biomod2); library(dplyr); print('Core libraries loaded successfully')" > /dev/null
