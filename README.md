@@ -2,8 +2,6 @@
 
 my master of science thesis project!
 
-<https://drive.google.com/file/d/1SLcnJ58qEo8lNAnaEmtTSwgpnB4B23qi/view?usp=sharing>
-
 ## todos
 
 - [ ] learn how to copy file from my linux to spartaco and viceversa
