@@ -76,6 +76,7 @@ From: rocker/r-ver:latest
         "dplyr",
         "maxnet",
         "mda",
+        "torch",
         "nnet"
     )
     install.packages(packages,
@@ -96,6 +97,10 @@ From: rocker/r-ver:latest
         quit(status=1)
     }
     cat("\n\nAll packages installed successfully!\n")'
+    
+    # 3b. Install torch dependencies (libtorch)
+    # This must be done during build time, not runtime, because the container is read-only
+    Rscript -e 'torch::install_torch()'
 
     # 4. Clean up to reduce image size
     apt-get clean > /dev/null
@@ -108,9 +113,10 @@ From: rocker/r-ver:latest
 
 %runscript
     echo "Starting Ecological Modelling Container..."
-    exec R "$@"
+    # exec R "$@"
+    exec Rscript -e "script_test.r"
 
 %test
     echo "running apptainer test..."
     # Verify critical libraries load
-    Rscript -e "library(terra); library(biomod2); library(dplyr); print('Core libraries loaded successfully')" > /dev/null
+    Rscript -e "library(terra); library(torch); library(biomod2); library(dplyr); print('Core libraries loaded successfully')"
