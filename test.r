@@ -16,7 +16,7 @@ library(doParallel)
 ####################################
 # loading species occurrences data
 ####################################
-spocc <- read.table("test.csv", head = TRUE, sep = "\t")
+spocc <- read.table("data/test.csv", head = TRUE, sep = "\t")
 sp.names <- levels(factor(spocc[, 1]))
 num_sp <- length(sp.names)
 
@@ -28,9 +28,9 @@ num_sp <- length(sp.names)
 # loading CURRENT environmental data
 #####################################
 
-clim_cal <- rast(dir("HPC_Leonardo/PCA/baseline", full.names = T))
-tri_cal <- rast(dir("HPC_Leonardo/TRI", full.names = T))
-soil_cal <- rast(dir("HPC_Leonardo/PCA/Suolo", full.names = T))
+clim_cal <- rast(dir("PCA/baseline", full.names = T))
+tri_cal <- rast(dir("TRI", full.names = T))
+soil_cal <- rast(dir("PCA/Suolo", full.names = T))
 cur_cal <- c(clim_cal, tri_cal, soil_cal)
 names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
 
@@ -38,7 +38,7 @@ names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
 # loading FUTURE list
 #####################################
 
-lf <- list.dirs("HPC_Leonardo/PCA/Futuro", full.names = T, recursive = T)[-1]
+lf <- list.dirs("PCA/Futuro", full.names = T, recursive = T)[-1]
 lf <- as.matrix(lf)
 lf <- lf[nchar(lf[, 1]) >= 38, ] # TODO refactor this line programmatically
 
