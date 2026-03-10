@@ -43,6 +43,7 @@ From: rocker/r-ver:latest
         libproj-dev \
         libsqlite3-dev \
         libudunits2-dev \
+        libsodium-dev \
         cmake \
         git \
         vim
@@ -74,15 +75,17 @@ From: rocker/r-ver:latest
         "MASS",
         "pROC",
         "PresenceAbsence",
+        "plyr",
         "dplyr",
         "maxnet",
         "mda",
         "torch",
         "nnet",
         "randomForest",
-        "plyr",
         "doParallel",
-        "profvis"
+        "profvis",
+        "sodium",
+        "safer"
     )
     install.packages(packages,
         repos="https://cloud.r-project.org/",
@@ -106,7 +109,7 @@ From: rocker/r-ver:latest
     # 3b. Install torch dependencies (libtorch)
     # This must be done during build time, not runtime, because the container is read-only
     export TORCH_INSTALL=1
-    Rscript -e 'torch::install_torch(reinstall = TRUE)'
+    Rscript -e 'options(timeout = 600); torch::install_torch(reinstall = TRUE)'
 
     # 4. Clean up to reduce image size
     apt-get clean > /dev/null
