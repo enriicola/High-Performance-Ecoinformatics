@@ -62,6 +62,7 @@ From: rocker/r-ver:latest
         "Hmisc",
         "biomod2",
         "terra",
+        "raster",
         "sp",
         "reshape",
         "reshape2",
@@ -77,13 +78,17 @@ From: rocker/r-ver:latest
         "maxnet",
         "mda",
         "torch",
-        "nnet"
+        "nnet",
+        "randomForest",
+        "plyr",
+        "doParallel",
+        "profvis"
     )
     install.packages(packages,
         repos="https://cloud.r-project.org/",
         Ncpus=4,
         dependencies=TRUE)
-    
+
     # Verify all packages installed
     failed <- c()
     for (pkg in packages) {
@@ -97,24 +102,25 @@ From: rocker/r-ver:latest
         quit(status=1)
     }
     cat("\n\nAll packages installed successfully!\n")'
-    
+
     # 3b. Install torch dependencies (libtorch)
     # This must be done during build time, not runtime, because the container is read-only
-    Rscript -e 'torch::install_torch()'
+    export TORCH_INSTALL=1
+    Rscript -e 'torch::install_torch(reinstall = TRUE)'
 
     # 4. Clean up to reduce image size
     apt-get clean > /dev/null
     rm -rf /var/lib/apt/lists/*
     rm -rf /tmp/downloaded_packages
 
-%environment
+    %environment
     export LC_ALL=C.UTF-8
     export LANG=C.UTF-8
 
-%runscript
+    %runscript
     echo "Starting Ecological Modelling Container..."
     # exec R "$@"
-    exec Rscript -e "script_test.r"
+    exec Rscript "test.r"
 
 %test
     echo "running apptainer test..."

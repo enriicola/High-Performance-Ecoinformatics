@@ -13,7 +13,13 @@ my master of science thesis project!
 
 ## notes
 
-## remmina - move/copy files between systems
+biomod2 manual:
+<https://cran.r-project.org/web/packages/biomod2/refman/biomod2.html>
+
+apptainer manual:
+<https://apptainer.org/docs/user/main/definition_files.html>
+
+### remmina - move/copy files between systems
 
 - Right click the RDP connection you are using and select edit
 - Under the "Share folder" option enter the path of a folder on the client
