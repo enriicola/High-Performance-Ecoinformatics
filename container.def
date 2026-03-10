@@ -113,11 +113,11 @@ From: rocker/r-ver:latest
     rm -rf /var/lib/apt/lists/*
     rm -rf /tmp/downloaded_packages
 
-    %environment
+%environment
     export LC_ALL=C.UTF-8
     export LANG=C.UTF-8
 
-    %runscript
+%runscript
     echo "Starting Ecological Modelling Container..."
     # exec R "$@"
     exec Rscript "test.r"

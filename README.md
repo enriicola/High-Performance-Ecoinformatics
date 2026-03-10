@@ -9,6 +9,8 @@ my master of science thesis project!
 
 - [ ] check why spartaco does not respond
 
+- [ ] merge the 3 'update readme and notes' commits
+
 - [ ] redirect all prints of .def file to null, except errors and warnings
 
 ## notes
