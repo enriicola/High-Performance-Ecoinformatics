@@ -79,7 +79,6 @@ From: rocker/r-ver:latest
         "dplyr",
         "maxnet",
         "mda",
-        "torch",
         "nnet",
         "randomForest",
         "doParallel",
@@ -105,11 +104,6 @@ From: rocker/r-ver:latest
         quit(status=1)
     }
     cat("\n\nAll packages installed successfully!\n")'
-
-    # 3b. Install torch dependencies (libtorch)
-    # This must be done during build time, not runtime, because the container is read-only
-    export TORCH_INSTALL=1
-    Rscript -e 'options(timeout = 600); torch::install_torch(reinstall = TRUE)'
 
     # 4. Clean up to reduce image size
     apt-get clean > /dev/null

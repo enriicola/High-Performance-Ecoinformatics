@@ -16,7 +16,7 @@ library(doParallel)
 ####################################
 # loading species occurrences data
 ####################################
-spocc <- read.table("HPC_Leonardo/test_sp.txt", head = TRUE, sep = "\t")
+spocc <- read.table("test.csv", head = TRUE, sep = "\t")
 sp.names <- levels(factor(spocc[, 1]))
 num_sp <- length(sp.names)
 
