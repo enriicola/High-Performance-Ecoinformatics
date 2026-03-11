@@ -16,7 +16,7 @@ library(doParallel)
 ####################################
 # loading species occurrences data
 ####################################
-spocc <- read.table("data/test.csv", head = TRUE, sep = "\t")
+spocc <- read.table("data/test.csv", head = TRUE, sep = ",")
 sp.names <- levels(factor(spocc[, 1]))
 num_sp <- length(sp.names)
 
@@ -76,7 +76,7 @@ selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
 
 start.time <- Sys.time()
 myRespName <- paste(sp.names[1], sep = "")
-myRespXY <- spocc[, 2:3] # coordinates of points
+myRespXY <- spocc[, 3:4] # coordinates of points
 myResp <- rep(1, nrow(spocc)) # species occurences
 
 # 1. Formatting Data
