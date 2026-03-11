@@ -1,0 +1,11 @@
+if ! Rscript -e '
+  packages <- c("languageserver", "styler", "lintr", "biomod2")
+  
+  # Ensure a user-specific library directory exists
+  lib_path <- Sys.getenv("R_LIBS_USER")
+  if (!dir.exists(lib_path)) dir.create(lib_path, recursive = TRUE)
+
+  missing_pkgs <- packages[!(packages %in% installed.packages()[,"Package"])]
+  if(length(missing_pkgs))
+    install.packages(missing_pkgs, repos="https://cloud.r-project.org", lib=lib_path)
+'

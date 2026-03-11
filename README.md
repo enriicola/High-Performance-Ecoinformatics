@@ -9,6 +9,10 @@ my master of science thesis project!
 
 - [ ] check why spartaco does not respond
 
+- [ ] setup onedrive synced folder (or maybe my ubuntu-server, or maybe spartaco, it just need to be some place to have all data in single place and synchronized)
+
+- [ ] https://ict.unige.it/istruzioni-vpn
+
 - [ ] merge the 3 'update readme and notes' commits
 
 - [ ] redirect all prints of .def file to null, except errors and warnings
