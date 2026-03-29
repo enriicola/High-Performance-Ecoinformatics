@@ -9,9 +9,10 @@ my master of science thesis project!
 
 - [ ] check why spartaco does not respond
 
-- [ ] setup onedrive synced folder (or maybe my ubuntu-server, or maybe spartaco, it just need to be some place to have all data in single place and synchronized)
+- [x] setup onedrive synced folder (or maybe my ubuntu-server, or maybe spartaco, it just need to be some place to have all data in single place and synchronized)
+<https://unigeit-my.sharepoint.com/:f:/r/personal/s4825087_studenti_unige_it/Documents/thesis-data?csf=1&web=1&e=8TZRN3>
 
-- [ ] https://ict.unige.it/istruzioni-vpn
+- [ ] <https://ict.unige.it/istruzioni-vpn>
 
 - [ ] merge the 3 'update readme and notes' commits
 
@@ -21,6 +22,7 @@ my master of science thesis project!
 
 biomod2 manual:
 <https://cran.r-project.org/web/packages/biomod2/refman/biomod2.html>
+<https://biomodhub.github.io/biomod2/>
 
 apptainer manual:
 <https://apptainer.org/docs/user/main/definition_files.html>
