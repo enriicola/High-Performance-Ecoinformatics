@@ -48,8 +48,22 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
+# LaTeX build artifacts (except PDFs - we want to version those)
+*.aux
+*.lof
+*.lot
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+
 # misc
 .vscode/
 secrets*
 *.log
 *.sif
+data/output/
+data/input/
