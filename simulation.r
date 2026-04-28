@@ -16,8 +16,9 @@ library(doParallel)
 ####################################
 # loading species occurrences data
 ####################################
-spocc <- read.table("data/test.csv", head = TRUE, sep = ",")
-sp.names <- levels(factor(spocc[, 1]))
+TEST_N_ROWS <- 500
+spocc <- read.table("data/input/data_62768_rows.csv", head = TRUE, sep = ",", nrows = TEST_N_ROWS)
+sp.names <- levels(factor(spocc$sp_name)) # Use the second column (sp_name)
 num_sp <- length(sp.names)
 
 #####################################
@@ -28,17 +29,24 @@ num_sp <- length(sp.names)
 # loading CURRENT environmental data
 #####################################
 
-clim_cal <- rast(dir("PCA/baseline", full.names = T))
-tri_cal <- rast(dir("TRI", full.names = T))
-soil_cal <- rast(dir("PCA/Suolo", full.names = T))
+# Loading and naming rasters explicitly
+clim_cal <- rast(dir("data/input/PCA/baseline", full.names = T))
+names(clim_cal) <- c("PC1clim", "PC2clim")
+
+tri_cal <- rast(dir("data/input/TRI", full.names = T))
+names(tri_cal) <- "tri"
+
+soil_cal <- rast(dir("data/input/PCA/Suolo", full.names = T))
+names(soil_cal) <- c("PC1soil", "PC2soil")
+
+# Merging into a single stack
 cur_cal <- c(clim_cal, tri_cal, soil_cal)
-names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
 
 #####################################
 # loading FUTURE list
 #####################################
 
-lf <- list.dirs("PCA/Futuro", full.names = T, recursive = T)[-1]
+lf <- list.dirs("data/input/PCA/Futuro", full.names = T, recursive = T)[-1]
 lf <- as.matrix(lf)
 lf <- lf[nchar(lf[, 1]) >= 38, ] # TODO refactor this line programmatically
 
@@ -58,13 +66,13 @@ pb <- txtProgressBar(
 ) # Character used to create the bar
 
 
-selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
+selModels <- c("GBM")
 
 
 # Take the third species in "spocc" and only the first 10 000 points of occurrence
 # i=3
 # spocc1<-subset(spocc, spocc[,1]==sp.names[i])
-# spocc1 <- spocc1[1:10000,]
+# spocc1 <- spocc1[1:500,]
 
 ###########################################################################
 ######################     CALIBRATION ON EUROPE      #####################
@@ -75,9 +83,9 @@ selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
 ###########################################################################
 
 start.time <- Sys.time()
-myRespName <- paste(sp.names[1], sep = "")
-myRespXY <- spocc[, 3:4] # coordinates of points
-myResp <- rep(1, nrow(spocc)) # species occurences
+myRespName <- make.names(sp.names[1]) # Make syntactically valid (no spaces)
+myRespXY <- spocc[1:TEST_N_ROWS, 3:4] # coordinates of points (subsampled)
+myResp <- rep(1, TEST_N_ROWS) # species occurences (subsampled)
 
 # 1. Formatting Data
 print("Formatting Data...")
@@ -88,7 +96,7 @@ myBiomodData <- BIOMOD_FormatingData(
   resp.xy = myRespXY,
   resp.name = myRespName,
   PA.nb.rep = 1,
-  PA.nb.absences = 10000,
+  PA.nb.absences = 50,
   PA.strategy = "random",
   na.rm = TRUE,
   filter.raster = TRUE
@@ -117,7 +125,7 @@ myBiomodModelOut <- BIOMOD_Modeling(
   CV.nb.rep = 1,
   CV.perc = 0.7,
   OPT.user = opt.b,
-  metric.eval = c("TSS", "ROC", "KAPPA", "POD", "FAR"),
+  metric.eval = c("TSS", "AUCroc", "KAPPA", "POD", "FAR"),
   scale.models = FALSE,
   CV.do.full.models = FALSE,
   nb.cpu = 1,
@@ -135,10 +143,10 @@ myBiomodEM <- BIOMOD_EnsembleModeling(
   bm.mod = myBiomodModelOut,
   models.chosen = "all",
   em.by = "all",
-  em.algo = c("EMmean", "EMcv"),
-  metric.select = c("ROC"),
+  em.algo = c("EMmean"),
+  metric.select = c("AUCroc"),
   metric.select.thresh = c(0.6),
-  metric.eval = c("TSS", "ROC", "KAPPA"),
+  metric.eval = c("TSS", "AUCroc", "KAPPA"),
   nb.cpu = 1
 )
 
@@ -203,8 +211,8 @@ time.cur_proj_EM <- end.time - start.time
 #######################################   FUTURE     ######################
 ###########################################################################
 
-## Number of future projections
-nf <- length(lf)
+## Number of future projections (reduced for testing)
+nf <- 1
 
 
 start.time <- Sys.time()
@@ -218,7 +226,7 @@ for (k in 1:nf) {
   fut <- fut1
   fut_proj <- c(fut[[1]], fut[[2]], tri_cal, soil_cal[[1]], soil_cal[[2]])
   fut_proj <- rast(fut_proj)
-  names(fut_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+  names(fut_proj) <- c("PC1clim", "PC2clim", "tri", "PC1soil", "PC2soil")
 
   nm1 <- strsplit(name, "/")[[1]]
   nm <- paste0(nm1[5], "_", nm1[6])

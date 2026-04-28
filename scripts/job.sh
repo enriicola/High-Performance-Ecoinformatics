@@ -15,8 +15,7 @@ echo "Starting BIOMOD simulation at $(date)"
 # Load Apptainer module (usually pre-installed, but good practice)
 module load apptainer
 
-# Run the container
-# We bind the current directory to /data inside the container
-apptainer run --bind .:/data container.sif
+# Run the container and execute the simulation script
+apptainer run --bind .:/data container.sif Rscript simulation.r
 
 echo "Simulation finished at $(date)"
