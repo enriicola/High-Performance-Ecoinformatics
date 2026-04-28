@@ -1,0 +1,54 @@
+Bootstrap: docker
+From: rocker/r-ver:latest
+
+%labels
+    Author Enrico Pezzano
+    System Cineca Leonardo
+    Description Ecological Modelling Container (biomod2, terra) - Base variant
+
+%files
+    containers/apt-packages.txt /opt/apt-packages.txt
+    containers/my-echo.sh /opt/my-echo.sh
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    . /opt/my-echo.sh
+    
+    # 1. System Dependencies
+    blue_echo ">>> Installing system dependencies..."
+    apt-get update -y > /dev/null
+    xargs apt-get install -y --no-install-recommends < /opt/apt-packages.txt > /dev/null
+    
+    # 2. Cineca Mount Points
+    blue_echo ">>> Creating Cineca mount points..."
+    mkdir -p /leonardo /work /scratch /data
+    
+    # 3. R Packages
+    blue_echo ">>> Installing R packages (biomod2 + dependencies)..."
+    # biomod2 handles its own Imports (terra, raster, gbm, etc.) automatically
+    Rscript -e 'options(Ncpus = 4); install.packages("biomod2", repos="https://cloud.r-project.org/", dependencies=TRUE)' > /dev/null
+    
+    # Cleanup
+    blue_echo ">>> Cleaning up..."
+    apt-get clean > /dev/null
+    rm -rf /var/lib/apt/lists/*
+    
+    blue_echo ">>> Build complete!"
+
+%environment
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+
+%runscript
+   exec R "$@"
+
+%test
+    . /opt/my-echo.sh
+    blue_echo ">>> Verifying installation..."
+    Rscript -e 'libs <- c("biomod2", "terra", "raster", "gbm", "mda", "Hmisc", "doParallel");
+                missing <- libs[!sapply(libs, requireNamespace, quietly=TRUE)];
+                if(length(missing) > 0) {
+                    cat("\033[31m>>> WARNING: Missing libraries:", paste(missing, collapse=", "), "\033[0m\n")
+                } else {
+                    cat("\033[32m>>> All", length(libs), "libraries loaded successfully.\n\033[0m")
+                }'
