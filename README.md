@@ -1,127 +1,121 @@
-# biomod++
+# High Performance Ecoinformatics: Master's Thesis Project
 
-my master of science thesis project!
+## 📋 Task Tracking & TODOs
 
-## todos
+### Active Tasks & Backlog
+- [ ] gemini --resume 6138a5bd-a73b-4fe4-a636-8840895cb730
+- [ ] move workspace to leo cineca by copyng input/ and the container via scp and cloning the git repo inside my userdb workspace and using vscode extension to ssh into leo cineca
 
-- [ ] learn how to copy file from my linux to spartaco and viceversa
+- [ ] Refinement of `simulation.r` for performance optimization.
+- [ ] Integration of topographic roughness index (TRI) layers.
+- [ ] Validation of PCA future scenario projections.
+- [ ] Full HPC run on Cineca Leonardo.
+- [ ] Metric extraction (TSS, AUC, etc.) and visualization.
+- [ ] Thesis document (`thesis.tex`) finalization.
+
+### Operative TODOs
+- [x] baseline == presente ???
+- [ ] rename gh repo from biomod++ to 'high performance ecoinformatics'
+- [ ] entrare on omarchy nella vpn forticlient
+- [ ] entrare con serviicola nella vpn forticlient
+- [ ] abilitare ssh su spartaco
+- [ ] copy stuff from spartaco using scp and not remmina
 - [ ] connect to cineca from my linux
-
-- [ ] check why spartaco does not respond
-
-- [x] setup onedrive synced folder (or maybe my ubuntu-server, or maybe spartaco, it just need to be some place to have all data in single place and synchronized)
-<https://unigeit-my.sharepoint.com/:f:/r/personal/s4825087_studenti_unige_it/Documents/thesis-data?csf=1&web=1&e=8TZRN3>
-
-- [ ] <https://ict.unige.it/istruzioni-vpn>
-
-- [ ] merge the 3 'update readme and notes' commits
-
 - [ ] redirect all prints of .def file to null, except errors and warnings
+- [ ] apptainer run --bind $WORK:/work,$CINECA_SCRATCH:/scratch biomod++.sif
+- [ ] use rocker image with CUDA support <https://rocker-project.org/images/versioned/cuda.html>
+- [ ] add sonarcube bind and support
 
-## notes
+---
 
-biomod2 manual:
-<https://cran.r-project.org/web/packages/biomod2/refman/biomod2.html>
-<https://biomodhub.github.io/biomod2/>
+## Abstract / Project Overview
+This repository contains the codebase and notes for my Master of Science thesis project, focusing on High-Performance Ecoinformatics. The goal is to perform ensemble species distribution modelling using the `biomod2` pipeline on HPC environments (Cineca Leonardo).
 
-apptainer manual:
-<https://apptainer.org/docs/user/main/definition_files.html>
+## Project Status & Notes
+- **Current Phase**: Implementation & Local Validation.
+- **Goal**: Finalizing the ensemble modelling pipeline for the Master's thesis.
+- **Core Context**:
+  - **Technologies**: R (`biomod2`, `terra`), Apptainer, SLURM (Cineca Leonardo).
+  - **Environment**: Containerized execution (`container.sif`) is mandatory for consistency.
+- **Known Issues / Technical Notes**:
+  - Always use `TEST_N_ROWS` for local debugging to avoid long execution times.
+  - Ensure `make.names()` is used for all layer names in formulas.
 
-### remmina - move/copy files between systems
+---
 
-- Right click the RDP connection you are using and select edit
-- Under the "Share folder" option enter the path of a folder on the client
-- Restart the connection
-- The shared folder should be visible in File Explorer in Windows under This PC
+## 📖 Thesis Notes
 
-### bash daniele PER IL CINECA
+### 1. Ecological and Environmental Data
 
-'''bash
+#### Target Species and Occurrences
+- **Study System**: Alpine grasslands.
+- **Occurrence Data**: `data_62768_rows` (formerly `data_1km_eunis.txt`). This dataset contains presence/absence points of the target species, mapped at a 1 km² resolution.
+
+#### Predictor Variables (Environmental & Climatic)
+The model leverages raster data representing climatic and soil variables. To reduce dimensionality and collinearity, a **Principal Component Analysis (PCA)** has been applied to these variables.
+
+**Timeframes & Scenarios:**
+- **Baseline**: Present-day climate and soil variables.
+- **Future Projections**:
+  - **SSP3-7.0**: Intermediate/high greenhouse gas emissions scenario.
+  - **SSP5-8.5**: Pessimistic/worst-case greenhouse gas emissions scenario.
+
+### 2. Methodology & Software Stack
+
+#### R Packages for Spatial Analysis
+- **`terra` & `sf`**: Core libraries used for handling, processing, and projecting spatial raster and vector data.
+- **`biomod2`**: The primary framework for building ensemble species distribution models (SDMs).
+
+#### Ensemble Algorithms
+*(To be detailed based on implementation)*
+- **Expected algorithms to evaluate**: GLM (Generalized Linear Models), GBM (Gradient Boosting Machines), RF (Random Forest), MaxEnt.
+
+#### System Dependencies
+The R packages rely on high-performance C++ system libraries. These must be installed via the system package manager (`apt` on Debian/Ubuntu) prior to R package compilation. (See `containers/installation` for the centralized list).
+
+- **Core Geospatial Stack**:
+  - **GDAL (`libgdal-dev`)**: The "Translator." Handles reading, writing, and compressing raster files (e.g., `.tif`).
+  - **PROJ (`libproj-dev`)**: The "Map Maker." Manages coordinate reference systems (CRS) and map projections.
+  - **GEOS (`libgeos-dev`)**: The "Geometry Engine." Performs spatial logic.
+- **Supporting Libraries**:
+  - **udunits2 (`libudunits2-dev`)**: Handles physical unit conversions.
+  - **libsodium (`libsodium-dev`)**: Provides modern cryptography and security.
+
+### 3. High-Performance Computing (Cineca Leonardo)
+
+The computational core of this thesis runs on the Cineca Leonardo supercomputer using Apptainer containers to ensure reproducibility.
+
+#### Access via Step SSH
+To authenticate and access the Cineca cluster securely:
+
+```bash
 if [ -f ~/.bash_agent ]; then
-. ~/.bash_agent
+    . ~/.bash_agent
 fi
 
 steptest=$(step ssh list --raw '<USER_EMAIL>'| step ssh inspect | grep "Valid")
 
-if [ -z "$steptest" ]
-then
-  eval $(ssh-agent)
-  echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > ~/.bash_agent
-  echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> ~/.bash_agent
-  step ssh login '<USER_EMAIL>' --provisioner cineca-hpc
+if [ -z "$steptest" ]; then
+    eval $(ssh-agent)
+    echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > ~/.bash_agent
+    echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> ~/.bash_agent
+    step ssh login '<USER_EMAIL>' --provisioner cineca-hpc
 fi
-'''
+```
 
-### singularity
+### 4. Planned Analyses & Future Work
+- **Results Extraction**: Extraction and visualization of model evaluation metrics (TSS, ROC/AUC, etc.).
+- **Hotspot Analysis**: Identification of climate refugia or areas of high vulnerability for the target species.
+- **Improvements**: ...
 
-<!---->
-Caro Enrico, dopo aver atteso la solita mezz'ora ci siamo arresi. Per installare terra serve GDAL, ma va installato come rott. Prima di chiedere supporto al CINECA proviamo la strada dei container.
+---
 
-Come dicevo stamattina, per problematiche di sicurezza, nei centri HPC gira Singularity (o la sua versione open Apptainer).
-
-Per cui bisogna, sul portatile o Spartaco
-
-1. crearsi un container Singularity ed installarci sopra tutto quel che serve di R + software di simulazione
-2. portarlo su Leonardo e provare
-
-I link di riferimento dovrebber essere questi
-<https://docs.hpc.cineca.it/services/singularity.html>
-
-e
-
-<https://cran.r-project.org/web/packages/CausalGPS/vignettes/Singularity-Image.html>
-
-Se hai dubbi chiedi.
-<!---->
-
-per sicurezza, nei centri HPC gira Singularity (o la sua versione open Apptainer).
-I link di riferimento dovrebber essere questi
-<https://docs.hpc.cineca.it/services/singularity.html>
-<https://cran.r-project.org/web/packages/CausalGPS/vignettes/Singularity-Image.html>
-
-CONTAINER-NAME=biomod++
-sudo apptainer build biomod++.sif biomod++.def
-apptainer shell biomod++.sif
-apptainer run biomod++.sif
-
-apptainer run --bind $WORK:/work,$CINECA_SCRATCH:/scratch biomod++.sif
-
-### appunti per cineca-leonardo
-
-<https://cran.r-project.org/web/packages/CausalGPS/vignettes/Singularity-Image.html>
-<https://docs.hpc.cineca.it/services/singularity.html>
-
-noi lavoriamo su E: (toshiba ext) alpine grasslands
-ensable modelling_no_parallel.R
-
-raster e terra sono pacchetti per lavorare coi file raster
-
-- son mappe climatiche
-- gli altri sono algoritmi che usa
-
-data_1km_eunis.txt è il file
-ogni km2 c'è un punto della specie
-
-<www.celsa.svizzera> :)
-
-PCA -> principal component analysis
-2 ere:
-
-- presente
-- futuro
-
-<https://docs.hpc.cineca.it/general/getting_started.html>
-<https://docs.hpc.cineca.it/general/access.html#access-to-the-systems>
-<https://docs.hpc.cineca.it/general/users_account.html#manage-your-hpc-credentials>
-<https://docs.hpc.cineca.it/general/access.html#how-to-mnage-authtentication-certificates>
-
-<https://www.youtube.com/watch?v=bwY1oNEIALs>
-<https://www.youtube.com/watch?v=AwXHIOu6zKY>
-<https://www.geeksforgeeks.org/r-language/r-programming-language-introduction/>
-<https://www.techtarget.com/searchbusinessanalytics/definition/R-programming-language>
-<https://www.coursera.org/articles/what-is-r-programming>
-<https://www.geeksforgeeks.org/r-language/r-programming-101/>
-
-<https://www.youtube.com/watch?v=FY8BISK5DpM>
-<https://www.youtube.com/watch?v=_V8eKsto3Ug>
-<https://www.youtube.com/watch?v=yZ0bV2Afkjc>
+## References and Bookmarks
+- [biomod2 Reference Manual](https://cran.r-project.org/web/packages/biomod2/refman/biomod2.html)
+- [biomod2 GitHub Pages](https://biomodhub.github.io/biomod2/)
+- [CausalGPS Singularity Vignette](https://cran.r-project.org/web/packages/CausalGPS/vignettes/Singularity-Image.html)
+- [Cineca HPC Singularity Docs](https://docs.hpc.cineca.it/services/singularity.html)
+- [Cineca HPC Getting Started](https://docs.hpc.cineca.it/general/getting_started.html)
+- [Access to the Systems](https://docs.hpc.cineca.it/general/access.html#access-to-the-systems)
+- [Manage your HPC credentials](https://docs.hpc.cineca.it/general/users_account.html#manage-your-hpc-credentials)
+- [How to manage authentication certificates](https://docs.hpc.cineca.it/general/access.html#how-to-mnage-authtentication-certificates)
