@@ -7,7 +7,7 @@ From: rocker/geospatial:latest
     Description Ecological Modelling Container (biomod2, terra)
 
 %files
-    containers/apt-packages.txt /opt/apt-packages.txt
+    containers/installation /opt/installation
     containers/my-echo.sh /opt/my-echo.sh
 
 %post
@@ -17,7 +17,7 @@ From: rocker/geospatial:latest
     # 1. System Dependencies (Ensures any missing libraries from the manifest are present)
     blue_echo ">>> Installing system dependencies..."
     apt-get update -y > /dev/null
-    xargs apt-get install -y --no-install-recommends < /opt/apt-packages.txt > /dev/null
+    xargs apt-get install -y --no-install-recommends < /opt/installation
 
     # 2. Cineca Mount Points
     blue_echo ">>> Creating Cineca mount points..."
@@ -26,7 +26,7 @@ From: rocker/geospatial:latest
     # 3. R Packages
     blue_echo ">>> Installing R packages (biomod2 + dependencies)..."
     # biomod2 handles its own Imports (terra, raster, gbm, etc.) automatically
-    Rscript -e 'options(Ncpus = 4); install.packages("biomod2", repos="https://cloud.r-project.org/", dependencies=TRUE)' > /dev/null
+    Rscript -e 'options(Ncpus = 4); install.packages("biomod2", repos="https://cloud.r-project.org/", dependencies=TRUE, quiet=TRUE, clean=TRUE)'
 
     # Cleanup
     blue_echo ">>> Cleaning up..."

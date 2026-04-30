@@ -6,17 +6,19 @@ library(mda)
 library(Hmisc)
 library(plyr)
 library(doParallel)
-# library(profvis)
 
 # Parallelization inside functions
 # cl <- makeCluster(10)
 # registerDoParallel(cl)
 
-
 ####################################
 # loading species occurrences data
 ####################################
-TEST_N_ROWS <- 500
+TEST_N_ROWS <- 100
+TEST_N_PSEUDO_ABSENCES <- 50
+print(paste("n rows: ", TEST_N_ROWS))
+print(paste("n pseudo-absences: ", TEST_N_PSEUDO_ABSENCES))
+
 spocc <- read.table("data/input/data_62768_rows.csv", head = TRUE, sep = ",", nrows = TEST_N_ROWS)
 sp.names <- levels(factor(spocc$sp_name)) # Use the second column (sp_name)
 num_sp <- length(sp.names)
@@ -30,17 +32,18 @@ num_sp <- length(sp.names)
 #####################################
 
 # Loading and naming rasters explicitly
-clim_cal <- rast(dir("data/input/PCA/baseline", full.names = T))
+clim_cal <- rast(dir("data/input/PCA/baseline", pattern = "\\.tif$", full.names = T))
 names(clim_cal) <- c("PC1clim", "PC2clim")
 
-tri_cal <- rast(dir("data/input/TRI", full.names = T))
+tri_cal <- rast(dir("data/input/TRI", pattern = "\\.tif$", full.names = T))
 names(tri_cal) <- "tri"
 
-soil_cal <- rast(dir("data/input/PCA/Suolo", full.names = T))
+soil_cal <- rast(dir("data/input/PCA/Suolo", pattern = "\\.tif$", full.names = T))
 names(soil_cal) <- c("PC1soil", "PC2soil")
 
 # Merging into a single stack
 cur_cal <- c(clim_cal, tri_cal, soil_cal)
+cur_cal <- spatSample(cur_cal, size = ncell(cur_cal), as.raster = TRUE)
 
 #####################################
 # loading FUTURE list
@@ -48,44 +51,26 @@ cur_cal <- c(clim_cal, tri_cal, soil_cal)
 
 lf <- list.dirs("data/input/PCA/Futuro", full.names = T, recursive = T)[-1]
 lf <- as.matrix(lf)
-lf <- lf[nchar(lf[, 1]) >= 38, ] # TODO refactor this line programmatically
-
-#####################################
-# Select bioclimatic variables
-#####################################
-# l<-c(4,10, 19)
-# cur<-cur1[[l]]
-
+lf <- lf[nchar(lf[, 1]) >= 38, ]
 
 pb <- txtProgressBar(
-  min = 0, # Minimum value of the progress bar
-  max = num_sp, # Maximum value of the progress bar
-  style = 3, # Progress bar style (also available style = 1 and style = 2)
-  width = 50, # Progress bar width. Defaults to getOption("width")
+  min = 0,
+  max = num_sp,
+  style = 3,
+  width = 50,
   char = "="
-) # Character used to create the bar
-
+)
 
 selModels <- c("GBM")
-
-
-# Take the third species in "spocc" and only the first 10 000 points of occurrence
-# i=3
-# spocc1<-subset(spocc, spocc[,1]==sp.names[i])
-# spocc1 <- spocc1[1:500,]
 
 ###########################################################################
 ######################     CALIBRATION ON EUROPE      #####################
 ###########################################################################
 
-###########################################################################
-######################     ENSAMBLE       CURRENT     #####################
-###########################################################################
-
 start.time <- Sys.time()
-myRespName <- make.names(sp.names[1]) # Make syntactically valid (no spaces)
-myRespXY <- spocc[1:TEST_N_ROWS, 3:4] # coordinates of points (subsampled)
-myResp <- rep(1, TEST_N_ROWS) # species occurences (subsampled)
+myRespName <- make.names(sp.names[1])
+myRespXY <- spocc[1:TEST_N_ROWS, 3:4]
+myResp <- rep(1, TEST_N_ROWS)
 
 # 1. Formatting Data
 print("Formatting Data...")
@@ -96,19 +81,23 @@ myBiomodData <- BIOMOD_FormatingData(
   resp.xy = myRespXY,
   resp.name = myRespName,
   PA.nb.rep = 1,
-  PA.nb.absences = 50,
+  PA.nb.absences = TEST_N_PSEUDO_ABSENCES,
   PA.strategy = "random",
   na.rm = TRUE,
   filter.raster = TRUE
 )
 
+# DIAGNOSTIC CHECK: Verify points were not dropped due to raster NA values
+print("--- BIOMOD DATA SUMMARY ---")
+summary(myBiomodData)
+print("---------------------------")
 
 end.time <- Sys.time()
 time.formating <- end.time - start.time
 
 start.time <- Sys.time()
-# 2. Defining Models Options using default options.
-# bigboss parameters
+
+# 2. Defining Models Options
 opt.b <- bm_ModelingOptions(
   data.type = "binary",
   models = selModels,
@@ -117,7 +106,7 @@ opt.b <- bm_ModelingOptions(
 )
 
 # 3. Computing the models
-
+# FIX: Removed "POD" and "FAR" from metric.eval to prevent divide-by-zero crashes
 myBiomodModelOut <- BIOMOD_Modeling(
   myBiomodData,
   models = selModels,
@@ -125,7 +114,7 @@ myBiomodModelOut <- BIOMOD_Modeling(
   CV.nb.rep = 1,
   CV.perc = 0.7,
   OPT.user = opt.b,
-  metric.eval = c("TSS", "AUCroc", "KAPPA", "POD", "FAR"),
+  metric.eval = c("TSS", "AUCroc", "KAPPA"),
   scale.models = FALSE,
   CV.do.full.models = FALSE,
   nb.cpu = 1,
@@ -135,10 +124,9 @@ myBiomodModelOut <- BIOMOD_Modeling(
 end.time <- Sys.time()
 time.modeling <- end.time - start.time
 
-
 start.time <- Sys.time()
-# 4. Model ensemble models
 
+# 4. Model ensemble models
 myBiomodEM <- BIOMOD_EnsembleModeling(
   bm.mod = myBiomodModelOut,
   models.chosen = "all",
@@ -153,30 +141,15 @@ myBiomodEM <- BIOMOD_EnsembleModeling(
 end.time <- Sys.time()
 time.modeling_EM <- end.time - start.time
 
-
 ### Models evaluations
-
 myBiomodModelEval <- get_evaluations(myBiomodModelOut)
 myBiomodModelEval_ensamble <- get_evaluations(myBiomodEM)
-
-# nome<-paste0("C:/Users/User/Desktop/SDM_Alps/Eval_", sp.names[i], ".txt", sep="")
-# write.table(myBiomodModelEval , file=nome, sep="\t")
-
-# nome1<-paste0("C:/Users/User/Desktop/SDM_Alps/Eval_EM_", sp.names[i], ".txt", sep="")
-# write.table(myBiomodModelEval_ensamble , file=nome1, sep="\t")
-
 
 ###########################################################################
 ######################      PROJECTION ON ALPS        #####################
 ###########################################################################
 
-###########################################################################
-###########################           CURRENT   ###########################
-###########################################################################
-
-
 # 5. Individual models projections on current environmental conditions
-
 start.time <- Sys.time()
 myBiomodProj <- BIOMOD_Projection(
   bm.mod = myBiomodModelOut,
@@ -191,9 +164,7 @@ end.time <- Sys.time()
 time.cur_proj <- end.time - start.time
 
 # 6. Project ensemble models
-
 start.time <- Sys.time()
-
 myBiomodEMProj <- BIOMOD_EnsembleForecasting(
   bm.em = myBiomodEM,
   proj.name = "CurrentEM",
@@ -201,7 +172,6 @@ myBiomodEMProj <- BIOMOD_EnsembleForecasting(
   models.chosen = "all",
   metric.binary = "all",
   metric.filter = "all"
-  # nb.cpu = 1
 )
 
 end.time <- Sys.time()
@@ -211,30 +181,27 @@ time.cur_proj_EM <- end.time - start.time
 #######################################   FUTURE     ######################
 ###########################################################################
 
-## Number of future projections (reduced for testing)
 nf <- 1
-
 
 start.time <- Sys.time()
 for (k in 1:nf) {
   name <- lf[k]
 
-  fut1 <- rast(dir(lf[k], full.names = T))
-
-
-  # names(fut1)<-lnames
+  fut1 <- rast(dir(lf[k], pattern = "\\.tif$", full.names = T))
   fut <- fut1
   fut_proj <- c(fut[[1]], fut[[2]], tri_cal, soil_cal[[1]], soil_cal[[2]])
   fut_proj <- rast(fut_proj)
-  names(fut_proj) <- c("PC1clim", "PC2clim", "tri", "PC1soil", "PC2soil")
+  fut_proj <- spatSample(fut_proj, size = ncell(fut_proj), as.raster = TRUE)
 
-  nm1 <- strsplit(name, "/")[[1]]
-  nm <- paste0(nm1[5], "_", nm1[6])
-  nm2 <- paste0("futureEM_", nm1[5], "_", nm1[6])
+  names(fut_proj) <- c("PC1clim", "PC2clim", "tri", "PC1soil", "PC2soil")
+  fut_proj <- fut_proj[[names(cur_cal)]]
+
+  folder_name <- basename(name)
+  parent_folder <- basename(dirname(name))
+  nm <- paste0(parent_folder, "_", folder_name)
+  nm2 <- paste0("futureEM_", parent_folder, "_", folder_name)
 
   # 5. Individual models projections on future environmental conditions
-
-
   myBiomodProj_fut <- BIOMOD_Projection(
     bm.mod = myBiomodModelOut,
     proj.name = nm,
@@ -244,7 +211,6 @@ for (k in 1:nf) {
     nb.cpu = 1
   )
 
-
   myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
     bm.em = myBiomodEM,
     bm.proj = myBiomodProj_fut,
@@ -253,16 +219,15 @@ for (k in 1:nf) {
     models.chosen = "all",
     metric.binary = "all",
     metric.filter = "all"
-    # nb.cpu = 1
   )
 }
 
-setTxtProgressBar(pb, i) # Sets the progress bar to the current state
+setTxtProgressBar(pb, 1)
 Sys.sleep(10)
 end.time <- Sys.time()
 time.fut_proj <- end.time - start.time
-# }
-close(pb) # Close the connection
+
+close(pb)
 
 time <- data.frame(
   formating = time.formating, modeling = time.modeling, modeling_EM = time.modeling_EM, cur_projection = time.cur_proj,
