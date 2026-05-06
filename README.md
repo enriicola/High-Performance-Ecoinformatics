@@ -3,6 +3,8 @@
 ## 📋 Task Tracking & TODOs
 
 ### Active Tasks & Backlog
+- [ ] verify CINECA project codes: check with Lucia Doni whether IsCd6_SPECC and IscrC_SPECC are the same or different projects
+- [ ] fix various agents.md files...use only one and create links to it
 - [ ] gemini --resume 6138a5bd-a73b-4fe4-a636-8840895cb730
 - [ ] move workspace to leo cineca by copyng input/ and the container via scp and cloning the git repo inside my userdb workspace and using vscode extension to ssh into leo cineca
 
@@ -85,23 +87,101 @@ The R packages rely on high-performance C++ system libraries. These must be inst
 
 The computational core of this thesis runs on the Cineca Leonardo supercomputer using Apptainer containers to ensure reproducibility.
 
-#### Access via Step SSH
-To authenticate and access the Cineca cluster securely:
+#### Account Details and Access
 
+The Leonardo cluster uses OIDC-based authentication through Step CA rather than traditional SSH keys. The account details are:
+- **HPC Username**: `epezzano`
+- **Login Host**: `login.leonardo.cineca.it`
+- **Email**: `enricopezzano@disroot.org`
+- **HPC Project**: `IsCd6_SPECC` (UserDB) / `IscrC_SPECC` (Leonardo workspace)
+- **Workspace Path**: `/leonardo_work/IscrC_SPECC/`
+- **Validity**: February 2026 to November 2026
+
+The authentication flow works as follows: the SSH agent handles the credentials, Step CA manages the OIDC token through a browser-based login, and subsequent SSH/SCP commands use that token automatically. This approach eliminates the need to manage separate SSH keys for HPC access.
+
+**Setup and Login**
+
+Start the SSH agent first:
 ```bash
-if [ -f ~/.bash_agent ]; then
-    . ~/.bash_agent
-fi
-
-steptest=$(step ssh list --raw '<USER_EMAIL>'| step ssh inspect | grep "Valid")
-
-if [ -z "$steptest" ]; then
-    eval $(ssh-agent)
-    echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > ~/.bash_agent
-    echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> ~/.bash_agent
-    step ssh login '<USER_EMAIL>' --provisioner cineca-hpc
-fi
+eval $(ssh-agent -s)
 ```
+
+Then authenticate with your OIDC credentials (this opens a browser):
+```bash
+step ssh login 'enricopezzano@disroot.org' --provisioner cineca-hpc
+```
+
+After authentication, you can connect to Leonardo:
+```bash
+ssh REDACTED_USERNAME@login.leonardo.cineca.it
+```
+
+If backspace and arrow keys don't work in the terminal, set the TERM variable:
+```bash
+export TERM=xterm
+```
+
+The Leonardo frontend is a login node; from there you can submit SLURM jobs, check queue status, or transfer files. File transfers use SCP:
+```bash
+# Upload files from local machine to Leonardo home
+scp -r /home/enriicola/Desktop/tesi REDACTED_USERNAME@login.leonardo.cineca.it:~/
+
+# Download files from Leonardo
+scp -r REDACTED_USERNAME@login.leonardo.cineca.it:~/results /local/destination/
+```
+
+**Automation Script**
+
+For repeatability, the `cineca-setup.sh` script automates the agent and OIDC login:
+```bash
+#!/bin/bash
+eval $(ssh-agent -s)
+step ssh login 'enricopezzano@disroot.org' --provisioner cineca-hpc
+```
+
+Run this once per session, then use SSH and SCP without re-entering credentials. The script can also be extended to handle agent persistence across shell sessions by saving the agent PID and socket location to a file, though this is optional for one-off jobs.
+
+#### Hardware and Software
+
+Leonardo is an Atos Bull HPC system with two main compute modules:
+
+**Booster Module** (3456 nodes):
+- 32 Intel Ice Lake cores per node at 2.60 GHz
+- 4 NVIDIA Ampere A100 GPUs (64 GB each) per node
+- 512 GB RAM per node
+
+**General Purpose Module** (1536 nodes):
+- 2×56 Intel Sapphire Rapids cores per node at 2.00 GHz
+- 512 GB RAM per node
+
+The nodes are interconnected by a 200G HDR Infiniband Dragonfly+ network. Job scheduling uses SLURM 22.05. The system runs Red Hat Enterprise Linux 8.7 and supports Apptainer for container execution. Software environments can be managed via Spack modules.
+
+#### Job Submission with SLURM
+
+Jobs are submitted to the SLURM scheduler rather than run interactively. This allows long-running analyses to persist after disconnecting from the login node. A job script specifies resource requirements (CPU cores, memory, time, GPU if needed) and the commands to execute.
+
+Example job script (`run.sh`):
+```bash
+#!/bin/bash
+#SBATCH --job-name=biomod_ensemble
+#SBATCH --time=48:00:00
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=256GB
+
+cd /leonardo_work/IscrC_SPECC/High-Performance-Ecoinformatics
+Rscript main.r > main_output.log 2>&1
+```
+
+Submit and monitor:
+```bash
+sbatch run.sh              # Submit job, returns immediately
+squeue -u epezzano         # Check job status
+tail -f main_output.log    # Watch output live
+scancel <jobid>            # Cancel job if needed
+```
+
+The job runs independently on allocated compute nodes. You can disconnect from Leonardo and check results later.
 
 ### 4. Planned Analyses & Future Work
 - **Results Extraction**: Extraction and visualization of model evaluation metrics (TSS, ROC/AUC, etc.).
