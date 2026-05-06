@@ -37,7 +37,7 @@ num_sp<-length(sp.names)
 # loading CURRENT environmental data 
 #####################################
 clim_cal=rast(dir("./data/input/PCA/baseline", full.names=T))
-tri_cal=rast(dir("./data/TRI", full.names=T))
+tri_cal=rast(dir("./data/input/TRI", full.names=T))
 soil_cal=rast(dir("./data/input/PCA/Suolo", full.names=T))
 cur_cal<-c(clim_cal,tri_cal,soil_cal)
 names(cur_cal)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
