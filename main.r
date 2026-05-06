@@ -1,27 +1,29 @@
 # ensamble_modelling_no_parallel
 
 library(biomod2)
-library(raster)
+#library(raster)
 library(terra)
 #library(rgdal)
 library(gbm)
 library(mda)
 library(randomForest)
-library(Hmisc)
-library(plyr)
+#library(Hmisc)
+#library(plyr)
 #library(maptools)
 library(doParallel)
-library(profvis)
+#library(profvis)
 
 cl <- makeCluster(10)
 registerDoParallel(cl)
+
+dir.create("./data/output", showWarnings=FALSE)
 
 
 
 ####################################
 # loading species occurrences data
 ####################################
-spocc <- read.table("C:/Users/User/Desktop/SDM_Alps/data_1km_EUNIS.txt", head=TRUE, sep="\t")
+spocc <- read.csv("./data/input/data_62768_rows.csv", head=TRUE)
 sp.names<-levels(factor(spocc[,1]))
 num_sp<-length(sp.names)
 
@@ -34,9 +36,9 @@ num_sp<-length(sp.names)
 #####################################
 # loading CURRENT environmental data 
 #####################################
-clim_cal=rast(dir("C:/Users/User/Desktop/SDM_Alps/PCA/baseline", full.names=T))
-tri_cal=rast(dir("C:/Users/User/Desktop/SDM_Alps/TRI", full.names=T))
-soil_cal=rast(dir("C:/Users/User/Desktop/SDM_Alps/PCA/Suolo", full.names=T))
+clim_cal=rast(dir("./data/PCA/baseline", full.names=T))
+tri_cal=rast(dir("./data/TRI", full.names=T))
+soil_cal=rast(dir("./data/PCA/Suolo", full.names=T))
 cur_cal<-c(clim_cal,tri_cal,soil_cal)
 names(cur_cal)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
 
@@ -47,9 +49,9 @@ names(cur_cal)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
 #####################################
 # loading CURRENT environmental data
 #####################################
-clim_proj=rast(dir("C:/Users/User/Desktop/SDM_Alps/Var_Climate/Baseline", full.names=T))
-tri_proj=rast(dir("C:/Users/User/Desktop/SDM_Alps/Var_TRI", full.names=T))
-soil_proj=rast(dir("C:/Users/User/Desktop/SDM_Alps/Var_Soil", full.names=T))
+clim_proj=rast(dir("./data/Var_Climate/Baseline", full.names=T))
+tri_proj=rast(dir("./data/Var_TRI", full.names=T))
+soil_proj=rast(dir("./data/Var_Soil", full.names=T))
 cur_proj<- c(clim_proj,tri_proj,soil_proj)
 names(cur_proj)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
 
@@ -57,7 +59,7 @@ names(cur_proj)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
 # loading FUTURE list
 #####################################
 
-lf=list.dirs("C:/Users/User/Desktop/SDM_Alps/Var_Climate/future", full.names=T, recursive = T)[-1]
+lf=list.dirs("./data/Var_Climate/future", full.names=T, recursive = T)[-1]
 lf<-as.matrix(lf)
 lf<-lf[nchar(lf[,1]) >= 66, ]
 #####################################
@@ -162,10 +164,10 @@ time.modeling_EM <- end.time - start.time
 	myBiomodModelEval <- get_evaluations(myBiomodModelOut)
 	myBiomodModelEval_ensamble <- get_evaluations(myBiomodEM)
 
-	nome<-paste0("C:/Users/User/Desktop/SDM_Alps/Eval_", sp.names[i], ".txt", sep="")
+	nome<-paste0("./data/output/Eval_", sp.names[i], ".txt", sep="")
 	write.table(myBiomodModelEval , file=nome, sep="\t")
 
-	nome1<-paste0("C:/Users/User/Desktop/SDM_Alps/Eval_EM_", sp.names[i], ".txt", sep="")
+	nome1<-paste0("./data/output/Eval_EM_", sp.names[i], ".txt", sep="")
 	write.table(myBiomodModelEval_ensamble , file=nome1, sep="\t")
 
 
@@ -255,7 +257,7 @@ myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
 				new.env = fut_proj,
 				models.chosen = 'all',
 				metric.binary = 'all',
-				metric.filter = 'all'
+				metric.filter = 'all',
 				nb.cpu = 10)})
 }
 setTxtProgressBar(pb, i)# Sets the progress bar to the current state
@@ -268,10 +270,10 @@ close(pb) # Close the connection
 
 time<-data.frame(formating=time.formating, modeling=time.modeling, modeling_EM=time.modeling_EM, cur_projection=time.cur_proj,
 			cur_projection_EM=time.cur_proj_EM, fut_projection=time.fut_proj)
-write.table(time, "C:/Users/User/Desktop/SDM_Alps/time_Agrostis capillaris_10cpu.txt", sep="\t")
+write.table(time, paste0("./data/output/time_", sp.names[i], ".txt"), sep="\t")
 
 #save.image(file="SDM_praterie.RData")
 
 
-r <- rast("Omalotheca hoppeana/proj_currentEM/proj_currentEM_Omalotheca hoppeana_ensemble.tif")
-plot(r)
+#r <- rast("Omalotheca hoppeana/proj_currentEM/proj_currentEM_Omalotheca hoppeana_ensemble.tif")
+#plot(r)
