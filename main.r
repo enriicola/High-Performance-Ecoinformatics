@@ -13,7 +13,7 @@ library(randomForest)
 library(doParallel)
 #library(profvis)
 
-cl <- makeCluster(10)
+cl <- makeCluster(32)
 registerDoParallel(cl)
 
 dir.create("./data/output", showWarnings=FALSE)
@@ -136,7 +136,7 @@ p2 <- profvis({ myBiomodModelOut <- BIOMOD_Modeling(
 						metric.eval  = c('TSS', 'ROC', 'KAPPA', 'POD', 'FAR'),
 						scale.models = FALSE,
 						CV.do.full.models = FALSE,
-						nb.cpu=10,
+						nb.cpu=32,
 						do.progress=T)})
 	
 end.time <- Sys.time()
@@ -153,7 +153,7 @@ start.time <- Sys.time()
                                     metric.select = c('ROC'),
                                     metric.select.thresh = c(0.6),
                                     metric.eval = c('TSS', 'ROC', 'KAPPA'),
-						nb.cpu = 10)})
+						nb.cpu = 32)})
 
 end.time <- Sys.time()
 time.modeling_EM <- end.time - start.time
@@ -191,7 +191,7 @@ start.time <- Sys.time()
 				new.env = cur_proj,
 				models.chosen = 'all',
 				build.clamping.mask = T,
-                        nb.cpu=10)})
+                        nb.cpu=32)})
 
 end.time <- Sys.time()
 time.cur_proj <- end.time - start.time
@@ -207,7 +207,7 @@ myBiomodEMProj <- BIOMOD_EnsembleForecasting(
 			models.chosen = 'all',
 			metric.binary = 'all',
 			metric.filter = 'all',
-			nb.cpu = 10)
+			nb.cpu = 32)
 
 end.time <- Sys.time()
 time.cur_proj_EM <- end.time - start.time
@@ -247,7 +247,7 @@ p6 <- profvis({ myBiomodProj_fut<- BIOMOD_Projection(
 						new.env = fut_proj,
 						models.chosen = 'all',
 						build.clamping.mask = T,
-                               	nb.cpu=10)
+                               	nb.cpu=32)
 
 
 myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
@@ -258,7 +258,7 @@ myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
 				models.chosen = 'all',
 				metric.binary = 'all',
 				metric.filter = 'all',
-				nb.cpu = 10)})
+				nb.cpu = 32)})
 }
 setTxtProgressBar(pb, i)# Sets the progress bar to the current state
 Sys.sleep(10)
