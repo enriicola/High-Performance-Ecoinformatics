@@ -49,9 +49,9 @@ names(cur_cal)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
 #####################################
 # loading CURRENT environmental data
 #####################################
-clim_proj=rast(dir("./data/input/Var_Climate/Baseline", full.names=T))
-tri_proj=rast(dir("./data/input/Var_TRI", full.names=T))
-soil_proj=rast(dir("./data/input/Var_Soil", full.names=T))
+clim_proj=rast(dir("./data/input/PCA/baseline", full.names=T))
+tri_proj=rast(dir("./data/input/TRI", full.names=T))
+soil_proj=rast(dir("./data/input/PCA/Suolo", full.names=T))
 cur_proj<- c(clim_proj,tri_proj,soil_proj)
 names(cur_proj)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
 
@@ -59,7 +59,7 @@ names(cur_proj)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
 # loading FUTURE list
 #####################################
 
-lf=list.dirs("./data/input/Var_Climate/future", full.names=T, recursive = T)[-1]
+lf=list.dirs("./data/input/PCA/Futuro", full.names=T, recursive = T)[-1]
 lf<-as.matrix(lf)
 lf<-lf[nchar(lf[,1]) >= 66, ]
 #####################################
