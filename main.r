@@ -101,7 +101,7 @@ myResp <- rep(1, nrow(spocc1)) # species occurences
 
 # 1. Formatting Data
  
- p <- profvis({ myBiomodData <- BIOMOD_FormatingData(
+myBiomodData <- BIOMOD_FormatingData(
 						resp.var = myResp,
                                        expl.var = cur_cal,
                                        resp.xy = myRespXY,
@@ -110,7 +110,7 @@ myResp <- rep(1, nrow(spocc1)) # species occurences
                                        PA.nb.absences = 10000,
                                        PA.strategy = 'random',
                           		   na.rm = TRUE,
-						   filter.raster = F)})
+						   filter.raster = F)
 
 
 end.time <- Sys.time()
@@ -126,7 +126,7 @@ opt.b <- bm_ModelingOptions(data.type = 'binary',
 
 # 3. Computing the models
 	
-p2 <- profvis({ myBiomodModelOut <- BIOMOD_Modeling(
+myBiomodModelOut <- BIOMOD_Modeling(
 						myBiomodData,
 						models = selModels,
 						CV.strategy = 'random',
@@ -137,7 +137,7 @@ p2 <- profvis({ myBiomodModelOut <- BIOMOD_Modeling(
 						scale.models = FALSE,
 						CV.do.full.models = FALSE,
 						nb.cpu=32,
-						do.progress=T)})
+						do.progress=T)
 	
 end.time <- Sys.time()
 time.modeling <- end.time - start.time
@@ -145,7 +145,7 @@ time.modeling <- end.time - start.time
 start.time <- Sys.time()
 # 4. Model ensemble models
 
- p3 <- profvis({ myBiomodEM <- BIOMOD_EnsembleModeling(
+myBiomodEM <- BIOMOD_EnsembleModeling(
 						bm.mod = myBiomodModelOut,
                                     models.chosen = 'all',
                                     em.by = 'all',
@@ -153,7 +153,7 @@ start.time <- Sys.time()
                                     metric.select = c('ROC'),
                                     metric.select.thresh = c(0.6),
                                     metric.eval = c('TSS', 'ROC', 'KAPPA'),
-						nb.cpu = 32)})
+						nb.cpu = 32)
 
 end.time <- Sys.time()
 time.modeling_EM <- end.time - start.time
@@ -185,13 +185,13 @@ time.modeling_EM <- end.time - start.time
 # 5. Individual models projections on current environmental conditions
 
 start.time <- Sys.time()
- p4 <- profvis({myBiomodProj<- BIOMOD_Projection(
+myBiomodProj<- BIOMOD_Projection(
 				bm.mod = myBiomodModelOut,
 				proj.name = 'current',
 				new.env = cur_proj,
 				models.chosen = 'all',
 				build.clamping.mask = T,
-                        nb.cpu=32)})
+                        nb.cpu=32)
 
 end.time <- Sys.time()
 time.cur_proj <- end.time - start.time
@@ -241,7 +241,7 @@ nm2<-paste0('futureEM_',nm1[5],"_", nm1[6])
 # 5. Individual models projections on future environmental conditions
 
 
-p6 <- profvis({ myBiomodProj_fut<- BIOMOD_Projection(
+myBiomodProj_fut<- BIOMOD_Projection(
 						bm.mod = myBiomodModelOut,
 						proj.name = nm,
 						new.env = fut_proj,
@@ -258,7 +258,7 @@ myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
 				models.chosen = 'all',
 				metric.binary = 'all',
 				metric.filter = 'all',
-				nb.cpu = 32)})
+				nb.cpu = 32)
 }
 setTxtProgressBar(pb, i)# Sets the progress bar to the current state
 Sys.sleep(10)
