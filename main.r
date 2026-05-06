@@ -96,7 +96,7 @@ spocc1 <- spocc1[1:100000,]
 
 start.time <- Sys.time()
 myRespName <- paste (sp.names[i], sep = "")
-myRespXY <- spocc1[,2:3] # coordinates of points
+myRespXY <- spocc1[,3:4] # coordinates of points
 myResp <- rep(1, nrow(spocc1)) # species occurences
 
 # 1. Formatting Data
