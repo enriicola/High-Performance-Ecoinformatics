@@ -1,0 +1,50 @@
+# callstacks file version: 8
+#    rowid	    parent	       rva	 loop	 system	                                function	binary	instance_start_rva	instance_size	instance_end_rva	finst_rowid	roi	is_inlined	jit_method_id	tripcounts_roi	flops_roi	cachesim_roi	data_transfer_roi	projection_roi
+         1	        -1	      5312	    0	      0	                                  _start	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5312	38	0	1	0	0	0	0	0	0	0	0
+         2	        -1	      5348	    0	      0	                                  _start	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5312	38	0	1	0	0	0	0	0	0	0	0
+         3	        46	    172682	    1	      1	[Loop at line 347 in __libc_start_main_impl]	/lib/x86_64-linux-gnu/libc.so.6	172651,172784	132,64	0	12	0	0	0	0	0	0	0	0
+         4	         3	    172489	    0	      1	                  __libc_start_call_main	/lib/x86_64-linux-gnu/libc.so.6	172368	164	0	14	0	0	0	0	0	0	0	0
+         5	         4	      5773	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+         6	         5	     14570	    0	      0	                  __intel_avx_rep_memset	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	14304	4295	0	3	0	0	0	0	0	0	0	0
+         7	        20	      5992	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+         8	        20	      5988	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+         9	        20	      5945	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        10	        27	      5912	    0	      0	std::complex<double>::operator+=<double>	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5912,5960,5969	15,4,5	0	6	0	1	0	0	0	0	0	0
+        11	        31	      5974	    0	      0	                      std::__complex_abs	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5927,5974	18,14	0	8	0	1	0	0	0	0	0	0
+        12	        20	      5998	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        13	        20	      5949	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        14	        31	      5932	    0	      0	                      std::__complex_abs	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5927,5974	18,14	0	8	0	1	0	0	0	0	0	0
+        15	        39	      5955	    0	      0	std::complex<double>::operator*=<double>	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5908,5955,5964	4,5,5	0	10	0	1	0	0	0	0	0	0
+        16	        19	      5887	    1	      0	               [Loop at line 56 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5808	205	6013	5	0	0	0	0	0	0	0	0
+        17	        19	      5882	    1	      0	               [Loop at line 56 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5808	205	6013	5	0	0	0	0	0	0	0	0
+        18	        39	      5908	    0	      0	std::complex<double>::operator*=<double>	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5908,5955,5964	4,5,5	0	10	0	1	0	0	0	0	0	0
+        19	         4	      5808	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        20	        19	      5904	    1	      0	               [Loop at line 56 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5808	205	6013	5	0	0	0	0	0	0	0	0
+        21	         4	      5992	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        22	         4	      5988	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        23	         4	      5945	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        24	         4	      5808	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        25	        24	      5904	    1	      0	               [Loop at line 56 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5808	205	6013	5	0	0	0	0	0	0	0	0
+        26	        25	      5912	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        27	        26	      5912	    0	      0	                  std::operator+<double>	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5912,5960,5969	15,4,5	0	7	0	1	0	0	0	0	0	0
+        28	        25	      5912	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        29	         4	      5912	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        30	        25	      5927	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        31	        30	      5927	    0	      0	                        std::abs<double>	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5927,5974	18,14	0	9	0	1	0	0	0	0	0	0
+        32	        25	      5974	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        33	         4	      5974	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        34	         4	      5998	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        35	         4	      5949	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        36	        25	      5932	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        37	         4	      5932	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        38	        25	      5908	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        39	        38	      5908	    0	      0	                  std::operator*<double>	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5908,5955,5964	4,5,5	0	11	0	1	0	0	0	0	0	0
+        40	        25	      5955	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        41	         4	      5955	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        42	         4	      5887	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        43	         4	      5882	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        44	        25	      5908	    1	      0	                [Loop at line 0 in main]	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5904	104	5808,5810,6008	4	0	0	0	0	0	0	0	0
+        45	         4	      5908	    0	      0	                                    main	/home/chris/high-performance-clowns/mandelbrot/release/mandelbrot	5552	1434	0	2	0	0	0	0	0	0	0	0
+        46	         2	    172651	    0	      1	                  __libc_start_main_impl	/lib/x86_64-linux-gnu/libc.so.6	172544	334	0	13	0	0	0	0	0	0	0	0
+        47	         2	    172682	    0	      1	                  __libc_start_main_impl	/lib/x86_64-linux-gnu/libc.so.6	172544	334	0	13	0	0	0	0	0	0	0	0
+        48	        -1	         0	    0	      0	                [Unknown stack frame(s)]	n/a	0	0	0	16	0	0	0	0	0	0	0	0

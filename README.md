@@ -183,10 +183,43 @@ scancel <jobid>            # Cancel job if needed
 
 The job runs independently on allocated compute nodes. You can disconnect from Leonardo and check results later.
 
-### 4. Planned Analyses & Future Work
+### 4. Implementation Notes & Methodological Adjustments
+
+#### Data Path Standardization
+The ensemble modelling pipeline (`main.r`) was calibrated to operate within a containerized HPC environment on Cineca Leonardo. Critical adjustments included:
+
+- **Input data structure**: Species occurrence data loaded from `./data/input/data_62768_rows.csv` (62,768 presence records for target species in Alpine grasslands).
+- **Environmental predictor rasters**: Organized into three principal component reduced datasets:
+  - Climatic PCA layers: `./data/input/PCA/baseline` (present-day) and `./data/input/PCA/Futuro/` (SSP3-7.0, SSP5-8.5 projections)
+  - Topographic Roughness Index (TRI): `./data/input/TRI/`
+  - Soil PCA layers: `./data/input/PCA/Suolo/`
+- **Output directory**: Standardized to `./data/output/` for all model evaluations, projections, and timing logs.
+
+#### Computational Resource Optimization
+HPC resource constraints on Cineca Leonardo necessitated the following algorithmic and computational adjustments:
+
+- **Parallel processing**: Initial allocation of 32 CPU cores per task exceeded user-level QOS (Quality of Service) limits. Empirical testing established 8 CPU cores as the optimal threshold within institutional resource allocation policies (--cpus-per-task=8 in SLURM directives).
+- **Algorithm selection**: Five ensemble algorithms retained for cross-validation: GLM (Generalized Linear Models), GBM (Gradient Boosting Machines), ANN (Artificial Neural Networks), FDA (Flexible Discriminant Analysis), MAXNET. Bigboss strategy employed for hyperparameter tuning.
+- **Ensemble aggregation**: Dual ensemble methods applied—EMmean (unweighted average) and EMcv (cross-validation weighted)—with ROC ≥ 0.6 as selection threshold.
+- **Performance profiling**: Removed external profiling overhead (profvis) to reduce runtime overhead in production runs; timing metrics (formating, modeling, projection phases) logged internally via base R timing functions.
+
+#### Data Validation & Coordinate Indexing
+Careful verification of input data structure was essential for successful biomod2 integration:
+
+- **Occurrence data columns**: Verified CSV structure (ID, species_name, X, Y, pseudo-absence_data) with correct coordinate indexing `spocc1[,3:4]` to extract projected UTM coordinates (EPSG:32632).
+- **Raster cell filtering**: BIOMOD_FormatingData naturally identified duplicate occurrences within single raster cells (~1 km² resolution) and issues a standard warning. No filtering applied (`filter.raster = FALSE`) to preserve occurrence density information.
+- **Pseudo-absence strategy**: Random pseudo-absence selection (10,000 absences per 5-fold partition) applied within available raster extent to establish negative training samples.
+
+#### Calibration & Projection Strategy
+- **Calibration extent**: Europe-wide extent using full Alpine dataset (100,000 presence records per species subset after sampling; 5-fold random cross-validation with 70% training, 30% testing).
+- **Projection extent**: Alps-specific region with current and future climate scenarios projected onto same environmental space.
+- **Evaluation metrics**: TSS (True Skill Statistic), ROC (Receiver Operating Characteristic), KAPPA (Cohen's Kappa), POD (Probability of Detection), FAR (False Alarm Ratio) computed for individual models; ROC and TSS retained for ensemble model selection.
+
+### 5. Planned Analyses & Future Work
 - **Results Extraction**: Extraction and visualization of model evaluation metrics (TSS, ROC/AUC, etc.).
 - **Hotspot Analysis**: Identification of climate refugia or areas of high vulnerability for the target species.
-- **Improvements**: ...
+- **Full species loop**: Extend from current single-species calibration (i=3, hardcoded) to full 62,768-row dataset with species-level stratification.
+- **Improvements**: Uncertainty quantification via ensemble variance; sensitivity analysis on pseudo-absence strategies.
 
 ---
 
