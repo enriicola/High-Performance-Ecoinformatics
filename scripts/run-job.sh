@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=r_singularity
+#SBATCH --account=IscrC_SPECC
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=56
 #SBATCH --partition=dcgp_usr_prod
-#SBATCH --qos=dcg
 #SBATCH --time=02:00:00
 #SBATCH --output=job.out
 #SBATCH --error=job.err

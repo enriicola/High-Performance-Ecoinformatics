@@ -7,7 +7,7 @@ REMOTE_DIR="/leonardo_work/IscrC_SPECC"
 
 case "${1:-push}" in
   push)
-    rsync -av --progress --exclude='.git' "$LOCAL_DIR/" "$REMOTE:$REMOTE_DIR/"
+    rsync -av --delete --progress --exclude='.git*' "$LOCAL_DIR/" "$REMOTE:$REMOTE_DIR/"
     ;;
   pull)
     rsync -av --progress "$REMOTE:$REMOTE_DIR/output/" "$LOCAL_DIR/output/"
