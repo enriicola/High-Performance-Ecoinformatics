@@ -65,5 +65,8 @@ rsconnect/
 secrets*
 *.log
 *.sif
-data/output/
+
+# Large data files (synced via rsync, not git)
 data/input/
+data/output/
+*.tif
