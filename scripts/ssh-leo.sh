@@ -4,7 +4,9 @@
 
 CA_URL="https://sshproxy.hpc.cineca.it"
 CA_FINGERPRINT="2ae1543202304d3f434bdc1a2c92eff2cd2b02110206ef06317e70c1c1735ecd"
-USER_EMAIL="enricopezzano@disroot.org"
+HOST="login.leonardo.cineca.it"
+USER_EMAIL=$1
+NICK=$2
 
 #check if running with source or dot
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
@@ -37,7 +39,6 @@ else
 fi
 
 # Get SSH certificate (opens browser for 2FA)
-echo "Requesting SSH certificate (browser will open for 2FA)..."
 step ssh login "$USER_EMAIL" --provisioner cineca-hpc
 
-ssh REDACTED_USERNAME@login.leonardo.cineca.it
+ssh $NICK@$HOST
