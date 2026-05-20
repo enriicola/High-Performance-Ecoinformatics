@@ -60,8 +60,8 @@ names(cur_proj)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
 #####################################
 
 lf=list.dirs("./data/input/PCA/Futuro", full.names=T, recursive = T)[-1]
-lf<-as.matrix(lf)
-lf<-lf[nchar(lf[,1]) >= 66, ]
+# Keep only directories that contain .tif files
+lf=lf[sapply(lf, function(d) length(list.files(d, pattern="\\.tif$")) > 0)]
 #####################################
 # Select bioclimatic variables
 #####################################
