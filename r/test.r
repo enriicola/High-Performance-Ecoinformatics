@@ -1,5 +1,5 @@
-# ensamble_modelling_no_parallel
-
+# old script name was: ensamble_modelling_no_parallel
+simpleError
 library(biomod2)
 #library(raster)
 library(terra)
@@ -13,7 +13,7 @@ library(randomForest)
 library(doParallel)
 #library(profvis)
 
-cl <- makeCluster(32)
+cl <- makeCluster(8)
 registerDoParallel(cl)
 
 dir.create("./data/output", showWarnings=FALSE)
@@ -24,9 +24,8 @@ dir.create("./data/output", showWarnings=FALSE)
 # loading species occurrences data
 ####################################
 spocc <- read.csv("./data/input/data_62768_rows.csv", head=TRUE)
-# DEBUG: truncate for testing
-spocc <- spocc[1:500,]
-sp.names<-levels(factor(spocc[,1]))
+# DEBUG: keep full dataset, will truncate per-species later
+sp.names<-levels(factor(spocc[,2]))
 num_sp<-length(sp.names)
 cat("DEBUG: num_sp =", num_sp, "| total rows =", nrow(spocc), "\n")
 
@@ -39,11 +38,13 @@ cat("DEBUG: num_sp =", num_sp, "| total rows =", nrow(spocc), "\n")
 #####################################
 # loading CURRENT environmental data 
 #####################################
+cat("DEBUG: loading calibration rasters...\n")
 clim_cal=rast(dir("./data/input/PCA/baseline", full.names=T))
 tri_cal=rast(dir("./data/input/TRI", full.names=T))
 soil_cal=rast(dir("./data/input/PCA/Suolo", full.names=T))
 cur_cal<-c(clim_cal,tri_cal,soil_cal)
 names(cur_cal)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
+cat("DEBUG: raster dim =", dim(cur_cal)[1], "x", dim(cur_cal)[2], "| ncell =", ncell(cur_cal), "\n")
 
 #####################################
 # PROJECTION environmental data 
@@ -88,10 +89,12 @@ selModels <- c("GLM", "GBM",  "ANN", "FDA", "MAXNET")
 #num_sp=98
 #for(i in 39:43)  {      #i=1:num_sp	#i=1
 
-# DEBUG: use first available species
-i=min(3, num_sp)
-spocc1<-subset(spocc, spocc[,1]==sp.names[i])
-# DEBUG: removed [1:100000] truncation - already truncated at load
+# DEBUG: use first species
+i=1
+spocc1<-subset(spocc, spocc[,2]==sp.names[i])
+# DEBUG: truncate to 1000 occurrences for testing
+spocc1 <- spocc1[1:min(1000, nrow(spocc1)),]
+cat("DEBUG: species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
 
 ###########################################################################
 ######################     CALIBRATION ON EUROPE      #####################
@@ -106,22 +109,28 @@ myRespName <- paste (sp.names[i], sep = "")
 myRespXY <- spocc1[,3:4] # coordinates of points
 myResp <- rep(1, nrow(spocc1)) # species occurences
 
+cat("DEBUG: starting BIOMOD_FormatingData at", format(Sys.time(), "%H:%M:%S"), "\n")
+cat("DEBUG: resp points =", nrow(myRespXY), "| PA.nb.absences = 500 | PA.nb.rep = 2\n")
+flush.console()
+
 # 1. Formatting Data
- 
+
 myBiomodData <- BIOMOD_FormatingData(
 						resp.var = myResp,
                                        expl.var = cur_cal,
                                        resp.xy = myRespXY,
                                        resp.name = myRespName,
-                                       PA.nb.rep = 5,
-                                       PA.nb.absences = 10000,
+                                       PA.nb.rep = 2,        # DEBUG: reduced from 5
+                                       PA.nb.absences = 500,  # DEBUG: reduced from 10000
                                        PA.strategy = 'random',
                           		   na.rm = TRUE,
 						   filter.raster = F)
 
+cat("DEBUG: BIOMOD_FormatingData done at", format(Sys.time(), "%H:%M:%S"), "\n")
 
 end.time <- Sys.time()
 time.formating <- end.time - start.time
+cat("DEBUG: formatting took", round(time.formating, 2), "seconds\n")
 
 start.time <- Sys.time()
 # 2. Defining Models Options using default options.
@@ -137,13 +146,13 @@ myBiomodModelOut <- BIOMOD_Modeling(
 						myBiomodData,
 						models = selModels,
 						CV.strategy = 'random',
-						CV.nb.rep =5,
+						CV.nb.rep =2,  # DEBUG: reduced from 5
 						CV.perc=0.7,
 						OPT.user = opt.b,
-						metric.eval  = c('TSS', 'ROC', 'KAPPA', 'POD', 'FAR'),
+						metric.eval  = c('TSS', 'AUCroc', 'KAPPA', 'POD', 'FAR'),
 						scale.models = FALSE,
 						CV.do.full.models = FALSE,
-						nb.cpu=32,
+						nb.cpu=8,
 						do.progress=T)
 	
 end.time <- Sys.time()
@@ -157,10 +166,10 @@ myBiomodEM <- BIOMOD_EnsembleModeling(
                                     models.chosen = 'all',
                                     em.by = 'all',
                                     em.algo = c('EMmean', "EMcv"),
-                                    metric.select = c('ROC'),
+                                    metric.select = c('AUCroc'),
                                     metric.select.thresh = c(0.6),
-                                    metric.eval = c('TSS', 'ROC', 'KAPPA'),
-						nb.cpu = 32)
+                                    metric.eval = c('TSS', 'AUCroc', 'KAPPA'),
+						nb.cpu = 8)
 
 end.time <- Sys.time()
 time.modeling_EM <- end.time - start.time
@@ -198,7 +207,7 @@ myBiomodProj<- BIOMOD_Projection(
 				new.env = cur_proj,
 				models.chosen = 'all',
 				build.clamping.mask = T,
-                        nb.cpu=32)
+                        nb.cpu=8)
 
 end.time <- Sys.time()
 time.cur_proj <- end.time - start.time
@@ -214,7 +223,7 @@ myBiomodEMProj <- BIOMOD_EnsembleForecasting(
 			models.chosen = 'all',
 			metric.binary = 'all',
 			metric.filter = 'all',
-			nb.cpu = 32)
+			nb.cpu = 8)
 
 end.time <- Sys.time()
 time.cur_proj_EM <- end.time - start.time
@@ -231,8 +240,13 @@ nf<-length(lf)
 start.time <- Sys.time()
 for(k in 1:nf){
 name<-lf[k]
+cat("\n\nDEBUG: Processing future scenario", k, "of", nf, ":", name, "\n")
 
-fut1 <- rast(dir(lf[k], full.names=T))
+fut_files <- dir(lf[k], full.names=T)
+cat("DEBUG: Found", length(fut_files), "files:", paste(basename(fut_files), collapse=", "), "\n")
+
+fut1 <- rast(fut_files)
+cat("DEBUG: Raster loaded, ncell =", ncell(fut1), ", hasValues =", hasValues(fut1), "\n")
 
 
 #names(fut1)<-lnames
@@ -254,7 +268,7 @@ myBiomodProj_fut<- BIOMOD_Projection(
 						new.env = fut_proj,
 						models.chosen = 'all',
 						build.clamping.mask = T,
-                               	nb.cpu=32)
+                               	nb.cpu=8)
 
 
 myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
@@ -265,7 +279,7 @@ myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
 				models.chosen = 'all',
 				metric.binary = 'all',
 				metric.filter = 'all',
-				nb.cpu = 32)
+				nb.cpu = 8)
 }
 setTxtProgressBar(pb, i)# Sets the progress bar to the current state
 Sys.sleep(10)
