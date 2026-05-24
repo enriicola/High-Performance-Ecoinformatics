@@ -24,7 +24,7 @@ dir.create("./data/output", showWarnings=FALSE)
 # loading species occurrences data
 ####################################
 spocc <- read.csv("./data/input/data_62768_rows.csv", head=TRUE)
-sp.names<-levels(factor(spocc[,1]))
+sp.names<-levels(factor(spocc[,2]))
 num_sp<-length(sp.names)
 
 
@@ -83,7 +83,7 @@ selModels <- c("GLM", "GBM",  "ANN", "FDA", "MAXNET")
 #for(i in 39:43)  {      #i=1:num_sp	#i=1
 
 i=3
-spocc1<-subset(spocc, spocc[,1]==sp.names[i])
+spocc1<-subset(spocc, spocc[,2]==sp.names[i])
 spocc1 <- spocc1[1:100000,]
 
 ###########################################################################
@@ -133,7 +133,7 @@ myBiomodModelOut <- BIOMOD_Modeling(
 						CV.nb.rep =5,
 						CV.perc=0.7,
 						OPT.user = opt.b,
-						metric.eval  = c('TSS', 'ROC', 'KAPPA', 'POD', 'FAR'),
+						metric.eval  = c('TSS', 'AUCroc', 'KAPPA', 'POD', 'FAR'),
 						scale.models = FALSE,
 						CV.do.full.models = FALSE,
 						nb.cpu=32,
@@ -150,9 +150,9 @@ myBiomodEM <- BIOMOD_EnsembleModeling(
                                     models.chosen = 'all',
                                     em.by = 'all',
                                     em.algo = c('EMmean', "EMcv"),
-                                    metric.select = c('ROC'),
+                                    metric.select = c('AUCroc'),
                                     metric.select.thresh = c(0.6),
-                                    metric.eval = c('TSS', 'ROC', 'KAPPA'),
+                                    metric.eval = c('TSS', 'AUCroc', 'KAPPA'),
 						nb.cpu = 32)
 
 end.time <- Sys.time()
