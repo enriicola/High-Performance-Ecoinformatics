@@ -63,5 +63,4 @@ rsconnect/
 # misc
 .vscode/
 secrets*
-*.log
 *.sif
