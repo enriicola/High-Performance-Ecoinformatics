@@ -1,0 +1,42 @@
+\documentclass{masterthesis}
+
+\usepackage{hyperref} % links
+\usepackage{graphicx}
+
+
+% macros
+\newcommand*\javascript{JavaScript}
+\newcommand*\nodejs{Node.js}
+
+\begin{document}
+
+\title{Trace Expressions for Runtime Verification of \nodejs{} Systems}
+
+\author{Luca Franceschini}
+
+\advisor{Davide Ancona}
+
+\examiner{Viviana Mascardi}
+
+\maketitle
+
+\tableofcontents
+
+\chapter{Introduction}
+
+\nodejs{}\footnote{\url{https://nodejs.org/en/}} is a \javascript{}\footnote{Formally specified as the ECMAScript standard \cite{ecmascript}.} runtime environment that runs \javascript{} code outside a browser, as opposed to traditional use of the language for client-side web programming.
+In the last few years it made \javascript{} a successful general purpose programming language, with \nodejs{} itself becoming the most popular framework, according to Stack Overflow Developer Survey 2018\footnote{\url{https://insights.stackoverflow.com/survey/2018/\#technology-frameworks-libraries-and-tools}}.
+
+\chapter{Conclusion}
+
+{\em Hello world.}
+So far we exploited the HTTP protocol to send observed events to the monitor based on the specification.
+This has some performance drawbacks: a new connection is made every time an event is sent, which can happen hundreds of times per second. 
+Websocket \cite{websocket} is an interesting alternative as it is expressly designed for continuous exchange of data between two parties and, hence, more efficient than HTTP .
+Preliminary tests suggest that this would have a considerable impact on performances. 
+  
+\bibliographystyle{alphaurl}
+\bibliography{bib}
+
+\end{document}
+
