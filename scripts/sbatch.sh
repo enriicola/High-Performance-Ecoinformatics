@@ -9,7 +9,8 @@
 #SBATCH --time=02:00:00
 #SBATCH --output=job.out
 #SBATCH --error=job.err
+#SBATCH --mail-type=ALL
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
-time singularity exec --bind $PWD:/work $PWD/containers/geospatial.sif Rscript /work/main.r
+time singularity exec --bind $PWD:/work $PWD/container/geospatial.sif Rscript /work/main.r

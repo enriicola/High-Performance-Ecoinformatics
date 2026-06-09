@@ -10,52 +10,26 @@ git lfs install
 git lfs pull
 ```
 
-## 📋 Task Tracking & TODOs
-
-### Active Tasks & Backlog
-
-- [ ] verify CINECA project codes: check with Lucia Doni whether IsCd6_SPECC and IscrC_SPECC are the same or different projects
-- [ ] fix various agents.md files...use only one and create links to it
-- [ ] gemini --resume 6138a5bd-a73b-4fe4-a636-8840895cb730
-- [ ] move workspace to leo cineca by copyng input/ and the container via scp and cloning the git repo inside my userdb workspace and using vscode extension to ssh into leo cineca
-
-- [ ] Refinement of `simulation.r` for performance optimization.
-- [ ] Integration of topographic roughness index (TRI) layers.
-- [ ] Validation of PCA future scenario projections.
-- [ ] Full HPC run on Cineca Leonardo.
-- [ ] Metric extraction (TSS, AUC, etc.) and visualization.
-- [ ] Thesis document (`thesis.tex`) finalization.
-
-### Operative TODOs
-
-- [x] baseline == presente ???
-- [ ] rename gh repo from biomod++ to 'high performance ecoinformatics'
-- [ ] entrare on omarchy nella vpn forticlient
-- [ ] entrare con serviicola nella vpn forticlient
-- [ ] abilitare ssh su spartaco
-- [ ] copy stuff from spartaco using scp and not remmina
-- [ ] connect to cineca from my linux
-- [ ] redirect all prints of .def file to null, except errors and warnings
-- [ ] apptainer run --bind $WORK:/work,$CINECA_SCRATCH:/scratch biomod++.sif
-- [ ] use rocker image with CUDA support <https://rocker-project.org/images/versioned/cuda.html>
-- [ ] add sonarcube bind and support
-
 ---
 
-## Abstract / Project Overview
+## notes
 
-This repository contains the codebase and notes for my Master of Science thesis project, focusing on High-Performance Ecoinformatics. The goal is to perform ensemble species distribution modelling using the `biomod2` pipeline on HPC environments (Cineca Leonardo).
+project work dir -> /leonardo_work/IscrC_SPECC
 
-## Project Status & Notes
+## data folder instructions
 
-- **Current Phase**: Implementation & Local Validation.
-- **Goal**: Finalizing the ensemble modelling pipeline for the Master's thesis.
-- **Core Context**:
-  - **Technologies**: R (`biomod2`, `terra`), Apptainer, SLURM (Cineca Leonardo).
-  - **Environment**: Containerized execution (`container.sif`) is mandatory for consistency.
-- **Known Issues / Technical Notes**:
-  - Always use `TEST_N_ROWS` for local debugging to avoid long execution times.
-  - Ensure `make.names()` is used for all layer names in formulas.
+the script needs to have 2 subfolder to work:
+
+- input
+- output
+
+if not present, the script will create them and use them to run the various computations
+
+## our tests
+
+in our case, we chose to download some climate and soil data from <https://www.chelsa-climate.org>
+
+- climate and soil variables are the old PCA folder
 
 ---
 
