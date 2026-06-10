@@ -15,6 +15,18 @@ git lfs pull
 ## notes
 
 project work dir -> /leonardo_work/IscrC_SPECC
+PCA means climate variables (...)
+
+### Come usare sbatch su Leonardo
+-> nel repo root su Leonardo:
+git pull                    # prendi script aggiornati
+sbatch scripts/sbatch.sh    # invia job allo scheduler
+
+#### Monitorare:
+squeue --me                 # stato (PD=pending, R=running)
+tail -f job.out             # log live (stdout)
+tail -f job.err             # errori
+scancel <jobid>             # annullare
 
 ## data folder instructions
 

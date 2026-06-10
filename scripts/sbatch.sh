@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=56
 #SBATCH --partition=dcgp_usr_prod
-#SBATCH --qos=dcgp_qos_bprod
+#SBATCH --qos=dcgp_qos_normal
 #SBATCH --time=02:00:00
 #SBATCH --output=job.out
 #SBATCH --error=job.err
@@ -13,4 +13,4 @@
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
-time singularity exec --bind $PWD:/work $PWD/container/geospatial.sif Rscript /work/main.r
+time singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif Rscript "/work/r/new.ensamble_modelling.R"

@@ -1,17 +1,44 @@
+# debugging:
+options(echo=TRUE)        # ~ set -x : stampa ogni statement prima di eseguirlo
+options(warn=1)           # stampa i warning quando accadono (non in blocco a fine run)
+# options(verbose=TRUE)   # NO in batch: flood di messaggi interni R, poco utile
+# nota: Rscript di default si ferma all'errore (~ set -e). MA foreach %dopar% cattura
+#       gli errori dei worker e NON aborta il job -> controlla job.out/job.err per specie fallite.
+# --- strumenti interattivi (NON funzionano in sbatch: niente stdin) ---
+# trace(BIOMOD_FormatingData)  # traccia le chiamate di una funzione
+# untrace(BIOMOD_FormatingData)
+# debug(functionName)          # entra nel debugger a ogni chiamata
+# browser()                    # breakpoint nel codice
+###
+
 library(biomod2)
 library(raster)
 library(terra)
-library(rgdal)
+#library(rgdal)        # ritirato da CRAN (ott 2023), assente nel container
 library(gbm)
 library(mda)
-library(randomForest)
+#library(randomForest) # non usato: modelli = GLM/GBM/ANN/FDA/MARS
 library(Hmisc)
 library(plyr)
-library(maptools)
+#library(maptools)     # ritirato da CRAN (ott 2023), assente nel container
 library(doParallel)
 
+#####################################
+# paths (current repo layout)
+#####################################
+root    <- normalizePath(".")
+in_dir  <- file.path(root, "data/input")
+out_dir <- file.path(root, "data/output")
+dir.create(file.path(out_dir, "Eval"), recursive = TRUE, showWarnings = FALSE)
 
+# verifica CRS raster (atteso 4326 = lon/lat WGS84, come i punti del CSV) -- vedi todo.md
+message("CRS raster PC1: EPSG:", terra::crs(terra::rast(file.path(in_dir, "climate_vars/baseline/PC1.tif")), describe = TRUE)$code)
 
+#####################################
+# RUN CONFIG (quante specie elaborare)
+#####################################
+csv_file <- "small_1km_EUNIS.csv"  # CSV ridotto per il test; metti "full_1km_EUNIS.csv" per il run completo
+max_rows <- NA                     # NA = tutte le righe; es. 5000 = solo prime 5000 occorrenze (poche specie)
 
 cl <- makeCluster(41)
 registerDoParallel(cl)
@@ -19,51 +46,40 @@ registerDoParallel(cl)
 ####################################
 # loading species occurrences data
 ####################################
-spocc <- read.table("Data_Species/data_1km.txt", head=TRUE, sep="\t")
-sp.names<-levels(factor(spocc[,1]))
-num_sp<-length(sp.names)
-
-
-
-#####################################
-# CALIBRATION environmental data 
-#####################################
+# CSV columns: id, sp_name, x, y, pseudo-absences  -> species = col2, coords = col3:4
+spocc <- read.csv(file.path(in_dir, csv_file))
+if (!is.na(max_rows)) spocc <- spocc[seq_len(min(max_rows, nrow(spocc))), ]
+sp.names <- levels(factor(spocc[, 2]))
+num_sp <- length(sp.names)
 
 #####################################
-# loading CURRENT environmental data 
+# CALIBRATION environmental data
 #####################################
-clim_cal=stack(dir("SDM_Vars/PCA/baseline", full.names=T))
-tri_cal=stack(dir("TRI", full.names=T))
-soil_cal=stack(dir("SDM_Vars/PCA/Suolo", full.names=T))
-cur_cal<-stack(clim_cal,tri_cal,soil_cal)
-names(cur_cal)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
+clim_cal = stack(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+tri_cal  = stack(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+soil_cal = stack(dir(file.path(in_dir, "soil_vars"), full.names = T))
+cur_cal <- stack(clim_cal, tri_cal, soil_cal)
+names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
 
 #####################################
-# PROJECTION environmental data 
+# PROJECTION environmental data
+# (single dataset: same dirs as calibration)
 #####################################
+clim_proj = stack(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+tri_proj  = stack(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+soil_proj = stack(dir(file.path(in_dir, "soil_vars"), full.names = T))
+cur_proj <- stack(clim_proj, tri_proj, soil_proj)
+names(cur_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
 
 #####################################
-# loading CURRENT environmental data
+# loading FUTURE list (leaf dirs containing tif)
 #####################################
-clim_proj=stack(dir("SDM_Vars/Var_Climate/Baseline", full.names=T))
-tri_proj=stack(dir("SDM_Vars/Var_TRI", full.names=T))
-soil_proj=stack(dir("SDM_Vars/Var_Soil", full.names=T))
-cur_proj<-stack(clim_proj,tri_proj,soil_proj)
-names(cur_proj)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
+lf <- list.dirs(file.path(in_dir, "climate_vars/future"), full.names = T, recursive = T)[-1]
+lf <- lf[sapply(lf, function(d) length(dir(d, pattern = "\\.tif$")) > 0)] # filtro future
+lf <- as.matrix(lf)
 
-#####################################
-# loading FUTURE list
-#####################################
-
-lf=list.dirs("SDM_Vars/Var_Climate/future", full.names=T, recursive = T)[-1]
-lf<-as.matrix(lf)
-lf<-lf[nchar(lf[,1]) >= 42, ]
-#####################################
-# Select bioclimatic variables
-#####################################
-#l<-c(4,10, 19)
-#cur<-cur1[[l]]
-
+# outputs (biomod2 writes species folders into the working dir)
+setwd(out_dir)
 
 pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
                      max = num_sp, # Maximum value of the progress bar
@@ -71,8 +87,14 @@ pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
                      width = 50,   # Progress bar width. Defaults to getOption("width")
                      char = "=")   # Character used to create the bar
 
-foreach(i=2:num_sp)  %dopar% {library(biomod2)      #i=1:num_sp	#i=1
-spocc1<-subset(spocc, spocc[,1]==sp.names[i])
+selModels <- c("GLM", "GBM", "ANN", "FDA", "MARS")
+
+# TODO: rivedere la parallelizzazione. doParallel+foreach replica i dati in ogni
+# worker (RAM x N) e .packages ricarica i pacchetti a ogni iterazione. Valutare
+# future/furrr, o nb.cpu interno di biomod2 invece del parallelismo per-specie.
+foreach(i=1:num_sp, .packages=c("biomod2","raster","terra"))  %dopar% {library(biomod2)      #i=2:num_sp era arbitrario
+tryCatch({
+spocc1<-subset(spocc, spocc[,2]==sp.names[i])
 
 
 ###########################################################################
@@ -84,11 +106,11 @@ spocc1<-subset(spocc, spocc[,1]==sp.names[i])
 ###########################################################################
 
 myRespName <- paste (sp.names[i], sep = "")
-myRespXY <- spocc1[,2:3] # coordinates of points
+myRespXY <- spocc1[,3:4] # coordinates of points
 myResp <- rep(1, nrow(spocc1)) # species occurences
 
 # 1. Formatting Data
- 
+
  myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
                                        expl.var = cur_cal,
                                        resp.xy = myRespXY,
@@ -108,13 +130,16 @@ myResp <- rep(1, nrow(spocc1)) # species occurences
 
 
 
-# 2. Defining Models Options using default options.
- 	myBiomodOption <- BIOMOD_ModelingOptions()
+# 2. Defining Models Options (bigboss preset)
+ 	opt.b <- bm_ModelingOptions(data.type = 'binary',
+                            models = selModels,
+                            strategy = 'bigboss',
+                            bm.format = myBiomodData)
 
 # 3. Computing the models
 	myBiomodModelOut <- BIOMOD_Modeling(myBiomodData,
-						models = c("GLM", "GBM",  "ANN", "FDA", "MARS"),
-						bm.options = myBiomodOption,
+						models = selModels,
+						OPT.user = opt.b,
 						CV.nb.rep =10,
 						CV.perc=0.7,
 						CV.strategy = 'random',
@@ -122,7 +147,7 @@ myResp <- rep(1, nrow(spocc1)) # species occurences
                                     		nb.cpu=1,
 						metric.eval  = c('TSS', 'ROC', 'KAPPA', 'POD', 'FAR'),
 						scale.models = FALSE)
-	
+
 
 # 4. Model ensemble models
      myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
@@ -149,7 +174,7 @@ myResp <- rep(1, nrow(spocc1)) # species occurences
 
 
 
-	
+
 ###########################################################################
 ######################      PROJECTION ON ALPS        #####################
 ###########################################################################
@@ -201,9 +226,10 @@ fut_proj<-stack(fut[[1]],fut[[2]],tri_proj,soil_proj[[1]],soil_proj[[2]])
 fut_proj<-stack(fut_proj)
 names(fut_proj)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
 
+# parsing nome future
 nm1<-strsplit(name, "/")[[1]]
-nm<-paste0(nm1[4],"_", nm1[5])
-nm2<-paste0('futureEM_',nm1[4],"_", nm1[5])
+nm<-paste0(nm1[length(nm1)-1],"_", nm1[length(nm1)])
+nm2<-paste0('futureEM_',nm1[length(nm1)-1],"_", nm1[length(nm1)])
 
 # 5. Individual models projections on future environmental conditions
 
@@ -223,6 +249,7 @@ myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM,
 				metric.binary = 'all',
 				metric.filter = 'all')
 }
+}, error = function(e) message("FALLITA specie ", sp.names[i], ": ", conditionMessage(e)))
 setTxtProgressBar(pb, i)# Sets the progress bar to the current state
 Sys.sleep(10)
 }
@@ -231,5 +258,6 @@ close(pb) # Close the connection
 save.image(file="SDM_praterie.RData")
 
 
-r <- rast("Adonis.vernalis/proj_currentEM/proj_currentEM_Adonis.vernalis_ensemble.tif")
-plot(r)
+# interactive-only preview (skip on HPC batch)
+# r <- rast("Adonis.vernalis/proj_currentEM/proj_currentEM_Adonis.vernalis_ensemble.tif")
+# plot(r)
