@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=56
 #SBATCH --partition=dcgp_usr_prod
-#SBATCH --qos=dcgp_qos_normal
+#SBATCH --qos=dcgp_usr_prod
 #SBATCH --time=02:00:00
 #SBATCH --output=job_%j.out
 #SBATCH --error=job_%j.err
