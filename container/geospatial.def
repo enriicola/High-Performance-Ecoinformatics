@@ -7,8 +7,8 @@ From: rocker/geospatial:latest
     Description Ecological Modelling Container (biomod2, terra)
 
 %files
-    containers/installation /opt/installation
-    containers/my-echo.sh /opt/my-echo.sh
+    container/installation /opt/installation
+    container/my-echo.sh /opt/my-echo.sh
 
 %post
     export DEBIAN_FRONTEND=noninteractive
