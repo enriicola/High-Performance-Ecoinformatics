@@ -16,6 +16,11 @@ git lfs pull
 
 project work dir -> /leonardo_work/IscrC_SPECC
 PCA means climate variables (...)
+Il mio account iscrc_specc può usare solo:
+- dcgp_qos_bprod (minimo nodi, non va per 1 nodo)
+- dcgp_qos_dbg (debug, tempo corto ma 1 nodo ok)
+- dcgp_qos_lprod (low production)
+- normal
 
 ### Come usare sbatch su Leonardo
 -> nel repo root su Leonardo:
