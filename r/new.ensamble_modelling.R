@@ -39,7 +39,7 @@ message("CRS raster PC1: EPSG:", terra::crs(terra::rast(file.path(in_dir, "clima
 #####################################
 csv_file <- "small_1km_EUNIS.csv" # CSV ridotto per il test; metti "full_1km_EUNIS.csv" per il run completo
 max_rows <- NA # NA = tutte le righe; es. 5000 = solo prime 5000 occorrenze (poche specie)
-n_cpu <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "4")) # biomod2 internal parallelism
+n_cpu <- 1L # TEMP: force sequential to debug hang. Was: as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "4"))
 
 # NOTE: makeCluster/foreach parallelism DISABLED - hangs inside Singularity container.
 # Using biomod2's internal nb.cpu instead (see BIOMOD_Modeling, BIOMOD_Projection calls).
@@ -125,8 +125,8 @@ for (i in 1:num_sp) {
         eval.resp.var = NULL,
         eval.expl.var = NULL,
         eval.resp.xy = NULL,
-        PA.nb.rep = 10,
-        PA.nb.absences = 10000,
+        PA.nb.rep = 2, # TEMP: reduced for debug (was 10)
+        PA.nb.absences = 500, # TEMP: reduced for debug (was 10000)
         PA.strategy = "random",
         PA.dist.min = NULL,
         PA.dist.max = NULL,
@@ -148,7 +148,7 @@ for (i in 1:num_sp) {
       myBiomodModelOut <- BIOMOD_Modeling(myBiomodData,
         models = selModels,
         OPT.user = opt.b,
-        CV.nb.rep = 10,
+        CV.nb.rep = 2, # TEMP: reduced for debug (was 10)
         CV.perc = 0.7,
         CV.strategy = "random",
         # var.import = 10,
