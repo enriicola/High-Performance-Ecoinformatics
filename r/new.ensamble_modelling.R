@@ -116,7 +116,7 @@ for (i in 1:num_sp) {
       myResp <- rep(1, nrow(spocc1)) # species occurences
 
       # 1. Formatting Data
-
+      message("[1/6] BIOMOD_FormatingData...")
       myBiomodData <- BIOMOD_FormatingData(
         resp.var = myResp,
         expl.var = cur_cal,
@@ -137,6 +137,7 @@ for (i in 1:num_sp) {
 
 
       # 2. Defining Models Options (bigboss preset)
+      message("[2/6] bm_ModelingOptions...")
       opt.b <- bm_ModelingOptions(
         data.type = "binary",
         models = selModels,
@@ -145,6 +146,7 @@ for (i in 1:num_sp) {
       )
 
       # 3. Computing the models
+      message("[3/6] BIOMOD_Modeling...")
       myBiomodModelOut <- BIOMOD_Modeling(myBiomodData,
         models = selModels,
         OPT.user = opt.b,
@@ -153,12 +155,13 @@ for (i in 1:num_sp) {
         CV.strategy = "random",
         # var.import = 10,
         nb.cpu = n_cpu,
-        metric.eval = c("TSS", "ROC", "KAPPA", "POD", "FAR"),
+        metric.eval = c("TSS", "AUCroc", "KAPPA", "POD", "FAR"),
         scale.models = FALSE
       )
 
 
       # 4. Model ensemble models
+      message("[4/6] BIOMOD_EnsembleModeling...")
       myBiomodEM <- BIOMOD_EnsembleModeling(
         bm.mod = myBiomodModelOut,
         models.chosen = "all",
@@ -166,7 +169,7 @@ for (i in 1:num_sp) {
         em.algo = c("EMmean", "EMcv"),
         metric.select = c("AUCroc"),
         metric.select.thresh = c(0.6),
-        metric.eval = c("TSS", "ROC", "KAPPA")
+        metric.eval = c("TSS", "AUCroc", "KAPPA")
       )
 
 
@@ -192,8 +195,7 @@ for (i in 1:num_sp) {
 
 
       # 5. Individual models projections on current environmental conditions
-
-
+      message("[5/6] BIOMOD_Projection (current)...")
       myBiomodProj <- BIOMOD_Projection(
         bm.mod = myBiomodModelOut,
         new.env = cur_proj,
@@ -204,7 +206,7 @@ for (i in 1:num_sp) {
       )
 
       # 6. Project ensemble models
-
+      message("[6/6] BIOMOD_EnsembleForecasting (current)...")
       myBiomodEMProj <- BIOMOD_EnsembleForecasting(
         bm.em = myBiomodEM,
         proj.name = "currentEM",
@@ -223,6 +225,7 @@ for (i in 1:num_sp) {
       nf <- length(lf)
 
       for (k in 1:nf) {
+        message("[FUTURE ", k, "/", nf, "] ", basename(dirname(lf[k])), "_", basename(lf[k]))
         name <- lf[k]
 
         fut1 <- stack(dir(lf[k], full.names = T))
