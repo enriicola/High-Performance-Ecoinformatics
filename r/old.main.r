@@ -46,7 +46,6 @@ if (SAFE_CPU > 1) {
 dir.create(OUTPUT_DIR, showWarnings=FALSE)
 
 
-
 ####################################
 # loading species occurrences data
 ####################################

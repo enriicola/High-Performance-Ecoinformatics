@@ -12,7 +12,6 @@ library(doParallel)
 
 
 
-
 cl <- makeCluster(10)
 registerDoParallel(cl)
 

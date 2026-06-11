@@ -14,7 +14,6 @@ cl <- makeCluster(10)
 registerDoParallel(cl)
 
 
-
 ####################################
 # loading species occurrences data
 ####################################

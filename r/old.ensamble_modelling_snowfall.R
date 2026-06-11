@@ -11,244 +11,245 @@ library(maptools)
 library(snowfall)
 
 
-
-
 ####################################
 # loading species occurrences data
 ####################################
-spocc <- read.table("Data_Species/data_1km.txt", head=TRUE, sep="\t")
-sp.names<-levels(factor(spocc[,1]))
-num_sp<-length(sp.names)
-
+spocc <- read.table("Data_Species/data_1km.txt", head = TRUE, sep = "\t")
+sp.names <- levels(factor(spocc[, 1]))
+num_sp <- length(sp.names)
 
 
 #####################################
-# CALIBRATION environmental data 
-#####################################
-
-#####################################
-# loading CURRENT environmental data 
-#####################################
-clim_cal=stack(dir("SDM_Vars/PCA/baseline", full.names=T))
-tri_cal=stack(dir("TRI", full.names=T))
-soil_cal=stack(dir("SDM_Vars/PCA/Suolo", full.names=T))
-cur_cal<-stack(clim_cal,tri_cal,soil_cal)
-names(cur_cal)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
-
-#####################################
-# PROJECTION environmental data 
+# CALIBRATION environmental data
 #####################################
 
 #####################################
 # loading CURRENT environmental data
 #####################################
-clim_proj=stack(dir("SDM_Vars/Var_Climate/Baseline", full.names=T))
-tri_proj=stack(dir("SDM_Vars/Var_TRI", full.names=T))
-soil_proj=stack(dir("SDM_Vars/Var_Soil", full.names=T))
-cur_proj<-stack(clim_proj,tri_proj,soil_proj)
-names(cur_proj)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
+clim_cal <- stack(dir("SDM_Vars/PCA/baseline", full.names = T))
+tri_cal <- stack(dir("TRI", full.names = T))
+soil_cal <- stack(dir("SDM_Vars/PCA/Suolo", full.names = T))
+cur_cal <- stack(clim_cal, tri_cal, soil_cal)
+names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+
+#####################################
+# PROJECTION environmental data
+#####################################
+
+#####################################
+# loading CURRENT environmental data
+#####################################
+clim_proj <- stack(dir("SDM_Vars/Var_Climate/Baseline", full.names = T))
+tri_proj <- stack(dir("SDM_Vars/Var_TRI", full.names = T))
+soil_proj <- stack(dir("SDM_Vars/Var_Soil", full.names = T))
+cur_proj <- stack(clim_proj, tri_proj, soil_proj)
+names(cur_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
 
 #####################################
 # loading FUTURE list
 #####################################
 
-lf=list.dirs("SDM_Vars/Var_Climate/future", full.names=T, recursive = T)[-1]
-lf<-as.matrix(lf)
-lf<-lf[nchar(lf[,1]) >= 42, ]
+lf <- list.dirs("SDM_Vars/Var_Climate/future", full.names = T, recursive = T)[-1]
+lf <- as.matrix(lf)
+lf <- lf[nchar(lf[, 1]) >= 42, ]
 #####################################
 # Select bioclimatic variables
 #####################################
-#l<-c(4,10, 19)
-#cur<-cur1[[l]]
+# l<-c(4,10, 19)
+# cur<-cur1[[l]]
 
 
-spocc<-subset(spocc, spocc[,1]==sp.names[c(1:20)])
-sp.names<-levels(factor(spocc[,1]))
-num_sp<-length(sp.names)
+spocc <- subset(spocc, spocc[, 1] == sp.names[c(1:20)])
+sp.names <- levels(factor(spocc[, 1]))
+num_sp <- length(sp.names)
 
-pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
-                     max = num_sp, # Maximum value of the progress bar
-                     style = 3,    # Progress bar style (also available style = 1 and style = 2)
-                     width = 50,   # Progress bar width. Defaults to getOption("width")
-                     char = "=")   # Character used to create the bar
-MyBiomodSF <- function(num_sp){
- myRespName = sp.names
-  
-  cat('\n',myRespName,'modeling...')  
-  ### definition of data 
+pb <- txtProgressBar(
+  min = 0, # Minimum value of the progress bar
+  max = num_sp, # Maximum value of the progress bar
+  style = 3, # Progress bar style (also available style = 1 and style = 2)
+  width = 50, # Progress bar width. Defaults to getOption("width")
+  char = "="
+) # Character used to create the bar
+MyBiomodSF <- function(num_sp) {
+  myRespName <- sp.names
+
+  cat("\n", myRespName, "modeling...")
+  ### definition of data
   ## i.e keep only the column of our species
-  spocc1 <- subset(spocc, spocc[,1]==myRespName)
+  spocc1 <- subset(spocc, spocc[, 1] == myRespName)
 
 
+  ###########################################################################
+  ######################     CALIBRATION ON EUROPE      #####################
+  ###########################################################################
 
-###########################################################################
-######################     CALIBRATION ON EUROPE      #####################
-###########################################################################
+  ###########################################################################
+  ######################     ENSAMBLE       CURRENT     #####################
+  ###########################################################################
 
-###########################################################################
-######################     ENSAMBLE       CURRENT     #####################
-###########################################################################
+  myRespName <- paste(myRespName, sep = "")
+  myRespXY <- spocc1[, 2:3] # coordinates of points
+  myResp <- rep(1, nrow(spocc1)) # species occurences
 
-myRespName <- paste (myRespName , sep = "")
-myRespXY <- spocc1[,2:3] # coordinates of points
-myResp <- rep(1, nrow(spocc1)) # species occurences
+  # 1. Formatting Data
 
-# 1. Formatting Data
- 
- myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
-                                       expl.var = cur_cal,
-                                       resp.xy = myRespXY,
-                                       resp.name = myRespName,
-                    			 eval.resp.var = NULL,
-                     			eval.expl.var = NULL,
-                     			eval.resp.xy = NULL,
-                                       PA.nb.rep = 10,
-                                       PA.nb.absences = 10000,
-                                       PA.strategy = 'random',
-                     			PA.dist.min = NULL,
-                    			 PA.dist.max = NULL,
-                     			PA.sre.quant = 0.15,
-                     			na.rm = TRUE,
-						filter.raster = TRUE)
-
-
-
-
-# 2. Defining Models Options using default options.
- 	myBiomodOption <- BIOMOD_ModelingOptions()
-
-# 3. Computing the models
-	myBiomodModelOut <- BIOMOD_Modeling(myBiomodData,
-						models = c("GLM", "GBM",  "ANN", "FDA", "MARS"),
-						bm.options = myBiomodOption,
-						CV.nb.rep =10,
-						CV.perc=0.7,
-						CV.strategy = 'random',
-						#var.import = 10,
-                                    		nb.cpu=1,
-						metric.eval  = c('TSS', 'ROC', 'KAPPA', 'POD', 'FAR'),
-						scale.models = FALSE)
-	
-
-# 4. Model ensemble models
-     myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
-                                    models.chosen = 'all',
-                                    em.by = 'all',
-                                    em.algo = c('EMmean', "EMcv"),
-                                    metric.select = c('ROC'),
-                                    metric.select.thresh = c(0.6),
-                                    metric.eval = c('TSS', 'ROC', 'KAPPA'))
+  myBiomodData <- BIOMOD_FormatingData(
+    resp.var = myResp,
+    expl.var = cur_cal,
+    resp.xy = myRespXY,
+    resp.name = myRespName,
+    eval.resp.var = NULL,
+    eval.expl.var = NULL,
+    eval.resp.xy = NULL,
+    PA.nb.rep = 10,
+    PA.nb.absences = 10000,
+    PA.strategy = "random",
+    PA.dist.min = NULL,
+    PA.dist.max = NULL,
+    PA.sre.quant = 0.15,
+    na.rm = TRUE,
+    filter.raster = TRUE
+  )
 
 
+  # 2. Defining Models Options using default options.
+  myBiomodOption <- BIOMOD_ModelingOptions()
+
+  # 3. Computing the models
+  myBiomodModelOut <- BIOMOD_Modeling(myBiomodData,
+    models = c("GLM", "GBM", "ANN", "FDA", "MARS"),
+    bm.options = myBiomodOption,
+    CV.nb.rep = 10,
+    CV.perc = 0.7,
+    CV.strategy = "random",
+    # var.import = 10,
+    nb.cpu = 1,
+    metric.eval = c("TSS", "ROC", "KAPPA", "POD", "FAR"),
+    scale.models = FALSE
+  )
 
 
-###Models evaluations
-
-	myBiomodModelEval <- get_evaluations(myBiomodModelOut)
-	myBiomodModelEval_ensamble <- get_evaluations(myBiomodEM)
-
-	nome<-paste0("Eval/Eval_", sp.names[i], ".txt", sep="")
-	write.table(myBiomodModelEval , file=nome, sep="\t")
-
-	nome1<-paste0("Eval/Eval_EM_", sp.names[i], ".txt", sep="")
-	write.table(myBiomodModelEval_ensamble , file=nome1, sep="\t")
-
-
-
-	
-###########################################################################
-######################      PROJECTION ON ALPS        #####################
-###########################################################################
-
-###########################################################################
-###########################           CURRENT   ###########################
-###########################################################################
+  # 4. Model ensemble models
+  myBiomodEM <- BIOMOD_EnsembleModeling(
+    bm.mod = myBiomodModelOut,
+    models.chosen = "all",
+    em.by = "all",
+    em.algo = c("EMmean", "EMcv"),
+    metric.select = c("ROC"),
+    metric.select.thresh = c(0.6),
+    metric.eval = c("TSS", "ROC", "KAPPA")
+  )
 
 
-# 5. Individual models projections on current environmental conditions
+  ### Models evaluations
+
+  myBiomodModelEval <- get_evaluations(myBiomodModelOut)
+  myBiomodModelEval_ensamble <- get_evaluations(myBiomodEM)
+
+  nome <- paste0("Eval/Eval_", sp.names[i], ".txt", sep = "")
+  write.table(myBiomodModelEval, file = nome, sep = "\t")
+
+  nome1 <- paste0("Eval/Eval_EM_", sp.names[i], ".txt", sep = "")
+  write.table(myBiomodModelEval_ensamble, file = nome1, sep = "\t")
 
 
-myBiomodProj<- BIOMOD_Projection(
-				bm.mod = myBiomodModelOut,
-				new.env = cur_proj,
-				proj.name = 'current',
-				models.chosen = 'all',
-				build.clamping.mask = T,
-                        nb.cpu=1)
+  ###########################################################################
+  ######################      PROJECTION ON ALPS        #####################
+  ###########################################################################
 
-# 6. Project ensemble models
-
-myBiomodEMProj <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM,
-proj.name = 'currentEM',
-new.env = cur_proj,
-models.chosen = 'all',
-metric.binary = 'all',
-metric.filter = 'all')
+  ###########################################################################
+  ###########################           CURRENT   ###########################
+  ###########################################################################
 
 
+  # 5. Individual models projections on current environmental conditions
 
 
-###########################################################################
-#######################################   FUTURE     ######################
-###########################################################################
+  myBiomodProj <- BIOMOD_Projection(
+    bm.mod = myBiomodModelOut,
+    new.env = cur_proj,
+    proj.name = "current",
+    models.chosen = "all",
+    build.clamping.mask = T,
+    nb.cpu = 1
+  )
 
-##Number of future projections
-nf<-length(lf)
+  # 6. Project ensemble models
 
-for(k in 1:nf){
-name<-lf[k]
-
-fut1=stack(dir(lf[k], full.names=T))
-
-
-#names(fut1)<-lnames
-fut<-fut1
-fut_proj<-stack(fut[[1]],fut[[2]],tri_proj,soil_proj[[1]],soil_proj[[2]])
-fut_proj<-stack(fut_proj)
-names(fut_proj)<-c("PC1_clim", "PC2_clim", "tri","PC1_soil","PC2_soil")
-
-nm1<-strsplit(name, "/")[[1]]
-nm<-paste0(nm1[4],"_", nm1[5])
-nm2<-paste0('futureEM_',nm1[4],"_", nm1[5])
-
-# 5. Individual models projections on future environmental conditions
+  myBiomodEMProj <- BIOMOD_EnsembleForecasting(
+    bm.em = myBiomodEM,
+    proj.name = "currentEM",
+    new.env = cur_proj,
+    models.chosen = "all",
+    metric.binary = "all",
+    metric.filter = "all"
+  )
 
 
-myBiomodProj_fut<- BIOMOD_Projection(
-				bm.mod = myBiomodModelOut,
-				new.env = fut_proj,
-				proj.name = nm,
-				models.chosen = 'all',
-				build.clamping.mask = T,
-                                nb.cpu=1)
+  ###########################################################################
+  #######################################   FUTURE     ######################
+  ###########################################################################
 
-myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM,
-				proj.name = nm2,
-				new.env = fut_proj,
-				models.chosen = 'all',
-				metric.binary = 'all',
-				metric.filter = 'all')
-}
-setTxtProgressBar(pb, i)# Sets the progress bar to the current state
-Sys.sleep(10)
+  ## Number of future projections
+  nf <- length(lf)
+
+  for (k in 1:nf) {
+    name <- lf[k]
+
+    fut1 <- stack(dir(lf[k], full.names = T))
+
+
+    # names(fut1)<-lnames
+    fut <- fut1
+    fut_proj <- stack(fut[[1]], fut[[2]], tri_proj, soil_proj[[1]], soil_proj[[2]])
+    fut_proj <- stack(fut_proj)
+    names(fut_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+
+    nm1 <- strsplit(name, "/")[[1]]
+    nm <- paste0(nm1[4], "_", nm1[5])
+    nm2 <- paste0("futureEM_", nm1[4], "_", nm1[5])
+
+    # 5. Individual models projections on future environmental conditions
+
+
+    myBiomodProj_fut <- BIOMOD_Projection(
+      bm.mod = myBiomodModelOut,
+      new.env = fut_proj,
+      proj.name = nm,
+      models.chosen = "all",
+      build.clamping.mask = T,
+      nb.cpu = 1
+    )
+
+    myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
+      bm.em = myBiomodEM,
+      proj.name = nm2,
+      new.env = fut_proj,
+      models.chosen = "all",
+      metric.binary = "all",
+      metric.filter = "all"
+    )
+  }
+  setTxtProgressBar(pb, i) # Sets the progress bar to the current state
+  Sys.sleep(10)
 }
 close(pb) # Close the connection
 
-sfInit(parallel=TRUE, cpus=20 )  ## we select 2 CPUs. If you have 8 CPUs, put 8. 
- 
+sfInit(parallel = TRUE, cpus = 20) ## we select 2 CPUs. If you have 8 CPUs, put 8.
+
 ## ## Export packages
-sfLibrary('biomod2', character.only=TRUE)
-## 
+sfLibrary("biomod2", character.only = TRUE)
+##
 ## ## Export variables
-sfExport('spocc')
-sfExport('cur_proj')
-sfExport('sp.names')
+sfExport("spocc")
+sfExport("cur_proj")
+sfExport("sp.names")
 sfExportAll()
-## 
+##
 ## # you may also use sfExportAll() to export all your workspace variables
-## 
+##
 ## ## Do the run
-mySFModelsOut <- sfLapply( sp.names, MyBiomodSF)
-## 
+mySFModelsOut <- sfLapply(sp.names, MyBiomodSF)
+##
 ## ## stop snowfall
-sfStop( nostop=FALSE )
+sfStop(nostop = FALSE)
