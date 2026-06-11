@@ -39,9 +39,12 @@ message("CRS raster PC1: EPSG:", terra::crs(terra::rast(file.path(in_dir, "clima
 #####################################
 csv_file <- "small_1km_EUNIS.csv" # CSV ridotto per il test; metti "full_1km_EUNIS.csv" per il run completo
 max_rows <- NA # NA = tutte le righe; es. 5000 = solo prime 5000 occorrenze (poche specie)
+n_cpu <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "4")) # biomod2 internal parallelism
 
-cl <- makeCluster(41)
-registerDoParallel(cl)
+# NOTE: makeCluster/foreach parallelism DISABLED - hangs inside Singularity container.
+# Using biomod2's internal nb.cpu instead (see BIOMOD_Modeling, BIOMOD_Projection calls).
+# cl <- makeCluster(n_cpu)
+# registerDoParallel(cl)
 
 ####################################
 # loading species occurrences data
@@ -91,11 +94,10 @@ pb <- txtProgressBar(
 
 selModels <- c("GLM", "GBM", "ANN", "FDA", "MARS")
 
-# TODO: rivedere la parallelizzazione. doParallel+foreach replica i dati in ogni
-# worker (RAM x N) e .packages ricarica i pacchetti a ogni iterazione. Valutare
-# future/furrr, o nb.cpu interno di biomod2 invece del parallelismo per-specie.
-foreach(i = 1:num_sp, .packages = c("biomod2", "raster", "terra")) %dopar% {
-  library(biomod2) # i=2:num_sp era arbitrario
+# Sequential loop over species. Parallelism via biomod2's internal nb.cpu.
+# (foreach+doParallel hangs inside Singularity container on HPC)
+for (i in 1:num_sp) {
+  message("=== Processing species ", i, "/", num_sp, ": ", sp.names[i], " ===")
   tryCatch(
     {
       spocc1 <- subset(spocc, spocc[, 2] == sp.names[i])
@@ -150,7 +152,7 @@ foreach(i = 1:num_sp, .packages = c("biomod2", "raster", "terra")) %dopar% {
         CV.perc = 0.7,
         CV.strategy = "random",
         # var.import = 10,
-        nb.cpu = 1,
+        nb.cpu = n_cpu,
         metric.eval = c("TSS", "ROC", "KAPPA", "POD", "FAR"),
         scale.models = FALSE
       )
@@ -198,7 +200,7 @@ foreach(i = 1:num_sp, .packages = c("biomod2", "raster", "terra")) %dopar% {
         proj.name = "current",
         models.chosen = "all",
         build.clamping.mask = T,
-        nb.cpu = 1
+        nb.cpu = n_cpu
       )
 
       # 6. Project ensemble models
@@ -246,7 +248,7 @@ foreach(i = 1:num_sp, .packages = c("biomod2", "raster", "terra")) %dopar% {
           proj.name = nm,
           models.chosen = "all",
           build.clamping.mask = T,
-          nb.cpu = 1
+          nb.cpu = n_cpu
         )
 
         myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
