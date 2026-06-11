@@ -164,7 +164,7 @@ for (i in 1:num_sp) {
         models.chosen = "all",
         em.by = "all",
         em.algo = c("EMmean", "EMcv"),
-        metric.select = c("ROC"),
+        metric.select = c("AUCroc"),
         metric.select.thresh = c(0.6),
         metric.eval = c("TSS", "ROC", "KAPPA")
       )
