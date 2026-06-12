@@ -24,6 +24,9 @@ Atteso: 4326. Se torna altro (es. 3035) → riproiettare i punti prima di BIOMOD
 - [ ] <https://github.com/tidymodels/broom>
 
 - [ ] adjust rsync-leo
+- [ ] what's the difference between all the printing R methods (message, print, printf, cat, put, ...)
+- [ ] finish workflow-leo.sh
+- [ ] adjust the old.ensemble_modelling Rscripts into a single one, after having studied everyone of them and understanding the differences
 
 - [ ] impostare autoformatter e LSP per R (forse anche con pre-commit hook)
 - [ ] fare gli esercizi yt

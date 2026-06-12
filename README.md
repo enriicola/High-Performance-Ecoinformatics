@@ -22,6 +22,8 @@ Il mio account iscrc_specc può usare solo:
 - dcgp_qos_lprod (low production)
 - normal
 
+ROC non va bene, bisogna usare AUCroc
+
 ### Come usare sbatch su Leonardo
 -> nel repo root su Leonardo:
 git pull                    # prendi script aggiornati
@@ -32,6 +34,14 @@ squeue --me                 # stato (PD=pending, R=running)
 tail -f job.out             # log live (stdout)
 tail -f job.err             # errori
 scancel <jobid>             # annullare
+
+### appunti cc
+
+- `makeCluster`/`foreach` hangs inside Singularity → disabled; use biomod2 internal `nb.cpu` instead
+- biomod2 API changes: `BIOMOD_ModelingOptions()` → `bm_ModelingOptions(strategy='bigboss')`, `ROC` → `AUCroc`
+- stdout/stderr merged to single `.log` file for easier debugging; progress messages `[1/6]...[6/6]` added
+
+---
 
 ## data folder instructions
 
