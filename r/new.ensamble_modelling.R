@@ -14,7 +14,7 @@ options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
 library(biomod2)
 library(raster)
 library(terra)
-# library(rgdal)        # ritirato da CRAN (ott 2023), assente nel container
+# library(rgdal)        # ritirato da CRAN (ott 2023), assente nel container, TODO: verificare https://gdal.org/en/stable/programs/gdalinfo.html
 library(gbm)
 library(mda)
 # library(randomForest) # non usato: modelli = GLM/GBM/ANN/FDA/MARS
@@ -39,7 +39,7 @@ message("CRS raster PC1: EPSG:", terra::crs(terra::rast(file.path(in_dir, "clima
 #####################################
 csv_file <- "small_1km_EUNIS.csv" # CSV ridotto per il test; metti "full_1km_EUNIS.csv" per il run completo
 max_rows <- NA # NA = tutte le righe; es. 5000 = solo prime 5000 occorrenze (poche specie)
-n_cpu <- 1L # TEMP: force sequential to debug hang. Was: as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "4"))
+n_cpu <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "4")) # use all allocated cores
 
 # NOTE: makeCluster/foreach parallelism DISABLED - hangs inside Singularity container.
 # Using biomod2's internal nb.cpu instead (see BIOMOD_Modeling, BIOMOD_Projection calls).

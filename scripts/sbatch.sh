@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=56
 #SBATCH --partition=dcgp_usr_prod
 #SBATCH --qos=dcgp_qos_lprod
-#SBATCH --time=02:00:00
+#SBATCH --time=12:00:00
 #SBATCH --output=job_%j.log
 #SBATCH --error=job_%j.log
 #SBATCH --mail-type=ALL
