@@ -39,7 +39,8 @@ message("CRS raster PC1: EPSG:", terra::crs(terra::rast(file.path(in_dir, "clima
 #####################################
 csv_file <- "small_1km_EUNIS.csv" # CSV ridotto per il test; metti "full_1km_EUNIS.csv" per il run completo
 max_rows <- NA # NA = tutte le righe; es. 5000 = solo prime 5000 occorrenze (poche specie)
-n_cpu <- min(16L, as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "4"))) # cap at 16: 56 workers × 10GB each = OOM
+# n_cpu <- min(16L, as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "4"))) # cap at 16: 56 workers × 10GB each = OOM
+n_cpu <- 1L # sequential: mclapply fork in step 6 (EnsembleForecasting) copies big parent -> OOM. Re-tune before full run
 
 # NOTE: makeCluster/foreach parallelism DISABLED - hangs inside Singularity container.
 # Using biomod2's internal nb.cpu instead (see BIOMOD_Modeling, BIOMOD_Projection calls).

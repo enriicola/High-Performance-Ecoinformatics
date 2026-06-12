@@ -40,6 +40,11 @@ scancel <jobid>             # annullare
 - `makeCluster`/`foreach` hangs inside Singularity → disabled; use biomod2 internal `nb.cpu` instead
 - biomod2 API changes: `BIOMOD_ModelingOptions()` → `bm_ModelingOptions(strategy='bigboss')`, `ROC` → `AUCroc`
 - stdout/stderr merged to single `.log` file for easier debugging; progress messages `[1/6]...[6/6]` added
+- OOM in step 6 `BIOMOD_EnsembleForecasting`: biomod2 forks `mclapply` workers, each copy-on-write inherits big parent (rasters + models) → RAM × N workers → kernel kills workers → dead worker returns non-SpatRaster → `[names<-] incorrect number of names` → species FALLITA. NB: `tryCatch` hides it, job "completes" but ensemble + future outputs missing
+- `nb.cpu` cap lowered (56 → 16) didn't fix step 6; forking is the issue, not core count
+- step 6 internal: `BIOMOD_EnsembleForecasting` reloads all models (`load_stored_object`) and re-projects via `BIOMOD_Projection(..., nb.cpu = nb.cpu)` (its default is 1) — yet log still shows a ≥10-worker `mclapply` fork there; real fork source unresolved
+- workaround for the 1-species test: `n_cpu <- 1L` (fully sequential) → no fork anywhere → no OOM → all outputs (ensemble + future) produced. Slower but guaranteed. Re-tune parallelism before the full multi-species run
+- ...
 
 ---
 
