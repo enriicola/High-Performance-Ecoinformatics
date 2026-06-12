@@ -1,0 +1,3 @@
+[submodule "docs/biomod2"]
+	path = docs/biomod2
+	url = https://github.com/biomodhub/biomod2.git
