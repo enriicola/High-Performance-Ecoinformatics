@@ -8,8 +8,8 @@
 #SBATCH --partition=dcgp_usr_prod
 #SBATCH --qos=dcgp_qos_lprod
 #SBATCH --time=12:00:00
-#SBATCH --output=job_%j.log
-#SBATCH --error=job_%j.log
+#SBATCH --output=job.log
+#SBATCH --error=job.log
 #SBATCH --mail-type=END,FAIL,REQUEUE,TIME_LIMIT
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
