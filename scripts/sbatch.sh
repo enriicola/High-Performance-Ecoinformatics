@@ -14,4 +14,4 @@
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
-time singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif Rscript "/work/r/new.ensamble_modelling.R"
+time singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif Rscript "/work/R/new.ensamble_modelling.R"
