@@ -7,7 +7,7 @@
 #SBATCH --mem=0
 #SBATCH --partition=dcgp_usr_prod
 #SBATCH --qos=dcgp_qos_lprod
-#SBATCH --time=12:00:00
+#SBATCH --time=72:00:00
 #SBATCH --output=job.log
 #SBATCH --error=job.log
 #SBATCH --mail-type=END,FAIL,REQUEUE,TIME_LIMIT
