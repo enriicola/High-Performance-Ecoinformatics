@@ -21,6 +21,13 @@ Atteso: 4326. Se torna altro (es. 3035) → riproiettare i punti prima di BIOMOD
 
 ---
 
+- [ ] print also timestamps for every command inside r script
+- [ ] run hotspot analysis on r script on leonardo
+- [ ] run hotspot analysis on r script on leonardo with parallelization, vectorization, etc
+- [ ] write statistics and thesis sections about hotspot analysis, and so on
+
+- [ ] TODO check what does this mean: (write a script to check the consistency of CRS between points and rasters, and to reproject points if needed (and document it in the thesis))
+
 - [ ] <https://github.com/tidymodels/broom>
 
 - [ ] adjust rsync-leo
