@@ -180,9 +180,8 @@ time.cur_proj <- end.time - start.time
 start.time <- Sys.time()
 myBiomodEMProj <- BIOMOD_EnsembleForecasting(
   bm.em = myBiomodEM,
-  bm.proj = myBiomodProj,
+  bm.proj = myBiomodProj, # reuse computed projection; biomod2 wants XOR(bm.proj, new.env)
   proj.name = "CurrentEM",
-  new.env = cur_proj,
   models.chosen = "all",
   metric.binary = "all",
   metric.filter = "all",
@@ -228,9 +227,8 @@ for (k in 1:nf) {
 
   myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
     bm.em = myBiomodEM,
-    bm.proj = myBiomodProj_fut,
+    bm.proj = myBiomodProj_fut, # reuse computed projection; biomod2 wants XOR(bm.proj, new.env)
     proj.name = nm2,
-    new.env = fut_proj,
     models.chosen = "all",
     metric.binary = "all",
     metric.filter = "all",
