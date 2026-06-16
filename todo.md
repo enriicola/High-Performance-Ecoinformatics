@@ -43,6 +43,7 @@ Atteso: 4326. Se torna altro (es. 3035) → riproiettare i punti prima di BIOMOD
 - [ ] Full HPC run on Cineca Leonardo.
 - [ ] Thesis document (`thesis.tex`) finalization.
 
+- [ ] automate cleanup of dirty `data/output/` after a run (stale species dirs, case-dup `proj_CurrentEM`, `proj_Tmp*` leftovers) — e.g. wipe output before each run or a cleanup script
 - [ ] redirect all prints of .def file to null, except errors and warnings
 - [ ] use rocker image with CUDA support <https://rocker-project.org/images/versioned/cuda.html>
 - [ ] add sonarcube bind and support

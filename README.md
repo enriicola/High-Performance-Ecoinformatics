@@ -1,4 +1,4 @@
-# High Performance Ecoinformatics: Master's Thesis Project
+# High Performance Ecoinformatics: MSc thesis 
 
 ## Setup for Collaborators
 
@@ -44,7 +44,27 @@ scancel <jobid>             # annullare
 - `nb.cpu` cap lowered (56 → 16) didn't fix step 6; forking is the issue, not core count
 - step 6 internal: `BIOMOD_EnsembleForecasting` reloads all models (`load_stored_object`) and re-projects via `BIOMOD_Projection(..., nb.cpu = nb.cpu)` (its default is 1) — yet log still shows a ≥10-worker `mclapply` fork there; real fork source unresolved
 - workaround for the 1-species test: `n_cpu <- 1L` (fully sequential) → no fork anywhere → no OOM → all outputs (ensemble + future) produced. Slower but guaranteed. Re-tune parallelism before the full multi-species run
-- ...
+
+#### run history (mini dataset, 1 species Achillea atrata)
+
+- `52004b2` (nb.cpu=16) → **FAIL** OOM at step 6 forecasting (fork copies big parent)
+- `354e415`/`52004b2` (nb.cpu≥16, time=12h) → **FAIL** also hit 12h timeout on some runs
+- `bc71039` (n_cpu=1, time=12h) → **FAIL** time limit at FUTURE 2/8 (sequential too slow for 8 futures in 12h)
+- `e622491` (n_cpu=1, time=72h, path `R/` fixed) → **SUCCESS** full run, `real 50.3h`, 0 OOM, 0 FALLITA, current + 8 futures complete
+- note: `dcgp_qos_lprod` MaxWall = 4 days → 72h fits the 50h sequential run
+
+#### "false positives" in the success log
+
+- log runs with `options(echo=TRUE)` → R prints the script source before executing it. So `grep` over `job.log` matches words inside the *printed code*, not real events:
+  - `FALLITA` (1 hit) = the error-handler definition line, never triggered
+  - `oom` (4 hits) = the words `zoom` / `mask, zoom` (package masking msgs) + 2 of our own comments containing "OOM". No real `oom_kill`.
+
+#### this run in detail
+
+- 1 species, `small_1km_EUNIS.csv` (9 occurrences), reduced params: PA.nb.rep=2, PA.nb.absences=500, CV.nb.rep=2 → 35 model runs (incl. allRun/allData from `CV.do.full.models`)
+- ensemble EMmean+EMcv, select AUCroc>0.6; projections: current + 8 futures (gfdl/ipsl/mpi/mri × ssp370/585)
+- ⚠️ produces leftover junk in `data/output/` (stale species dirs, case-dup `proj_CurrentEM`, `proj_Tmp*`) — clean before delivery (see todo.md)
+- ⚠️ mini output is NOT deliverable to collaborators (test params/data); needs full dataset + full params
 
 ---
 
@@ -65,69 +85,26 @@ in our case, we chose to download some climate and soil data from <https://www.c
 
 ---
 
-## 📖 Thesis Notes
+## Thesis Notes
 
-### 1. Ecological and Environmental Data
-
-#### Target Species and Occurrences
-
-- **Study System**: Alpine grasslands.
-- **Occurrence Data**: `data_62768_rows` (formerly `data_1km_eunis.txt`). This dataset contains presence/absence points of the target species, mapped at a 1 km² resolution.
-
-#### Predictor Variables (Environmental & Climatic)
-
-The model leverages raster data representing climatic and soil variables. To reduce dimensionality and collinearity, a **Principal Component Analysis (PCA)** has been applied to these variables.
-
-**Timeframes & Scenarios:**
-
-- **Baseline**: Present-day climate and soil variables.
-- **Future Projections**:
+- formerly `data_1km_eunis.txt` dataset contains presence/absence points of the target species, mapped at a 1 km² resolution.
+- PCA: principal component analysis
+- baseline: present-day climate and soil conditions
+- Future Projections:
   - **SSP3-7.0**: Intermediate/high greenhouse gas emissions scenario.
   - **SSP5-8.5**: Pessimistic/worst-case greenhouse gas emissions scenario.
 
-### 2. Methodology & Software Stack
+## draft table of contents (index)
 
-#### R Packages for Spatial Analysis
+1. Introduction
+2. Methodology & Software Stack
+3. High-Performance Computing (Cineca Leonardo)
+   1. Access & Authentication
+   2. Hardware & Software Environment & Booster module and Containerization
+   3. Job Submission & Management with SLURM
+4. Implementation Notes & Methodological Adjustments
 
-- **`terra` & `sf`**: Core libraries used for handling, processing, and projecting spatial raster and vector data.
-- **`biomod2`**: The primary framework for building ensemble species distribution models (SDMs).
-
-#### Ensemble Algorithms
-
-*(To be detailed based on implementation)*
-
-- **Expected algorithms to evaluate**: GLM (Generalized Linear Models), GBM (Gradient Boosting Machines), RF (Random Forest), MaxEnt.
-
-#### System Dependencies
-
-The R packages rely on high-performance C++ system libraries. These must be installed via the system package manager (`apt` on Debian/Ubuntu) prior to R package compilation. (See `containers/installation` for the centralized list).
-
-- **Core Geospatial Stack**:
-  - **GDAL (`libgdal-dev`)**: The "Translator." Handles reading, writing, and compressing raster files (e.g., `.tif`).
-  - **PROJ (`libproj-dev`)**: The "Map Maker." Manages coordinate reference systems (CRS) and map projections.
-  - **GEOS (`libgeos-dev`)**: The "Geometry Engine." Performs spatial logic.
-- **Supporting Libraries**:
-  - **udunits2 (`libudunits2-dev`)**: Handles physical unit conversions.
-  - **libsodium (`libsodium-dev`)**: Provides modern cryptography and security.
-
-### 3. High-Performance Computing (Cineca Leonardo)
-
-The computational core of this thesis runs on the Cineca Leonardo supercomputer using Apptainer containers to ensure reproducibility.
-
-#### Account Details and Access
-
-The Leonardo cluster uses OIDC-based authentication through Step CA rather than traditional SSH keys. The account details are:
-
-- **HPC Username**: `epezzano`
-- **Login Host**: `login.leonardo.cineca.it`
-- **Email**: `enricopezzano@disroot.org`
-- **HPC Project**: `IsCd6_SPECC` (UserDB) / `IscrC_SPECC` (Leonardo workspace)
-- **Workspace Path**: `/leonardo_work/IscrC_SPECC/`
-- **Validity**: February 2026 to November 2026
-
-The authentication flow works as follows: the SSH agent handles the credentials, Step CA manages the OIDC token through a browser-based login, and subsequent SSH/SCP commands use that token automatically. This approach eliminates the need to manage separate SSH keys for HPC access.
-
-**Setup and Login**
+## ssh cineca notes
 
 Start the SSH agent first:
 
@@ -161,62 +138,6 @@ scp -r /home/enriicola/Desktop/tesi REDACTED_USERNAME@login.leonardo.cineca.it:~
 
 # Download files from Leonardo
 scp -r REDACTED_USERNAME@login.leonardo.cineca.it:~/results /local/destination/
-```
-
-**Automation Script**
-
-For repeatability, the `cineca-setup.sh` script automates the agent and OIDC login:
-
-```bash
-#!/bin/bash
-eval $(ssh-agent -s)
-step ssh login 'enricopezzano@disroot.org' --provisioner cineca-hpc
-```
-
-Run this once per session, then use SSH and SCP without re-entering credentials. The script can also be extended to handle agent persistence across shell sessions by saving the agent PID and socket location to a file, though this is optional for one-off jobs.
-
-#### Hardware and Software
-
-Leonardo is an Atos Bull HPC system with two main compute modules:
-
-**Booster Module** (3456 nodes):
-
-- 32 Intel Ice Lake cores per node at 2.60 GHz
-- 4 NVIDIA Ampere A100 GPUs (64 GB each) per node
-- 512 GB RAM per node
-
-**General Purpose Module** (1536 nodes):
-
-- 2×56 Intel Sapphire Rapids cores per node at 2.00 GHz
-- 512 GB RAM per node
-
-The nodes are interconnected by a 200G HDR Infiniband Dragonfly+ network. Job scheduling uses SLURM 22.05. The system runs Red Hat Enterprise Linux 8.7 and supports Apptainer for container execution. Software environments can be managed via Spack modules.
-
-#### Job Submission with SLURM
-
-Jobs are submitted to the SLURM scheduler rather than run interactively. This allows long-running analyses to persist after disconnecting from the login node. A job script specifies resource requirements (CPU cores, memory, time, GPU if needed) and the commands to execute.
-
-Example job script (`run.sh`):
-
-```bash
-#!/bin/bash
-#SBATCH --job-name=biomod_ensemble
-#SBATCH --time=48:00:00
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=32
-#SBATCH --mem=256GB
-
-cd /leonardo_work/IscrC_SPECC/High-Performance-Ecoinformatics
-Rscript main.r > main_output.log 2>&1
-```
-
-Submit and monitor:
-
-```bash
-sbatch run.sh              # Submit job, returns immediately
-squeue -u epezzano         # Check job status
-tail -f main_output.log    # Watch output live
-scancel <jobid>            # Cancel job if needed
 ```
 
 The job runs independently on allocated compute nodes. You can disconnect from Leonardo and check results later.

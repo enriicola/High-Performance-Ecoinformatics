@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# 0. Enforce project convention: R scripts end in .R (uppercase), never .r.
+#    Rename any staged lowercase-.r file to .R and re-stage the rename.
+LOWER=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.r$')
+if [ -n "$LOWER" ]; then
+    echo "Renaming staged .r -> .R (project convention):"
+    echo "$LOWER" | while read f; do
+        [ -f "$f" ] || continue
+        git mv -f "$f" "${f%.r}.R"
+        echo "  $f -> ${f%.r}.R"
+    done
+fi
+
 # 1. Identify all R files that are "staged" (ready to be committed)
 #    grep -E '\.[rR]$'  -> Looks for files ending in .r or .R
 FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.[rR]$')
