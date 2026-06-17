@@ -100,6 +100,7 @@ in our case, we chose to download some climate and soil data from <https://www.c
 
 ## Thesis Notes
 
+- dataset `full_1km_EUNIS.csv`: 2,583,359 presence rows, 167 species, 1 km² resolution. Most abundant single species = `Agrostis capillaris` (170,701 rows) → worst-case for per-species benchmarking. Subset `agrostis_1km_EUNIS.csv` extracted for that benchmark.
 - formerly `data_1km_eunis.txt` dataset contains presence/absence points of the target species, mapped at a 1 km² resolution.
 - PCA: principal component analysis
 - baseline: present-day climate and soil conditions

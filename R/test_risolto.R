@@ -27,7 +27,7 @@ dir.create(out_dir, showWarnings = FALSE)
 ####################################
 # loading species occurrences data
 ####################################
-spocc <- read.csv(file.path(in_dir, "small_1km_EUNIS.csv"), head = TRUE)
+spocc <- read.csv(file.path(in_dir, "agrostis_1km_EUNIS.csv"), head = TRUE)
 spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
 spocc$sp_name <- sub(" ", ".", spocc$sp_name)
 sp.names <- levels(factor(spocc[, 1]))
