@@ -66,6 +66,19 @@ scancel <jobid>             # annullare
 - ⚠️ produces leftover junk in `data/output/` (stale species dirs, case-dup `proj_CurrentEM`, `proj_Tmp*`) — clean before delivery (see todo.md)
 - ⚠️ mini output is NOT deliverable to collaborators (test params/data); needs full dataset + full params
 
+#### versione aggiornata (`R/test_risolto.R`)
+
+Differenze chiave vs `new.ensamble_modelling.R`:
+
+- **`BIOMOD_EnsembleForecasting(bm.proj = ...)` invece di `new.env = ...`**: riusa la proiezione single-models già calcolata → niente ri-proiezione interna → niente fork `mclapply` → **niente OOM allo step 6**. È il meccanismo che ci mancava.
+- biomod2 richiede **XOR(bm.proj, new.env)**: passarli entrambi → `stop("bm.proj or new.env is missing")` (sorgente `BIOMOD_EnsembleForecasting.R:587`). Lo script di Lucia li passava entrambi (WIP) → corretto: solo `bm.proj`.
+- `CV.do.full.models = FALSE` → niente modelli allRun/allData.
+- `selModels` usa **MAXNET** (non MARS).
+- adattamenti per girare nel container: path `./data/input/...`, niente `makeCluster`, niente `dplyr`, fix `OPT.strategy = 'bigboss',,`.
+
+Note dal primo run (params toy: 9 occ + 10 PA):
+- **GBM fallisce** (`data set too small ... nTrain*bag.fraction <= 2*n.minobsinnode+1`): troppi pochi punti. Non fatale, biomod salta GBM. Sparisce con dati/params reali.
+
 ---
 
 ## data folder instructions
