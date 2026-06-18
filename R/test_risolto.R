@@ -10,6 +10,8 @@
 #   - BIOMOD_EnsembleForecasting(bm.proj = ...) reuses the computed projection
 #     -> no internal mclapply re-projection -> avoids the step-6 OOM
 #   - CV.do.full.models = FALSE -> no allRun/allData model bloat
+options(echo = TRUE) # ~ set -x : stampa ogni statement prima di eseguirlo
+options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
 
 library(biomod2)
 library(terra)
