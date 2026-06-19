@@ -31,8 +31,7 @@ sbatch scripts/sbatch.sh    # invia job allo scheduler
 
 #### Monitorare:
 squeue --me                 # stato (PD=pending, R=running)
-tail -f job.out             # log live (stdout)
-tail -f job.err             # errori
+tail -f job.log             # log live (stdout+stderr merged)
 scancel <jobid>             # annullare
 
 ### appunti cc
@@ -44,14 +43,46 @@ scancel <jobid>             # annullare
 - `nb.cpu` cap lowered (56 → 16) didn't fix step 6; forking is the issue, not core count
 - step 6 internal: `BIOMOD_EnsembleForecasting` reloads all models (`load_stored_object`) and re-projects via `BIOMOD_Projection(..., nb.cpu = nb.cpu)` (its default is 1) — yet log still shows a ≥10-worker `mclapply` fork there; real fork source unresolved
 - workaround for the 1-species test: `n_cpu <- 1L` (fully sequential) → no fork anywhere → no OOM → all outputs (ensemble + future) produced. Slower but guaranteed. Re-tune parallelism before the full multi-species run
+- Lustre (filesystem HPC Leonardo) ottimizzato per file grandi, pessimo per tante operazioni metadata; ogni `stat()` = round-trip rete a MDT → `git status` con ~100 file = blocco
+- `GIT_LFS_SKIP_SMUDGE=1` non aiuta: salta download ma git comunque stat() tutti i file
+- ipotesi workaround: evitare git ops su `/leonardo_work/`, fare git da locale e rsync su Leo (non testato)
+- anche tab completion (`tail -f j<TAB>`) si blocca su Lustre sotto carico
+- `options(echo=TRUE)` + `options(warn=1)` → log live; senza echo stdout bufferizzato (job.log vuoto per ore)
+- warning `glm.fit: fitted probabilities numerically 0 or 1` normale con pochi PA, non fatale
 
-#### run history (mini dataset, 1 species Achillea atrata)
+#### run history
 
 - `52004b2` (nb.cpu=16) → **FAIL** OOM at step 6 forecasting (fork copies big parent)
 - `354e415`/`52004b2` (nb.cpu≥16, time=12h) → **FAIL** also hit 12h timeout on some runs
 - `bc71039` (n_cpu=1, time=12h) → **FAIL** time limit at FUTURE 2/8 (sequential too slow for 8 futures in 12h)
 - `e622491` (n_cpu=1, time=72h, path `R/` fixed) → **SUCCESS** full run, `real 50.3h`, 0 OOM, 0 FALLITA, current + 8 futures complete
 - note: `dcgp_qos_lprod` MaxWall = 4 days → 72h fits the 50h sequential run
+- `b26fbd3` (1000 occ Agrostis, toy params PA.nb.rep=3 PA.nb.absences=10 CV.nb.rep=2) → **SUCCESS** `real 17.2h`, 30 models, 8 futures, 0 OOM
+
+#### benchmark findings (9-row Achillea vs 1k-row Agrostis)
+
+| | 9-row | 1k-row |
+|---|---|---|
+| wall (real) | 7h01m (421m) | 17h14m (1033m) |
+| user / sys CPU | 350m / 117m | 952m / 129m |
+| CPU eff (user/real) | 0.83 (~1 core) | 0.92 (~1 core) |
+| GBM | failed 6/6 (too few pts) | 0 fails, ran |
+| surviving models | 24 (4 algos × 6) | 30 (5 algos × 6) |
+| FormatingData | ~48s | ~49s |
+
+- **Finding 1 — single-core waste.** `sbatch.sh` requests `--cpus-per-task=56 --mem=0 --time=72h`, but the R script forces `nb.cpu=1` at all 5 call sites → **~1.8% node utilization, 55 cores idle for 17h**. This is the cost of the step-6 fork/OOM workaround (forking `mclapply` → OOM → forced sequential). The 17h is the price of that workaround, not an algorithmic floor.
+- **Finding 2 — 17h is NOT a real-run estimate.** `PA.nb.absences=10` is a toy value; a real run needs ~10000 PAs → training set explodes → modeling time grows hard. Projection time (the dominant chunk) stays flat. So the 17h is a lower bound dominated by projection, not a forecast of the full run.
+- **Scaling implication.** Cost ≈ `fixed_IO(~2h, set by raster size) + Σ_models(fit) + N_models × N_scenarios × cells × proj_cost`. Occurrence count only feeds `fit`: 111× more data (9→1000) bought only 2.5× wall. Wall is driven by **PA count + model count + #scenarios × raster cells**, barely by occurrence count. The only real lever for the full multi-species run is parallelism across the 9 projection scenarios / models — which reopens the step-6 fork/OOM problem `n_cpu=1` was set to dodge.
+- per-phase timing is written to `data/output/time_<species>.txt`, but ⚠️ `write.table` on `difftime` **strips the units** and R auto-picks a unit per value, so columns aren't comparable (e.g. `formating`=secs, `fut_projection`=hours). Dominant phase is `fut_projection` (the 8-scenario loop) in both runs. Fix: store `as.numeric(diff, units="secs")`.
+
+#### speedup attempt + tooling changes (full 170701-row Agrostis)
+
+- **sbatch config is NOT the lever.** Job already requests 56 cores + `mem=0` (full ~512GB DCGP node); R uses `nb.cpu=1` → 1 core. Tuning SLURM does nothing. Speed is gated by the `nb.cpu=1` workaround in the R code.
+- **lever = R `nb.cpu`.** `test_risolto.R`: added `n_cpu <- 4L`, wired into `BIOMOD_Modeling` + both `BIOMOD_Projection` (current/future). `EnsembleModeling` + both `EnsembleForecasting` stay `nb.cpu=1` (their `bm.proj` reuse already avoids the step-6 re-projection fork — the original OOM source). Projection parallelizes across the 30 models → `fut_projection` ~15h could drop to ~2–4h.
+- ⚠️ **OOM risk**: this is the fork the `nb.cpu=1` workaround dodged. History: `nb.cpu=16/56` → OOM. `n_cpu=4` is the cautious first test; on OOM (FALLITA / log dies mid-projection, check `oom_kill`) drop to 2/1, on clean run try 8.
+- **why the row count is not scary**: projection cost = raster cells × models × scenarios, **independent of occurrence count**. 170701 vs 1000 rows only grows the modeling (fit) phase. Est. wall at `n_cpu=4` ≈ 8–14h (fits 72h).
+- removed the line-77 `spocc1[1:min(1000,...)]` truncation → full 170701 rows. `PA.nb.absences=10` still toy → this is a timing/parallelism test, not deliverable science.
+- `sbatch.sh`: wipes `data/output` before each run (`find ... ! -name expected_output_foreach_species.txt -delete`) to avoid leftover-junk accumulation; pipes Rscript stdout/stderr through `gawk strftime` → every log line gets a live `[HH:MM:SS]` stamp (host-side, needs gawk not mawk on the compute node).
 
 #### "false positives" in the success log
 
