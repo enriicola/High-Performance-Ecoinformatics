@@ -58,7 +58,25 @@ scancel <jobid>             # annullare
 - `e622491` (n_cpu=1, time=72h, path `R/` fixed) → **SUCCESS** full run, `real 50.3h`, 0 OOM, 0 FALLITA, current + 8 futures complete
 - note: `dcgp_qos_lprod` MaxWall = 4 days → 72h fits the 50h sequential run
 - `b26fbd3` (1000 occ Agrostis, toy params PA.nb.rep=3 PA.nb.absences=10 CV.nb.rep=2) → **SUCCESS** `real 17.2h`, 30 models, 8 futures, 0 OOM
-- `81e6fc4` (full 170701 Agrostis, `n_cpu=4` on modeling/projection, PA.nb.absences=10) → **IN PROGRESS** (job 47333938, node lrdn3952). Live observations: extreme imbalance 170701:10 → `FDA failed! *** single value predicted`, more model fails expected; `NAs produced by integer overflow` in metric eval (forecast×observed counts exceed 32-bit int on the 64M-cell space). gawk `[HH:MM:SS]` stamps + pre-run `data/output` wipe both confirmed working on the compute node.
+- `81e6fc4` (full 170701 Agrostis, `n_cpu=4` on modeling/projection, PA.nb.absences=10) → **SUCCESS** (job 47333938, node lrdn3952) `real 4h23m`, **0 OOM**, MaxRSS peak **326 GB** (fits 512GB node; `n_cpu=8` looks risky). `n_cpu=4` validated. Notes: extreme imbalance 170701:10 → `FDA failed! *** single value predicted` (toy PA); `NAs produced by integer overflow` in metric eval (forecast×observed counts exceed 32-bit int on the 64M-cell space). gawk `[HH:MM:SS]` stamps + pre-run `data/output` wipe confirmed on the compute node.
+
+#### parallelism result (`n_cpu=4`, full 170701 Agrostis vs 1k@`n_cpu=1`)
+
+- **Headline: full 170701 rows finished in 4h23m — *faster* than the 1k sequential run (17.2h).** The `n_cpu=4` lever cut the dominant projection phase ~4×, exactly as predicted. Row count barely matters; parallel projection is the whole game.
+- per-phase timing (`time_<sp>.txt`, now in **seconds** — units fix verified, columns sum exactly to `real` 263m):
+
+  | phase | secs | min | % wall |
+  |---|---|---|---|
+  | formating | 49.8 | 0.8 | 0.3% |
+  | modeling | 784.3 | 13.1 | 5.0% |
+  | modeling_EM | 42.1 | 0.7 | 0.3% |
+  | cur_projection | 633.8 | 10.6 | 4.0% |
+  | cur_projection_EM | 1024.9 | 17.1 | 6.5% |
+  | **fut_projection** | **13254.2** | **220.9** | **84%** |
+
+- `fut_projection` (8-scenario loop) still dominates at 84% → it's the only phase worth optimizing further. Was ~15h at `n_cpu=1`, now 3.7h.
+- CPU eff: user/real = 407m/263m ≈ 1.5 cores avg — parallelism helps only the projection phases (rest stay serial), so the average stays well under 4.
+- next lever: `n_cpu=8` could halve `fut_projection` again, but MaxRSS already 326 GB at 4 → 8 forks may exceed 512 GB. Test cautiously, or parallelize across scenarios instead of within projection.
 
 #### benchmark findings (9-row Achillea vs 1k-row Agrostis)
 
