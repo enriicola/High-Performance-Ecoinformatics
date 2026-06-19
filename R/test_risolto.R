@@ -70,11 +70,14 @@ pb <- txtProgressBar(min = 0, max = num_sp, style = 3, width = 50, char = "=")
 
 selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
 
+# parallel fork count for Modeling + Projection only. EnsembleForecasting stays nb.cpu=1:
+# its bm.proj reuse already avoids the re-projection fork that caused the step-6 OOM.
+# Cap modest: nb.cpu >= 16 historically OOM'd (big-parent forks). Raise only after a clean test.
+n_cpu <- 4L
+
 # DEBUG: use first species
 i <- 1
 spocc1 <- subset(spocc, spocc[, 1] == sp.names[i])
-# DEBUG: truncate to 1000 occurrences for testing
-spocc1 <- spocc1[1:min(1000, nrow(spocc1)), ]
 cat("DEBUG: species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
 
 ###########################################################################
@@ -126,7 +129,7 @@ myBiomodModelOut <- BIOMOD_Modeling(
   metric.eval = c("TSS", "AUCroc", "KAPPA", "POD", "FAR"),
   scale.models = FALSE,
   CV.do.full.models = FALSE,
-  nb.cpu = 1,
+  nb.cpu = n_cpu,
   do.progress = T
 )
 end.time <- Sys.time()
@@ -173,7 +176,7 @@ myBiomodProj <- BIOMOD_Projection(
   new.env = cur_proj,
   models.chosen = "all",
   build.clamping.mask = T,
-  nb.cpu = 1
+  nb.cpu = n_cpu
 )
 end.time <- Sys.time()
 time.cur_proj <- end.time - start.time
@@ -224,7 +227,7 @@ for (k in 1:nf) {
     new.env = fut_proj,
     models.chosen = "all",
     build.clamping.mask = T,
-    nb.cpu = 1
+    nb.cpu = n_cpu
   )
 
   myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
@@ -243,8 +246,14 @@ end.time <- Sys.time()
 time.fut_proj <- end.time - start.time
 close(pb)
 
+# force seconds: write.table strips difftime units and R auto-picks a unit per value,
+# so columns aren't comparable. as.numeric(., units="secs") makes them uniform.
 time <- data.frame(
-  formating = time.formating, modeling = time.modeling, modeling_EM = time.modeling_EM,
-  cur_projection = time.cur_proj, cur_projection_EM = time.cur_proj_EM, fut_projection = time.fut_proj
+  formating = as.numeric(time.formating, units = "secs"),
+  modeling = as.numeric(time.modeling, units = "secs"),
+  modeling_EM = as.numeric(time.modeling_EM, units = "secs"),
+  cur_projection = as.numeric(time.cur_proj, units = "secs"),
+  cur_projection_EM = as.numeric(time.cur_proj_EM, units = "secs"),
+  fut_projection = as.numeric(time.fut_proj, units = "secs")
 )
 write.table(time, paste0("time_", sp.names[i], ".txt"), sep = "\t")
