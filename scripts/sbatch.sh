@@ -14,4 +14,11 @@
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
-time singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif Rscript "/work/R/test_risolto.R"
+# wipe previous run outputs before each run (keep the committed reference file). R recreates the dir.
+mkdir -p data/output
+find data/output -mindepth 1 ! -name 'expected_output_foreach_species.txt' -delete
+
+# pipe through gawk strftime -> every log line gets a wall-clock stamp (live, fflush).
+# runs on the host outside the container, so host gawk is used (no moreutils `ts` needed).
+time singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif Rscript "/work/R/test_risolto.R" 2>&1 \
+  | gawk '{ print strftime("[%H:%M:%S]"), $0; fflush() }'
