@@ -58,6 +58,7 @@ scancel <jobid>             # annullare
 - `e622491` (n_cpu=1, time=72h, path `R/` fixed) → **SUCCESS** full run, `real 50.3h`, 0 OOM, 0 FALLITA, current + 8 futures complete
 - note: `dcgp_qos_lprod` MaxWall = 4 days → 72h fits the 50h sequential run
 - `b26fbd3` (1000 occ Agrostis, toy params PA.nb.rep=3 PA.nb.absences=10 CV.nb.rep=2) → **SUCCESS** `real 17.2h`, 30 models, 8 futures, 0 OOM
+- `81e6fc4` (full 170701 Agrostis, `n_cpu=4` on modeling/projection, PA.nb.absences=10) → **IN PROGRESS** (job 47333938, node lrdn3952). Live observations: extreme imbalance 170701:10 → `FDA failed! *** single value predicted`, more model fails expected; `NAs produced by integer overflow` in metric eval (forecast×observed counts exceed 32-bit int on the 64M-cell space). gawk `[HH:MM:SS]` stamps + pre-run `data/output` wipe both confirmed working on the compute node.
 
 #### benchmark findings (9-row Achillea vs 1k-row Agrostis)
 
