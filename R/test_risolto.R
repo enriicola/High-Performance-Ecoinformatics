@@ -99,7 +99,7 @@ myBiomodData <- BIOMOD_FormatingData(
   resp.xy = myRespXY,
   resp.name = myRespName,
   PA.nb.rep = 3,
-  PA.nb.absences = 10,
+  PA.nb.absences = 10000, # production value (was toy 10); grows modeling only, projection unchanged
   PA.strategy = "random",
   na.rm = TRUE,
   filter.raster = F
