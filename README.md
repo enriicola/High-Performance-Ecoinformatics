@@ -77,6 +77,7 @@ scancel <jobid>             # annullare
 - `fut_projection` (8-scenario loop) still dominates at 84% → it's the only phase worth optimizing further. Was ~15h at `n_cpu=1`, now 3.7h.
 - CPU eff: user/real = 407m/263m ≈ 1.5 cores avg — parallelism helps only the projection phases (rest stay serial), so the average stays well under 4.
 - next lever: `n_cpu=8` could halve `fut_projection` again, but MaxRSS already 326 GB at 4 → 8 forks may exceed 512 GB. Test cautiously, or parallelize across scenarios instead of within projection.
+- session log (2026-06-19/20): added `n_cpu=4` + difftime-units fix to `test_risolto.R`, output-wipe + gawk `[HH:MM:SS]` log timestamps to `sbatch.sh`; ran job 47333938 on Leonardo (node lrdn3952) → results + `job.log` committed; branch `bench/full-agrostis-parallel` fast-forwarded into `main` and deleted (solo dev, no PR).
 
 #### benchmark findings (9-row Achillea vs 1k-row Agrostis)
 
