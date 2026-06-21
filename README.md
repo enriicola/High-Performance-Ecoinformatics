@@ -79,6 +79,35 @@ scancel <jobid>             # annullare
 - next lever: `n_cpu=8` could halve `fut_projection` again, but MaxRSS already 326 GB at 4 → 8 forks may exceed 512 GB. Test cautiously, or parallelize across scenarios instead of within projection.
 - session log (2026-06-19/20): added `n_cpu=4` + difftime-units fix to `test_risolto.R`, output-wipe + gawk `[HH:MM:SS]` log timestamps to `sbatch.sh`; ran job 47333938 on Leonardo (node lrdn3952) → results + `job.log` committed; branch `bench/full-agrostis-parallel` fast-forwarded into `main` and deleted (solo dev, no PR).
 
+#### production-params run (`PA.nb.absences=10000`, full 170701 Agrostis)
+
+First **scientifically valid** single-species run: bumped `PA.nb.absences` 10→10000 (the documented production value; `PA.nb.rep=3`, `CV.nb.rep=2`, `n_cpu=4`, same sbatch). Job 47467973, node lrdn3601.
+
+| metric | PA=10 (job 47333938) | **PA=10000 (job 47467973)** |
+|---|---|---|
+| state | COMPLETED | **COMPLETED** |
+| wall (real) | 4h23m | **11h50m** (709m) |
+| MaxRSS peak | 326 GB | **359 GB** (fits 512 GB) |
+| model failures | 6 (FDA `single value predicted`) | **0** ✅ |
+| models / projections | 24 / 240 | 30 / 300 |
+| user CPU | 407m | 1607m (~2.3 cores avg) |
+
+Per-phase timing (`time_<sp>.txt`, seconds — sums exactly to 709m):
+
+| phase | secs | min | % wall |
+|---|---|---|---|
+| formating | 2613.8 | 43.6 | 6.1% |
+| modeling | 3062.0 | 51.0 | 7.2% |
+| modeling_EM | 84.3 | 1.4 | 0.2% |
+| cur_projection | 2970.5 | 49.5 | 7.0% |
+| cur_projection_EM | 1096.3 | 18.3 | 2.6% |
+| **fut_projection** | **32736.9** | **545.6** | **76.9%** |
+
+- **Correction to the earlier claim "PA bump grows modeling only, projection unchanged" — wrong.** Projection grew ~2.5× (fut 3.7h→9.1h). Causes: (a) +25% surviving models (24→30, no FDA fails) → 1.25×; (b) at PA=10 the models were degenerate (toy/near-constant, cheap to predict + filtered out), at PA=10000 all 30 are *real* → full per-cell prediction + real ensemble binary/filtered raster outputs written. So PA count affects projection **indirectly** via valid-model count and ensemble I/O.
+- formating jumped 50s→44min: selecting 30k PAs (10000×3 rep) + duplicate-cell checks over 170701 presences.
+- `fut_projection` still dominant (77%).
+- **Scaling verdict:** ~11.8h/species at production params → full 167-species dataset ≈ **82 days serial**. Single sbatch jobs are dead at full scale. Next phase must use SLURM **job arrays** (1 species/task, concurrent) + per-species checkpointing.
+
 #### benchmark findings (9-row Achillea vs 1k-row Agrostis)
 
 | | 9-row | 1k-row |
