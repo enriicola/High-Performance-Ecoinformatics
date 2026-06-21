@@ -108,6 +108,13 @@ Per-phase timing (`time_<sp>.txt`, seconds — sums exactly to 709m):
 - `fut_projection` still dominant (77%).
 - **Scaling verdict:** ~11.8h/species at production params → full 167-species dataset ≈ **82 days serial**. Single sbatch jobs are dead at full scale. Next phase must use SLURM **job arrays** (1 species/task, concurrent) + per-species checkpointing.
 
+#### next: 3-species size-spread array (planned)
+
+- 3-task SLURM array (`--array=1-3`), one species per task, size-spread: **Potentilla erecta (167k) / Galium anisophyllon (5.9k) / Festuca glauca (332)**.
+- mechanics: `--array=1-3` turns one `sbatch` into 3 independent sub-jobs, each on its own node with env `SLURM_ARRAY_TASK_ID` = 1/2/3 → R picks species by that index → 3 species run concurrently (wall ≈ slowest species ~12h, not 3× serial). Scales to all 167 via `--array=1-167`.
+- `--output` changed `job.log` → `logs/job_%A_%a.log` (`%A`=array id, `%a`=task id): concurrent tasks need separate log files, else 3 streams garble into one. Global output wipe removed → each task wipes only its own species dir in R (array-safe).
+- **Why the size spread matters:** it isolates *how* per-species cost scales with occurrence count. If small species still take ~12h, the ~9h projection floor (raster × models, data-independent) dominates → every one of the 167 species costs roughly the same, so the only budget lever is array width (concurrency), and the full run is a fixed ~167×~12h of node-hours. If small species are much faster, cost scales with data → the budget is far smaller and dominated by the few large species. Same data also confirms whether the **hotspot** (currently `fut_projection`, 77%) stays the projection phase across species sizes → tells us optimization effort generalizes to all species, not just the big ones.
+
 #### benchmark findings (9-row Achillea vs 1k-row Agrostis)
 
 | | 9-row | 1k-row |

@@ -29,7 +29,7 @@ dir.create(out_dir, showWarnings = FALSE)
 ####################################
 # loading species occurrences data
 ####################################
-spocc <- read.csv(file.path(in_dir, "agrostis_1km_EUNIS.csv"), head = TRUE)
+spocc <- read.csv(file.path(in_dir, "full_1km_EUNIS.csv"), head = TRUE)
 spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
 spocc$sp_name <- sub(" ", ".", spocc$sp_name)
 sp.names <- levels(factor(spocc[, 1]))
@@ -75,10 +75,15 @@ selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
 # Cap modest: nb.cpu >= 16 historically OOM'd (big-parent forks). Raise only after a clean test.
 n_cpu <- 4L
 
-# DEBUG: use first species
-i <- 1
+# SLURM array task -> one species from the test set (size-spread: large/median/small)
+test_species <- c("Potentilla.erecta", "Galium.anisophyllon", "Festuca.glauca")
+k <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
+i <- match(test_species[k], sp.names)
 spocc1 <- subset(spocc, spocc[, 1] == sp.names[i])
-cat("DEBUG: species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
+cat("DEBUG: array task", k, "-> species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
+
+# per-species output wipe (array-safe: only this task's species dir, not sibling tasks')
+unlink(file.path(out_dir, sp.names[i]), recursive = TRUE)
 
 ###########################################################################
 ######################     CALIBRATION ON EUROPE      #####################
