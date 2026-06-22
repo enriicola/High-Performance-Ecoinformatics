@@ -70,17 +70,18 @@ pb <- txtProgressBar(min = 0, max = num_sp, style = 3, width = 50, char = "=")
 
 selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
 
-# parallel fork count for Modeling + Projection only. EnsembleForecasting stays nb.cpu=1:
-# its bm.proj reuse already avoids the re-projection fork that caused the step-6 OOM.
-# Cap modest: nb.cpu >= 16 historically OOM'd (big-parent forks). Raise only after a clean test.
-n_cpu <- 4L
-
 # SLURM array task -> one species from the test set (size-spread: large/median/small)
 test_species <- c("Potentilla.erecta", "Galium.anisophyllon", "Festuca.glauca")
 k <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
 i <- match(test_species[k], sp.names)
 spocc1 <- subset(spocc, spocc[, 1] == sp.names[i])
 cat("DEBUG: array task", k, "-> species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
+
+# parallel fork count for Modeling + Projection only. EnsembleForecasting stays nb.cpu=1.
+# Small datasets (<50k occ) trigger mclapply SIGPIPE race conditions at n_cpu>1 (job 47510573_2/_3).
+# Use n_cpu=1 for small species to avoid the forking bug.
+n_cpu <- if (nrow(spocc1) >= 50000) 4L else 1L
+cat("DEBUG: n_cpu =", n_cpu, "(threshold 50k)\n")
 
 # per-species output wipe (array-safe: only this task's species dir, not sibling tasks')
 unlink(file.path(out_dir, sp.names[i]), recursive = TRUE)
