@@ -59,6 +59,7 @@ scancel <jobid>             # annullare
 - note: `dcgp_qos_lprod` MaxWall = 4 days → 72h fits the 50h sequential run
 - `b26fbd3` (1000 occ Agrostis, toy params PA.nb.rep=3 PA.nb.absences=10 CV.nb.rep=2) → **SUCCESS** `real 17.2h`, 30 models, 8 futures, 0 OOM
 - `81e6fc4` (full 170701 Agrostis, `n_cpu=4` on modeling/projection, PA.nb.absences=10) → **SUCCESS** (job 47333938, node lrdn3952) `real 4h23m`, **0 OOM**, MaxRSS peak **326 GB** (fits 512GB node; `n_cpu=8` looks risky). `n_cpu=4` validated. Notes: extreme imbalance 170701:10 → `FDA failed! *** single value predicted` (toy PA); `NAs produced by integer overflow` in metric eval (forecast×observed counts exceed 32-bit int on the 64M-cell space). gawk `[HH:MM:SS]` stamps + pre-run `data/output` wipe confirmed on the compute node.
+- TODO: write about last run (Slurm Array Summary Job_id=47593184_* (47593184) Name=r_singularity Ended, Mixed, MaxSignal [9] )
 
 #### parallelism result (`n_cpu=4`, full 170701 Agrostis vs 1k@`n_cpu=1`)
 
@@ -208,94 +209,28 @@ in our case, we chose to download some climate and soil data from <https://www.c
 
 ## draft table of contents (index)
 
+<!-- TODO section about gpu vs cpu in the context of leonardo and its multicore structure and usage -->
 1. Introduction
 2. Methodology & Software Stack
 3. High-Performance Computing (Cineca Leonardo)
    1. Access & Authentication
+        The Leonardo frontend is a login node; from there you can submit SLURM jobs, check queue status, or transfer files. File transfers use SCP:
    2. Hardware & Software Environment & Booster module and Containerization
    3. Job Submission & Management with SLURM
 4. Implementation Notes & Methodological Adjustments
-
-## ssh cineca notes
-
-Start the SSH agent first:
-
-```bash
-eval $(ssh-agent -s)
-```
-
-Then authenticate with your OIDC credentials (this opens a browser):
-
-```bash
-step ssh login 'enricopezzano@disroot.org' --provisioner cineca-hpc
-```
-
-After authentication, you can connect to Leonardo:
-
-```bash
-ssh REDACTED_USERNAME@login.leonardo.cineca.it
-```
-
-If backspace and arrow keys don't work in the terminal, set the TERM variable:
-
-```bash
-export TERM=xterm
-```
-
-The Leonardo frontend is a login node; from there you can submit SLURM jobs, check queue status, or transfer files. File transfers use SCP:
-
-```bash
-# Upload files from local machine to Leonardo home
-scp -r /home/enriicola/Desktop/tesi REDACTED_USERNAME@login.leonardo.cineca.it:~/
-
-# Download files from Leonardo
-scp -r REDACTED_USERNAME@login.leonardo.cineca.it:~/results /local/destination/
-```
-
-The job runs independently on allocated compute nodes. You can disconnect from Leonardo and check results later.
-
-### 4. Implementation Notes & Methodological Adjustments
-
-#### Data Path Standardization
-
-The ensemble modelling pipeline (`main.r`) was calibrated to operate within a containerized HPC environment on Cineca Leonardo. Critical adjustments included:
-
-- **Input data structure**: Species occurrence data loaded from `./data/input/data_62768_rows.csv` (62,768 presence records for target species in Alpine grasslands).
-- **Environmental predictor rasters**: Organized into three principal component reduced datasets:
-  - Climatic PCA layers: `./data/input/PCA/baseline` (present-day) and `./data/input/PCA/Futuro/` (SSP3-7.0, SSP5-8.5 projections)
-  - Topographic Roughness Index (TRI): `./data/input/TRI/`
-  - Soil PCA layers: `./data/input/PCA/Suolo/`
-- **Output directory**: Standardized to `./data/output/` for all model evaluations, projections, and timing logs.
-
-#### Computational Resource Optimization
-
-HPC resource constraints on Cineca Leonardo necessitated the following algorithmic and computational adjustments:
-
-- **Parallel processing**: Initial allocation of 32 CPU cores per task exceeded user-level QOS (Quality of Service) limits. Empirical testing established 8 CPU cores as the optimal threshold within institutional resource allocation policies (--cpus-per-task=8 in SLURM directives).
-- **Algorithm selection**: Five ensemble algorithms retained for cross-validation: GLM (Generalized Linear Models), GBM (Gradient Boosting Machines), ANN (Artificial Neural Networks), FDA (Flexible Discriminant Analysis), MAXNET. Bigboss strategy employed for hyperparameter tuning.
-- **Ensemble aggregation**: Dual ensemble methods applied—EMmean (unweighted average) and EMcv (cross-validation weighted)—with ROC ≥ 0.6 as selection threshold.
-- **Performance profiling**: Removed external profiling overhead (profvis) to reduce runtime overhead in production runs; timing metrics (formating, modeling, projection phases) logged internally via base R timing functions.
-
-#### Data Validation & Coordinate Indexing
-
-Careful verification of input data structure was essential for successful biomod2 integration:
-
-- **Occurrence data columns**: Verified CSV structure (ID, species_name, X, Y, pseudo-absence_data) with correct coordinate indexing `spocc1[,3:4]` to extract projected UTM coordinates (EPSG:32632).
-- **Raster cell filtering**: BIOMOD_FormatingData naturally identified duplicate occurrences within single raster cells (~1 km² resolution) and issues a standard warning. No filtering applied (`filter.raster = FALSE`) to preserve occurrence density information.
-- **Pseudo-absence strategy**: Random pseudo-absence selection (10,000 absences per 5-fold partition) applied within available raster extent to establish negative training samples.
-
-#### Calibration & Projection Strategy
-
-- **Calibration extent**: Europe-wide extent using full Alpine dataset (100,000 presence records per species subset after sampling; 5-fold random cross-validation with 70% training, 30% testing).
-- **Projection extent**: Alps-specific region with current and future climate scenarios projected onto same environmental space.
-- **Evaluation metrics**: TSS (True Skill Statistic), ROC (Receiver Operating Characteristic), KAPPA (Cohen's Kappa), POD (Probability of Detection), FAR (False Alarm Ratio) computed for individual models; ROC and TSS retained for ensemble model selection.
-
-### 5. Planned Analyses & Future Work
-
-- **Results Extraction**: Extraction and visualization of model evaluation metrics (TSS, ROC/AUC, etc.).
-- **Hotspot Analysis**: Identification of climate refugia or areas of high vulnerability for the target species.
-- **Full species loop**: Extend from current single-species calibration (i=3, hardcoded) to full 62,768-row dataset with species-level stratification.
-- **Improvements**: Uncertainty quantification via ensemble variance; sensitivity analysis on pseudo-absence strategies.
+  1. Data Path Standardization
+  2. Computational Resource Optimization
+  3. Data Validation & Coordinate Indexing
+  4. Calibration & Projection Strategy
+5. Planned Analyses & Future Work
+  1. Results Extraction
+      Extraction and visualization of model evaluation metrics (TSS, ROC/AUC, etc.).
+  2. Hotspot Analysis
+      Identification of climate refugia or areas of high vulnerability for the target species.
+  3. Full species loop
+      Extend from current single-species calibration (i=3, hardcoded) to full 62,768-row dataset with species-level stratification.
+  4. Improvements
+      Uncertainty quantification via ensemble variance; sensitivity analysis on pseudo-absence strategies.
 
 ---
 
