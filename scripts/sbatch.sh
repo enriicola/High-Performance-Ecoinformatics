@@ -12,6 +12,7 @@
 #SBATCH --output=logs/job_%A_%a.log
 #SBATCH --error=logs/job_%A_%a.log
 #SBATCH --mail-type=END,FAIL,REQUEUE,TIME_LIMIT
+# TODO send mail to current logged user, not hardcoded
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
