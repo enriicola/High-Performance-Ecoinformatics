@@ -1,3 +1,5 @@
+# last script used by lucia and gabriele
+
 library(biomod2)
 library(raster)
 library(terra)
