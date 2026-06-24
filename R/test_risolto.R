@@ -20,6 +20,9 @@ library(mda)
 library(randomForest)
 
 # NOTE: makeCluster/registerDoParallel removed - hangs inside Singularity container.
+# TODO: check if without makeCluster nb.cpu=x is ignored and if actually runs in parallel
+# cl <- makeCluster(10)
+# registerDoParallel(cl)
 
 root <- normalizePath(".")
 in_dir <- file.path(root, "data/input")
@@ -77,6 +80,10 @@ i <- match(test_species[k], sp.names)
 spocc1 <- subset(spocc, spocc[, 1] == sp.names[i])
 cat("DEBUG: array task", k, "-> species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
 
+# TODO: study if quicker to run for loop inside r or submit slurm arrays of jobs
+# TODO maybe do both
+# TODO check if it's possible to run multicore with a sinle ram copy, instead of a copy for each core
+
 # parallel fork count for Modeling + Projection only. EnsembleForecasting stays nb.cpu=1.
 # Small datasets (<50k occ) trigger mclapply SIGPIPE race conditions at n_cpu>1 (job 47510573_2/_3).
 # Use n_cpu=1 for small species to avoid the forking bug.
@@ -98,17 +105,20 @@ myResp <- rep(1, nrow(spocc1)) # species occurences
 cat("DEBUG: starting BIOMOD_FormatingData at", format(Sys.time(), "%H:%M:%S"), "\n")
 flush.console()
 
-# 1. Formatting Data
+# 1. Formatting Data (10 set of pseudo-absences, 10000 absences each, random strategy)
+# resp è la distribuzione della specie
+# expl sono le variabili che vanno a spiegare la distribuzione della specie (spiegano la resp) (caldo, freddo, neve, etc)
+
 myBiomodData <- BIOMOD_FormatingData(
-  resp.var = myResp,
-  expl.var = cur_cal,
-  resp.xy = myRespXY,
+  resp.var = myResp, # response variable
+  expl.var = cur_cal, # explenatory variable
+  resp.xy = myRespXY, # longitude and latitude of species occurrences
   resp.name = myRespName,
-  PA.nb.rep = 3,
+  PA.nb.rep = 10, # production value, set of replicas
   PA.nb.absences = 10000, # production value (was toy 10); grows modeling only, projection unchanged
   PA.strategy = "random",
   na.rm = TRUE,
-  filter.raster = F
+  filter.raster = F # se la response var deve essere filtrata (se troppi punti vanno nella stessa cella), se true si rischia di andare a sovrastimare (overfitting)
 )
 
 cat("DEBUG: BIOMOD_FormatingData done at", format(Sys.time(), "%H:%M:%S"), "\n")
@@ -120,7 +130,7 @@ start.time <- Sys.time()
 opt.b <- bm_ModelingOptions(
   data.type = "binary",
   models = selModels,
-  strategy = "bigboss",
+  strategy = "bigboss", # statistic method, parametri definiti dal team di biomod2, strategia già definita, parametri ottimali, ps: non sono quelli di default, sono quelli ottimali
   bm.format = myBiomodData
 )
 
@@ -129,12 +139,12 @@ myBiomodModelOut <- BIOMOD_Modeling(
   myBiomodData,
   models = selModels,
   CV.strategy = "random",
-  CV.nb.rep = 2, # DEBUG: reduced from 5
-  CV.perc = 0.7,
+  CV.nb.rep = 5, # number of repetitions for cross validation, in order to validate the performance of the single model/algorithm
+  CV.perc = 0.7, # valuta sul 70% dei dati e anche per calibrarsi (training) e testa querllo che ha imparato sul 30% dei dati, e va a fare un cross validation per vedere quanto è stato performante il modello rispetto al testing
   OPT.strategy = "bigboss",
   metric.eval = c("TSS", "AUCroc", "KAPPA", "POD", "FAR"),
-  scale.models = FALSE,
-  CV.do.full.models = FALSE,
+  scale.models = FALSE, # default, chiede se tutte le proiezioni debbano essere scalate in binomiale (TODO check if we can delete this param, as it is default false)
+  CV.do.full.models = FALSE, # default a false, chiede se venga fatta calibrazione e valutazione anche sulle pseudo-assenze
   nb.cpu = n_cpu,
   do.progress = T
 )
@@ -147,11 +157,11 @@ myBiomodEM <- BIOMOD_EnsembleModeling(
   bm.mod = myBiomodModelOut,
   models.chosen = "all",
   em.by = "all",
-  em.algo = c("EMmean", "EMcv"),
-  metric.select = c("AUCroc"),
-  metric.select.thresh = c(0.6),
-  metric.eval = c("TSS", "AUCroc", "KAPPA"),
-  nb.cpu = 1
+  em.algo = c("EMmean", "EMcv"), # c(...) is for multiple options, chose these 2 algorithms because we do not need the median. it does the mean of all models and then does a standard deviation of them (covariance)
+  metric.select = "AUCroc", # standard, most used, various articles say it's the best
+  metric.select.thresh = 0.6, # threshold value for exclude the models that are not performing over a certain threshold, in this case 0.6
+  metric.eval = c("TSS", "AUCroc", "KAPPA"), # 3 most used
+  nb.cpu = 1 # TODO add cores
 )
 end.time <- Sys.time()
 time.modeling_EM <- end.time - start.time
@@ -160,6 +170,7 @@ time.modeling_EM <- end.time - start.time
 myBiomodModelEval <- get_evaluations(myBiomodModelOut)
 myBiomodModelEval_ensamble <- get_evaluations(myBiomodEM)
 
+# TODO change output to csv
 nome <- paste0("Eval_", sp.names[i], ".txt", sep = "")
 write.table(myBiomodModelEval, file = nome, sep = "\t")
 
@@ -181,7 +192,7 @@ myBiomodProj <- BIOMOD_Projection(
   proj.name = "current",
   new.env = cur_proj,
   models.chosen = "all",
-  build.clamping.mask = T,
+  build.clamping.mask = T, # opzione per avere un'idea delle località in cui la predizione è incerta, dove non è sicuro di quello che sta predicendo, predizione potrebbe essere incerta, perchè i dati ambientali potrebbero non essere così fedeli alle variabili attinenti alla presenza vera delal specie (un modo per capire l'incertezza della predizione per ogni cella (km quadrato))
   nb.cpu = n_cpu
 )
 end.time <- Sys.time()
@@ -190,13 +201,14 @@ time.cur_proj <- end.time - start.time
 # 6. Project ensemble models (reuse bm.proj to avoid internal re-projection)
 start.time <- Sys.time()
 myBiomodEMProj <- BIOMOD_EnsembleForecasting(
+  # """nuovo raster con altri dati ambientali""" (proiezione della proiezione)
   bm.em = myBiomodEM,
   bm.proj = myBiomodProj, # reuse computed projection; biomod2 wants XOR(bm.proj, new.env)
   proj.name = "CurrentEM",
   models.chosen = "all",
   metric.binary = "all",
   metric.filter = "all",
-  nb.cpu = 1
+  nb.cpu = 1 # TODO add cores
 )
 end.time <- Sys.time()
 time.cur_proj_EM <- end.time - start.time
@@ -206,6 +218,11 @@ time.cur_proj_EM <- end.time - start.time
 ###########################################################################
 
 ## Number of future projections
+# 5 global circulation models (GCM), variazione di gas serra, metano, etc, nell'atmosfera nel futuro, e all'interno di ognuno ci sono due scenari (ottimista SSP370 e pessimista SSP585), TODO check acronyms
+# 10 future projections (5 GCM x 2 SSP) -> 10 proiezioni future per ogni specie
+# calibrazione solo su current (presente), per avere una base di partenza, e la proiezione serve due volte
+# proiezione sul futuro viene fatta partendo dai dati del primo (e unico) biomod modelling e sulle var ambientali future, per vedere come cambiano le predizioni
+
 nf <- length(lf)
 
 start.time <- Sys.time()
@@ -263,3 +280,5 @@ time <- data.frame(
   fut_projection = as.numeric(time.fut_proj, units = "secs")
 )
 write.table(time, paste0("time_", sp.names[i], ".txt"), sep = "\t")
+
+. / .. / tests / test_output.R
