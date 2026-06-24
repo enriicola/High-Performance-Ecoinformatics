@@ -1,7 +1,6 @@
 #!/bin/bash
-
-# 0. Enforce project convention: R scripts end in .R (uppercase), never .r.
-#    Rename any staged lowercase-.r file to .R and re-stage the rename.
+# -------------------------------------------------
+# Enforce project convention: R scripts end in .R (uppercase), never .r.
 LOWER=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.r$')
 if [ -n "$LOWER" ]; then
     echo "Renaming staged .r -> .R (project convention):"
@@ -12,16 +11,23 @@ if [ -n "$LOWER" ]; then
     done
 fi
 
-# 1. Identify all R files that are "staged" (ready to be committed)
-#    grep -E '\.[rR]$'  -> Looks for files ending in .r or .R
-FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.[rR]$')
+# -------------------------------------------------
+# Block commit messages that contain prohibited LLM co‑author tags.
+MSG_FILE=$(git rev-parse --git-dir)/COMMIT_EDITMSG
+if grep -iE 'co[- ]?authored[- ]?by' "$MSG_FILE" >/dev/null; then
+    echo "ERROR: Commit message contains prohibited LLM co‑author tag."
+    echo "Remove the line or use a different attribution."
+    exit 1
+fi
 
-# 2. If no R files are being committed, stop here.
+# -------------------------------------------------
+# Identify staged R files (your existing logic).
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.[rR]$')
 if [ -z "$FILES" ]; then
     exit 0
 fi
 
-# 2b. Bail out loudly if styler is missing, instead of silently no-op'ing.
+# Ensure styler is installed.
 if ! Rscript -e 'stopifnot(requireNamespace("styler", quietly=TRUE))' 2>/dev/null; then
     echo "WARN: styler non installato -> skip formattazione (file NON stilizzati)."
     echo "      Installa con: Rscript -e 'install.packages(\"styler\")'"
@@ -30,17 +36,9 @@ fi
 
 echo "Running styler on staged R files..."
 
-# 3. Loop through each file carefully
 echo "$FILES" | while read file; do
     if [ -f "$file" ]; then
-        # Run styler using the ROBUST method (same as your tasks.json)
-        # We pass the filename as an argument to avoid syntax errors with spaces/symbols
-        # stderr visibile: se styler erra su un file, lo vedi.
         Rscript -e "styler::style_file(commandArgs(TRUE))" "$file" > /dev/null
-
-        # 4. Add the file back to the 'stage'
-        # If we don't do this, the formatted version stays in your working directory
-        # but the OLD messy version gets committed.
         git add "$file"
     fi
 done
