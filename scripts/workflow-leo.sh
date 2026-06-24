@@ -4,6 +4,7 @@ set -euxo pipefail
 cd "$(dirname "$0")/.."
 
 git pull
+git lfs pull
 
 JOBID=$(sbatch scripts/sbatch.sh 2>&1 | grep -oP 'Submitted batch job \K\d+')
 LOG="job_${JOBID}.log"
