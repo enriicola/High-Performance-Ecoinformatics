@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=r_singularity
 #SBATCH --account=IscrC_SPECC
-#SBATCH --array=1-3
+#SBATCH --array=1-167
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=56

@@ -73,10 +73,9 @@ pb <- txtProgressBar(min = 0, max = num_sp, style = 3, width = 50, char = "=")
 
 selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
 
-# SLURM array task -> one species from the test set (size-spread: large/median/small)
-test_species <- c("Potentilla.erecta", "Galium.anisophyllon", "Festuca.glauca")
+# SLURM array task -> one species (array id = index into full sorted species list)
 k <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
-i <- match(test_species[k], sp.names)
+i <- k
 spocc1 <- subset(spocc, spocc[, 1] == sp.names[i])
 cat("DEBUG: array task", k, "-> species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
 
