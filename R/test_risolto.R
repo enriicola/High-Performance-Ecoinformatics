@@ -192,6 +192,8 @@ myBiomodProj <- BIOMOD_Projection(
   new.env = cur_proj,
   models.chosen = "all",
   build.clamping.mask = T, # opzione per avere un'idea delle località in cui la predizione è incerta, dove non è sicuro di quello che sta predicendo, predizione potrebbe essere incerta, perchè i dati ambientali potrebbero non essere così fedeli alle variabili attinenti alla presenza vera delal specie (un modo per capire l'incertezza della predizione per ogni cella (km quadrato))
+  keep.in.memory = FALSE, # OOM fix: free per-model rasters from RAM after write
+  do.stack = FALSE, # OOM fix: write per-model .tif to disk instead of stacking all layers in memory
   nb.cpu = n_cpu
 )
 end.time <- Sys.time()
@@ -249,6 +251,8 @@ for (k in 1:nf) {
     new.env = fut_proj,
     models.chosen = "all",
     build.clamping.mask = T,
+    keep.in.memory = FALSE, # OOM fix: free per-model rasters from RAM after write
+    do.stack = FALSE, # OOM fix: write per-model .tif to disk instead of stacking all layers in memory
     nb.cpu = n_cpu
   )
 
