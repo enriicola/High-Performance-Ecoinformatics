@@ -12,14 +12,36 @@
 #SBATCH --output=logs/job_%A_%a.log
 #SBATCH --error=logs/job_%A_%a.log
 #SBATCH --mail-type=END,FAIL,REQUEUE,TIME_LIMIT
+#SBATCH --mail-user=$USER
 # TODO send mail to current logged user, not hardcoded
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+# runtime toggles (override at submission with --export)
+RSCRIPT_PATH=${RSCRIPT_PATH:-/work/R/test_risolto.R}
+R_DEBUG_ECHO=${R_DEBUG_ECHO:-false}
+FORCE_CLEAN=${FORCE_CLEAN:-false}
+FORCE_REBUILD_FUTURE=${FORCE_REBUILD_FUTURE:-false}
+PROJ_KEEP_IN_MEMORY=${PROJ_KEEP_IN_MEMORY:-false}
+PROJ_DO_STACK=${PROJ_DO_STACK:-false}
+TERRA_MEMFRAC=${TERRA_MEMFRAC:-0.7}
+
+echo "CONFIG: RSCRIPT_PATH=$RSCRIPT_PATH"
+echo "CONFIG: R_DEBUG_ECHO=$R_DEBUG_ECHO FORCE_CLEAN=$FORCE_CLEAN FORCE_REBUILD_FUTURE=$FORCE_REBUILD_FUTURE"
+echo "CONFIG: PROJ_KEEP_IN_MEMORY=$PROJ_KEEP_IN_MEMORY PROJ_DO_STACK=$PROJ_DO_STACK TERRA_MEMFRAC=$TERRA_MEMFRAC"
 
 # array-safe: each task wipes only its own species dir (done in R), not the whole tree.
 mkdir -p data/output logs
 
 # pipe through gawk strftime -> every log line gets a wall-clock stamp (live, fflush).
 # runs on the host outside the container, so host gawk is used (no moreutils `ts` needed).
-time singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif Rscript "/work/R/test_risolto.R" 2>&1 \
+time singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif \
+  env R_DEBUG_ECHO="$R_DEBUG_ECHO" \
+      FORCE_CLEAN="$FORCE_CLEAN" \
+      FORCE_REBUILD_FUTURE="$FORCE_REBUILD_FUTURE" \
+      PROJ_KEEP_IN_MEMORY="$PROJ_KEEP_IN_MEMORY" \
+      PROJ_DO_STACK="$PROJ_DO_STACK" \
+      TERRA_MEMFRAC="$TERRA_MEMFRAC" \
+      OMP_NUM_THREADS="$OMP_NUM_THREADS" \
+  Rscript "$RSCRIPT_PATH" 2>&1 \
   | gawk '{ print strftime("[%H:%M:%S]"), $0; fflush() }'
