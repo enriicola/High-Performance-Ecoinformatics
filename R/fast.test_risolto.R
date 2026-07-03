@@ -82,6 +82,9 @@ setwd(out_dir)
 pb <- txtProgressBar(min = 0, max = num_sp, style = 3, width = 50, char = "=")
 
 selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
+seed_val <- 42L
+set.seed(seed_val)
+cat("DEBUG: seed_val =", seed_val, "\n")
 
 # SLURM array task -> one species (array id = index into full sorted species list)
 k <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
@@ -144,6 +147,7 @@ myBiomodData <- BIOMOD_FormatingData(
   PA.nb.rep = 10, # production value, set of replicas
   PA.nb.absences = 10000, # production value (was toy 10); grows modeling only, projection unchanged
   PA.strategy = "random",
+  seed.val = seed_val,
   na.rm = TRUE,
   filter.raster = F # se la response var deve essere filtrata (se troppi punti vanno nella stessa cella), se true si rischia di andare a sovrastimare (overfitting)
 )
@@ -172,6 +176,7 @@ myBiomodModelOut <- BIOMOD_Modeling(
   metric.eval = c("TSS", "AUCroc", "KAPPA", "POD", "FAR"),
   scale.models = FALSE, # default, chiede se tutte le proiezioni debbano essere scalate in binomiale (TODO check if we can delete this param, as it is default false)
   CV.do.full.models = FALSE, # default a false, chiede se venga fatta calibrazione e valutazione anche sulle pseudo-assenze
+  seed.val = seed_val,
   nb.cpu = n_cpu,
   do.progress = T
 )
@@ -188,6 +193,7 @@ myBiomodEM <- BIOMOD_EnsembleModeling(
   metric.select = "AUCroc", # standard, most used, various articles say it's the best
   metric.select.thresh = 0.6, # threshold value for exclude the models that are not performing over a certain threshold, in this case 0.6
   metric.eval = c("TSS", "AUCroc", "KAPPA"), # 3 most used
+  seed.val = seed_val,
   nb.cpu = 1 # TODO add cores
 )
 end.time <- Sys.time()
@@ -222,7 +228,8 @@ myBiomodProj <- BIOMOD_Projection(
   build.clamping.mask = T, # opzione per avere un'idea delle località in cui la predizione è incerta, dove non è sicuro di quello che sta predicendo, predizione potrebbe essere incerta, perchè i dati ambientali potrebbero non essere così fedeli alle variabili attinenti alla presenza vera delal specie (un modo per capire l'incertezza della predizione per ogni cella (km quadrato))
   keep.in.memory = projection_keep_in_memory,
   do.stack = projection_do_stack,
-  overwrite = TRUE, # default FALSE when do.stack=FALSE -> parallel write crash (job 48325677_3)
+  overwrite = FALSE,
+  seed.val = seed_val,
   nb.cpu = n_cpu
 )
 end.time <- Sys.time()
@@ -289,7 +296,8 @@ for (k in 1:nf) {
     build.clamping.mask = T,
     keep.in.memory = projection_keep_in_memory,
     do.stack = projection_do_stack,
-    overwrite = TRUE, # default FALSE when do.stack=FALSE -> parallel write crash (job 48325677_3)
+    overwrite = FALSE,
+    seed.val = seed_val,
     nb.cpu = n_cpu
   )
 
