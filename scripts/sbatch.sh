@@ -15,6 +15,8 @@
 #SBATCH --mail-user=$USER
 # TODO send mail to current logged user, not hardcoded
 
+set -xo pipefail
+
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 # runtime toggles (override at submission with --export)
@@ -46,6 +48,8 @@ singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif \
       OMP_NUM_THREADS="$OMP_NUM_THREADS" \
   Rscript "$RSCRIPT_PATH" 2>&1 \
   | gawk '{ print strftime("[%H:%M:%S]"), $0; fflush() }'
+EXIT_CODE=$?
 T_ELAPSED=$(( SECONDS - T_START ))
 printf "Elapsed: %dd %dh %dm %ds\n" \
   $(( T_ELAPSED/86400 )) $(( T_ELAPSED%86400/3600 )) $(( T_ELAPSED%3600/60 )) $(( T_ELAPSED%60 ))
+exit "$EXIT_CODE"
