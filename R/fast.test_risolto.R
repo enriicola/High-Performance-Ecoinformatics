@@ -222,7 +222,8 @@ myBiomodProj <- BIOMOD_Projection(
   build.clamping.mask = T, # opzione per avere un'idea delle località in cui la predizione è incerta, dove non è sicuro di quello che sta predicendo, predizione potrebbe essere incerta, perchè i dati ambientali potrebbero non essere così fedeli alle variabili attinenti alla presenza vera delal specie (un modo per capire l'incertezza della predizione per ogni cella (km quadrato))
   keep.in.memory = projection_keep_in_memory,
   do.stack = projection_do_stack,
-  nb.cpu = 1 # parallel write race condition -> crash (job 48325677_3)
+  overwrite = TRUE, # default FALSE when do.stack=FALSE -> parallel write crash (job 48325677_3)
+  nb.cpu = n_cpu
 )
 end.time <- Sys.time()
 time.cur_proj <- end.time - start.time
@@ -288,7 +289,8 @@ for (k in 1:nf) {
     build.clamping.mask = T,
     keep.in.memory = projection_keep_in_memory,
     do.stack = projection_do_stack,
-    nb.cpu = 1 # parallel write race condition -> crash (job 48325677_3)
+    overwrite = TRUE, # default FALSE when do.stack=FALSE -> parallel write crash (job 48325677_3)
+    nb.cpu = n_cpu
   )
 
   myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
