@@ -20,7 +20,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 # runtime toggles (override at submission with --export)
 RSCRIPT_PATH=${RSCRIPT_PATH:-/work/R/fast.test_risolto.R}
 R_DEBUG_ECHO=${R_DEBUG_ECHO:-false}
-FORCE_CLEAN=${FORCE_CLEAN:-true}
+FORCE_CLEAN=${FORCE_CLEAN:-false}
 FORCE_REBUILD_FUTURE=${FORCE_REBUILD_FUTURE:-false}
 PROJ_KEEP_IN_MEMORY=${PROJ_KEEP_IN_MEMORY:-false}
 PROJ_DO_STACK=${PROJ_DO_STACK:-false}
