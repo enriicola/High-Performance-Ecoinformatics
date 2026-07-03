@@ -35,7 +35,8 @@ mkdir -p data/output logs
 
 # pipe through gawk strftime -> every log line gets a wall-clock stamp (live, fflush).
 # runs on the host outside the container, so host gawk is used (no moreutils `ts` needed).
-time singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif \
+T_START=$SECONDS
+singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif \
   env R_DEBUG_ECHO="$R_DEBUG_ECHO" \
       FORCE_CLEAN="$FORCE_CLEAN" \
       FORCE_REBUILD_FUTURE="$FORCE_REBUILD_FUTURE" \
@@ -45,3 +46,6 @@ time singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.si
       OMP_NUM_THREADS="$OMP_NUM_THREADS" \
   Rscript "$RSCRIPT_PATH" 2>&1 \
   | gawk '{ print strftime("[%H:%M:%S]"), $0; fflush() }'
+T_ELAPSED=$(( SECONDS - T_START ))
+printf "Elapsed: %dd %dh %dm %ds\n" \
+  $(( T_ELAPSED/86400 )) $(( T_ELAPSED%86400/3600 )) $(( T_ELAPSED%3600/60 )) $(( T_ELAPSED%60 ))
