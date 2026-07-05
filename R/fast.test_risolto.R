@@ -46,8 +46,10 @@ cat("DEBUG: R_DEBUG_ECHO =", debug_echo, "| TERRA_MEMFRAC =", terra_memfrac, "\n
 spocc <- read.csv(file.path(in_dir, "full_1km_EUNIS.csv"), head = TRUE)
 spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
 spocc$sp_name <- sub(" ", ".", spocc$sp_name)
-sp.names <- levels(factor(spocc[, 1]))
+sp.counts <- sort(table(spocc$sp_name), decreasing = FALSE)
+sp.names <- names(sp.counts)
 num_sp <- length(sp.names)
+cat("DEBUG: species order = shortest-job-first by occurrence count\n")
 cat("DEBUG: num_sp =", num_sp, "| total rows =", nrow(spocc), "\n")
 
 #####################################
@@ -86,7 +88,7 @@ seed_val <- 42L
 set.seed(seed_val)
 cat("DEBUG: seed_val =", seed_val, "\n")
 
-# SLURM array task -> one species (array id = index into full sorted species list)
+# SLURM array task -> one species (array id = index into shortest-job-first species list)
 k <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
 i <- k
 species_name <- sp.names[i]
@@ -116,11 +118,16 @@ cat(
 )
 
 species_dir <- file.path(out_dir, species_name)
+done_marker <- file.path(species_dir, "_SUCCESS")
 force_clean <- env_true("FORCE_CLEAN", "false")
 if (force_clean) {
   # per-species output wipe (array-safe: only this task's species dir, not sibling tasks')
   unlink(species_dir, recursive = TRUE)
   cat("DEBUG: FORCE_CLEAN=TRUE -> cleaned", species_dir, "\n")
+}
+if (!force_clean && file.exists(done_marker)) {
+  cat("DEBUG: success marker exists -> skipping completed species", species_name, "\n")
+  quit(status = 0)
 }
 
 ###########################################################################
@@ -228,7 +235,7 @@ myBiomodProj <- BIOMOD_Projection(
   build.clamping.mask = T, # opzione per avere un'idea delle località in cui la predizione è incerta, dove non è sicuro di quello che sta predicendo, predizione potrebbe essere incerta, perchè i dati ambientali potrebbero non essere così fedeli alle variabili attinenti alla presenza vera delal specie (un modo per capire l'incertezza della predizione per ogni cella (km quadrato))
   keep.in.memory = projection_keep_in_memory,
   do.stack = projection_do_stack,
-  overwrite = FALSE,
+  overwrite = TRUE,
   seed.val = seed_val,
   nb.cpu = n_cpu
 )
@@ -296,7 +303,7 @@ for (k in 1:nf) {
     build.clamping.mask = T,
     keep.in.memory = projection_keep_in_memory,
     do.stack = projection_do_stack,
-    overwrite = FALSE,
+    overwrite = TRUE,
     seed.val = seed_val,
     nb.cpu = n_cpu
   )
@@ -330,3 +337,12 @@ time <- data.frame(
   fut_projection = as.numeric(time.fut_proj, units = "secs")
 )
 write.table(time, paste0("time_", species_name, ".txt"), sep = "\t")
+writeLines(
+  c(
+    paste("species", species_name),
+    paste("completed_at", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
+    paste("seed_val", seed_val)
+  ),
+  done_marker
+)
+cat("DEBUG: wrote success marker", done_marker, "\n")
