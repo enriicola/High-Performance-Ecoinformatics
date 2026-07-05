@@ -4,7 +4,7 @@
 #SBATCH --array=1-5
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=112
+#SBATCH --cpus-per-task=4
 #SBATCH --mem=0
 #SBATCH --partition=dcgp_usr_prod
 #SBATCH --qos=dcgp_qos_lprod
