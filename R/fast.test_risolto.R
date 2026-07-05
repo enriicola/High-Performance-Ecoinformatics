@@ -45,8 +45,11 @@ cat("DEBUG: R_DEBUG_ECHO =", debug_echo, "| TERRA_MEMFRAC =", terra_memfrac, "\n
 ####################################
 spocc <- read.csv(file.path(in_dir, "full_1km_EUNIS.csv"), head = TRUE)
 spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
+
+# order species by occurrence count (shortest-job-first) to avoid long tail of slow species
 spocc$sp_name <- sub(" ", ".", spocc$sp_name)
 sp.counts <- sort(table(spocc$sp_name), decreasing = FALSE)
+
 sp.names <- names(sp.counts)
 num_sp <- length(sp.names)
 cat("DEBUG: species order = shortest-job-first by occurrence count\n")
@@ -92,8 +95,14 @@ cat("DEBUG: seed_val =", seed_val, "\n")
 k <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
 i <- k
 species_name <- sp.names[i]
+species_occurrences <- as.integer(sp.counts[[species_name]])
+cat(
+  "DEBUG: SJF rank", i, "of", num_sp,
+  "| species =", species_name,
+  "| occurrences =", species_occurrences, "\n"
+)
 spocc1 <- subset(spocc, spocc[, 1] == species_name)
-cat("DEBUG: array task", k, "-> species =", species_name, "| occurrences =", nrow(spocc1), "\n")
+cat("DEBUG: loaded species rows =", nrow(spocc1), "\n")
 
 # free global occurrence table ASAP after selecting the current species
 rm(spocc)
