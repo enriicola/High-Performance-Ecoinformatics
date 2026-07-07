@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=100G
+#SBATCH --mem=250G
 #SBATCH --partition=dcgp_usr_prod
 #SBATCH --qos=dcgp_qos_lprod
 #SBATCH --time=72:00:00

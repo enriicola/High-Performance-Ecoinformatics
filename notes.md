@@ -45,4 +45,5 @@ Impact: Jobs 4,5 will hit same crash. Full 167-job run will fail.
 - Run reproducible jobs with `seed_val <- 42L` and `overwrite=FALSE` in `BIOMOD_Projection`
 - Study if `seed.val=42` makes pseudo-absence + model outputs stable enough for safe resume
 - Study `overwrite=FALSE` vs `TRUE`: FALSE saves time by reusing existing projections; TRUE safer after code/input/model changes
+- 2026-07-05: `--mem=100G` too low even for first SJF species; all 5 jobs OOM during current `BIOMOD_EnsembleForecasting`
 - Prepare full array job (1-167 species) after test
