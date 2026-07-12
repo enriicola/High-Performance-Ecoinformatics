@@ -47,3 +47,14 @@ Impact: Jobs 4,5 will hit same crash. Full 167-job run will fail.
 - Study `overwrite=FALSE` vs `TRUE`: FALSE saves time by reusing existing projections; TRUE safer after code/input/model changes
 - 2026-07-05: `--mem=100G` too low even for first SJF species; all 5 jobs OOM during current `BIOMOD_EnsembleForecasting`
 - Prepare full array job (1-167 species) after test
+
+## Split vs monolithic benchmark
+
+Same Leonardo test: `small_1km_EUNIS.csv`, 1 PA replica, 10 pseudo-absences, 1 CV repeat, no future projections.
+
+| Version | Wall time | MaxRSS |
+|---|---:|---:|
+| Split | 26m18s | 48.3 GiB |
+| Monolithic | 26m14s | 42.9 GiB |
+
+The monolithic run was 4 seconds faster (~0.25%). The split run used about 5.4 GiB more RAM (~12.6%); this requires repeated runs to distinguish a real separation effect from node/runtime variation.

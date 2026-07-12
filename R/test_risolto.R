@@ -283,5 +283,3 @@ time <- data.frame(
   fut_projection = as.numeric(time.fut_proj, units = "secs")
 )
 write.table(time, paste0("time_", sp.names[i], ".txt"), sep = "\t")
-
-. / .. / tests / test_output.R
