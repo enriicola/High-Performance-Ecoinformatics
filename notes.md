@@ -55,6 +55,7 @@ Same Leonardo test: `small_1km_EUNIS.csv`, 1 PA replica, 10 pseudo-absences, 1 C
 | Version | Wall time | MaxRSS |
 |---|---:|---:|
 | Split | 26m18s | 48.3 GiB |
-| Monolithic | 26m14s | 42.9 GiB |
+| Monolithic #1 | 26m14s | 42.9 GiB |
+| Monolithic #2 | 26m28s | 45.4 GiB |
 
-The monolithic run was 4 seconds faster (~0.25%). The split run used about 5.4 GiB more RAM (~12.6%); this requires repeated runs to distinguish a real separation effect from node/runtime variation.
+The two monolithic runs average 26m21s, within 3 seconds of the split run. The split run used 2.9–5.4 GiB more RAM (6.3–12.6%), but identical monolithic runs varied by about 2.5 GiB, so more repeated runs are needed before attributing the difference to separation.
