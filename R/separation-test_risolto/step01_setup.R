@@ -1,6 +1,13 @@
 step01_setup <- function(ctx) {
-  options(echo = TRUE)
+  ctx$debug_echo <- tolower(Sys.getenv("R_DEBUG_ECHO", "true")) %in% c("1", "true", "yes", "y")
+  options(echo = ctx$debug_echo)
   options(warn = 1)
+
+  seed_value <- Sys.getenv("R_SEED", "")
+  ctx$benchmark_seed <- if (nzchar(seed_value)) as.integer(seed_value) else NA_integer_
+  if (!is.na(ctx$benchmark_seed)) {
+    set.seed(ctx$benchmark_seed)
+  }
 
   library(biomod2)
   library(terra)
@@ -35,6 +42,8 @@ step01_setup <- function(ctx) {
     "| PA.nb.rep =", ctx$pa_nb_rep,
     "| PA.nb.absences =", ctx$pa_nb_absences,
     "| CV.nb.rep =", ctx$cv_nb_rep,
+    "| R_DEBUG_ECHO =", ctx$debug_echo,
+    "| R_SEED =", ctx$benchmark_seed,
     "| species_index =", ctx$species_index,
     "| out_dir =", ctx$out_dir, "\n"
   )

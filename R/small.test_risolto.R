@@ -10,7 +10,8 @@
 #   - BIOMOD_EnsembleForecasting(bm.proj = ...) reuses the computed projection
 #     -> no internal mclapply re-projection -> avoids the step-6 OOM
 #   - CV.do.full.models = FALSE -> no allRun/allData model bloat
-options(echo = TRUE) # ~ set -x : stampa ogni statement prima di eseguirlo
+debug_echo <- tolower(Sys.getenv("R_DEBUG_ECHO", "true")) %in% c("1", "true", "yes", "y")
+options(echo = debug_echo) # ~ set -x : stampa ogni statement prima di eseguirlo
 options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
 
 env_int <- function(name, default) {
@@ -27,6 +28,12 @@ env_num <- function(name, default) {
     return(as.numeric(default))
   }
   as.numeric(value)
+}
+
+seed_value <- Sys.getenv("R_SEED", "")
+benchmark_seed <- if (nzchar(seed_value)) as.integer(seed_value) else NA_integer_
+if (!is.na(benchmark_seed)) {
+  set.seed(benchmark_seed)
 }
 
 library(biomod2)
@@ -63,6 +70,8 @@ cat(
   "| PA.nb.rep =", pa_nb_rep,
   "| PA.nb.absences =", pa_nb_absences,
   "| CV.nb.rep =", cv_nb_rep,
+  "| R_DEBUG_ECHO =", debug_echo,
+  "| R_SEED =", benchmark_seed,
   "| out_dir =", out_dir, "\n"
 )
 
