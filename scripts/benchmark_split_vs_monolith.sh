@@ -54,7 +54,7 @@ run_case() {
   runner=$!
 
   while kill -0 "$runner" 2>/dev/null; do
-    ps -C R -o pid=,rss=,vsz=,comm= 2>/dev/null \
+    { ps -C R -o pid=,rss=,vsz=,comm= 2>/dev/null || true; } \
       | awk -v timestamp="$(date -Is)" 'NF { print timestamp "\t" $1 "\t" $2 "\t" $3 "\t" $4 }' \
       >> "$rss"
     sleep 1
