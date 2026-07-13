@@ -57,8 +57,10 @@ Same Leonardo test: `small_1km_EUNIS.csv`, 1 PA replica, 10 pseudo-absences, 1 C
 | Split #1 | 26m18s | 48.3 GiB |
 | Split #2 | 25m53s | 47.1 GiB |
 | Split #3 | 25m51s | 48.0 GiB |
+| Split #4 | 26m00s | 40.3 GiB |
 | Monolithic #1 | 26m14s | 42.9 GiB |
 | Monolithic #2 | 26m28s | 45.4 GiB |
 | Monolithic #3 | 26m05s | 45.4 GiB |
+| Monolithic #4 | 26m26s | 44.2 GiB |
 
-Across three runs, split averaged **26m01s / 47.8 GiB** and monolithic averaged **26m16s / 44.6 GiB**. Runtime is effectively equivalent; split was 15 seconds faster on average (~1%). Split used about **3.2 GiB more RAM on average** (~7.2%), with node/runtime variation still present.
+Across four runs, split averaged **26m01s / 45.9 GiB** and monolithic averaged **26m18s / 44.5 GiB**. Runtime is effectively equivalent; split was 18 seconds faster on average (~1.1%). The 1.4 GiB average RSS difference is not a stable separation overhead: Split #4 used 3.9 GiB less RAM than its paired monolithic run, and split RSS ranged from 40.3 to 48.3 GiB. `ctx` is an R environment passed by reference, not a copy of the workflow data.
