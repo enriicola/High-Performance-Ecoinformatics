@@ -64,3 +64,26 @@ Same Leonardo test: `small_1km_EUNIS.csv`, 1 PA replica, 10 pseudo-absences, 1 C
 | Monolithic #4 | 26m26s | 44.2 GiB |
 
 Across four runs, split averaged **26m01s / 45.9 GiB** and monolithic averaged **26m18s / 44.5 GiB**. Runtime is effectively equivalent; split was 18 seconds faster on average (~1.1%). The 1.4 GiB average RSS difference is not a stable separation overhead: Split #4 used 3.9 GiB less RAM than its paired monolithic run, and split RSS ranged from 40.3 to 48.3 GiB. `ctx` is an R environment passed by reference, not a copy of the workflow data.
+
+### Controlled benchmark
+
+One exclusive Leonardo node (`lrdn3758`), fixed seed (`42`), `R_DEBUG_ECHO=false`, `OMP_NUM_THREADS=1`, and alternating serial runs. MaxRSS was measured by `/usr/bin/time -v`.
+
+| Run | Version | Duration | MaxRSS |
+|---:|---|---:|---:|
+| 1 | Split | 26m10s | 47.04 GiB |
+| 2 | Monolithic | 26m06s | 47.36 GiB |
+| 3 | Monolithic | 26m18s | 47.36 GiB |
+| 4 | Split | 25m59s | 47.04 GiB |
+| 5 | Split | 26m05s | 47.04 GiB |
+| 6 | Monolithic | 26m27s | 47.09 GiB |
+| 7 | Monolithic | 26m15s | 48.16 GiB |
+| 8 | Split | 26m26s | 47.04 GiB |
+| 9 | Split | 26m08s | 47.28 GiB |
+| 10 | Monolithic | 27m12s | 48.16 GiB |
+
+| Average | Duration | MaxRSS |
+|---|---:|---:|
+| Split | **26m10s** | **47.09 GiB** |
+| Monolithic | **26m28s** | **47.63 GiB** |
+| Split − monolithic | **−18s** | **−0.54 GiB** |
