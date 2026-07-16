@@ -3,7 +3,6 @@
 #SBATCH --account=IscrC_SPECC
 #SBATCH --partition=dcgp_usr_prod
 #SBATCH --qos=dcgp_qos_lprod
-#SBATCH --array=1-167%3
 
 # One isolated DCGP node per species task.
 #SBATCH --nodes=1
@@ -63,11 +62,5 @@ printf 'Elapsed: %dd %dh %dm %ds\n' \
   $((elapsed % 86400 / 3600)) \
   $((elapsed % 3600 / 60)) \
   $((elapsed % 60))
-
-if ((exit_code != 0)); then
-  printf 'Task failed with exit code %d; cancelling array %s\n' \
-    "$exit_code" "$SLURM_ARRAY_JOB_ID"
-  scancel "$SLURM_ARRAY_JOB_ID" || printf 'WARNING: failed to cancel array %s\n' "$SLURM_ARRAY_JOB_ID"
-fi
 
 exit "$exit_code"
