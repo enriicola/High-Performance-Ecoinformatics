@@ -1,55 +1,73 @@
-#!/bin/bash
-#SBATCH --job-name=r_singularity
+#!/usr/bin/env bash
+#SBATCH --job-name=biomod_species
 #SBATCH --account=IscrC_SPECC
-#SBATCH --array=1-5
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=250G
 #SBATCH --partition=dcgp_usr_prod
 #SBATCH --qos=dcgp_qos_lprod
-#SBATCH --time=72:00:00
+#SBATCH --array=1-167%3
+
+# One isolated DCGP node per species task.
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=5
+#SBATCH --mem=0
+#SBATCH --exclusive
+#SBATCH --time=4-00:00:00
+
 #SBATCH --output=logs/job_%A_%a.log
 #SBATCH --error=logs/job_%A_%a.log
-#SBATCH --mail-type=END,FAIL,REQUEUE,TIME_LIMIT
-#SBATCH --mail-user=$USER
-# TODO send mail to current logged user, not hardcoded
+#SBATCH --mail-type=END,FAIL,TIME_LIMIT
 
-set -xo pipefail
+set -Eeuo pipefail
 
-export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+readonly REPO_ROOT="${SLURM_SUBMIT_DIR:-$PWD}"
+readonly IMAGE="$REPO_ROOT/container/geospatial.sif"
+readonly RSCRIPT_PATH="${RSCRIPT_PATH:-/work/R/base_sequential_analysis.R}"
+readonly JOB_LABEL="${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID:-local}}_${SLURM_ARRAY_TASK_ID:-0}"
+readonly RESOURCE_LOG="$REPO_ROOT/logs/resources_${JOB_LABEL}.txt"
 
-# runtime toggles (override at submission with --export)
-RSCRIPT_PATH=${RSCRIPT_PATH:-/work/R/fast.test_risolto.R}
-R_DEBUG_ECHO=${R_DEBUG_ECHO:-false}
-FORCE_CLEAN=${FORCE_CLEAN:-false}
-FORCE_REBUILD_FUTURE=${FORCE_REBUILD_FUTURE:-false}
-PROJ_KEEP_IN_MEMORY=${PROJ_KEEP_IN_MEMORY:-false}
-PROJ_DO_STACK=${PROJ_DO_STACK:-false}
-TERRA_MEMFRAC=${TERRA_MEMFRAC:-0.7}
-
-echo "CONFIG: RSCRIPT_PATH=$RSCRIPT_PATH"
-echo "CONFIG: R_DEBUG_ECHO=$R_DEBUG_ECHO FORCE_CLEAN=$FORCE_CLEAN FORCE_REBUILD_FUTURE=$FORCE_REBUILD_FUTURE"
-echo "CONFIG: PROJ_KEEP_IN_MEMORY=$PROJ_KEEP_IN_MEMORY PROJ_DO_STACK=$PROJ_DO_STACK TERRA_MEMFRAC=$TERRA_MEMFRAC"
-
-# array-safe: each task wipes only its own species dir (done in R), not the whole tree.
+cd "$REPO_ROOT"
 mkdir -p data/output logs
 
-# pipe through gawk strftime -> every log line gets a wall-clock stamp (live, fflush).
-# runs on the host outside the container, so host gawk is used (no moreutils `ts` needed).
-T_START=$SECONDS
-singularity exec --pwd /work --bind $PWD:/work $PWD/container/geospatial.sif \
-  env R_DEBUG_ECHO="$R_DEBUG_ECHO" \
-      FORCE_CLEAN="$FORCE_CLEAN" \
-      FORCE_REBUILD_FUTURE="$FORCE_REBUILD_FUTURE" \
-      PROJ_KEEP_IN_MEMORY="$PROJ_KEEP_IN_MEMORY" \
-      PROJ_DO_STACK="$PROJ_DO_STACK" \
-      TERRA_MEMFRAC="$TERRA_MEMFRAC" \
-      OMP_NUM_THREADS="$OMP_NUM_THREADS" \
+# Prevent nested BLAS/OpenMP threads inside each biomod2 worker.
+export OMP_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+
+printf 'Job: id=%s array_task=%s node=%s\n' \
+  "${SLURM_JOB_ID:-local}" \
+  "${SLURM_ARRAY_TASK_ID:-none}" \
+  "${SLURMD_NODENAME:-$(hostname)}"
+printf 'Resources: cpus=%s memory=all-node\n' \
+  "${SLURM_CPUS_PER_TASK:-unknown}"
+printf 'R script: %s\n' "$RSCRIPT_PATH"
+printf 'Started: %s\n' "$(date -Is)"
+printf 'Resource log: %s\n' "$RESOURCE_LOG"
+
+started_at=$SECONDS
+if /usr/bin/time -v -o "$RESOURCE_LOG" singularity exec \
+  --pwd /work \
+  --bind "$REPO_ROOT:/work" \
+  "$IMAGE" \
   Rscript "$RSCRIPT_PATH" 2>&1 \
-  | gawk '{ print strftime("[%H:%M:%S]"), $0; fflush() }'
-EXIT_CODE=$?
-T_ELAPSED=$(( SECONDS - T_START ))
-printf "Elapsed: %dd %dh %dm %ds\n" \
-  $(( T_ELAPSED/86400 )) $(( T_ELAPSED%86400/3600 )) $(( T_ELAPSED%3600/60 )) $(( T_ELAPSED%60 ))
-exit "$EXIT_CODE"
+  | gawk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush() }'
+then
+  exit_code=0
+else
+  exit_code=$?
+fi
+elapsed=$((SECONDS - started_at))
+
+printf 'Finished: %s\n' "$(date -Is)"
+printf 'Elapsed: %dd %dh %dm %ds\n' \
+  $((elapsed / 86400)) \
+  $((elapsed % 86400 / 3600)) \
+  $((elapsed % 3600 / 60)) \
+  $((elapsed % 60))
+
+if ((exit_code != 0)); then
+  printf 'Task failed with exit code %d; cancelling array %s\n' \
+    "$exit_code" "$SLURM_ARRAY_JOB_ID"
+  scancel "$SLURM_ARRAY_JOB_ID" || printf 'WARNING: failed to cancel array %s\n' "$SLURM_ARRAY_JOB_ID"
+fi
+
+exit "$exit_code"
