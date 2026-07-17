@@ -7,14 +7,14 @@
 # One isolated DCGP node per species task.
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=5
+#SBATCH --cpus-per-task=2
 #SBATCH --mem=0
 #SBATCH --exclusive
 #SBATCH --time=4-00:00:00
 
 #SBATCH --output=logs/job_%A_%a.log
 #SBATCH --error=logs/job_%A_%a.log
-#SBATCH --mail-type=END,FAIL,TIME_LIMIT
+#SBATCH --mail-type=END,FAIL,TIME_LIMIT,ARRAY_TASKS
 
 set -Eeuo pipefail
 
