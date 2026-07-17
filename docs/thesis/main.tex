@@ -1,0 +1,156 @@
+\documentclass[openright]{masterthesis}
+\usepackage{FiraMono}
+
+\usepackage{graphicx}
+\usepackage[font=scriptsize]{caption}
+\usepackage{mwe}
+
+
+\usepackage{soul}
+\usepackage[dvipsnames]{xcolor}
+
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{multicol}
+\definecolor{chatIn}{HTML}{e2ffc9}
+\definecolor{chatBack}{HTML}{efe6dd}
+
+\definecolor{pastelBlue}{HTML}{AEAAE6}
+\definecolor{pastelGreen}{HTML}{ACE8C0}
+\definecolor{pastelYellow}{HTML}{FFF1AD}
+\definecolor{pastelOrange}{HTML}{FFBA91}
+\definecolor{pastelRed}{HTML}{E88E8E}
+\definecolor{pastelGray}{HTML}{EDE4E0}
+
+\lstset{basicstyle=\ttfamily\footnotesize, tabsize=3, breaklines=true, showspaces=false, showstringspaces=false, captionpos=b}
+
+% macros
+\newcommand*\javascript{JavaScript}
+\newcommand*\nodejs{Node.js}
+
+\begin{document}
+\title{TITLE}
+\author{CANDIDATE}
+\advisor{Prof. ADVISOR1\\Prof. ADVISOR2}
+\examiner{Prof. EXAMINER}
+\maketitle
+~\newpage
+\dedication{\textit{DEDICATION}}
+~\newpage
+\textbf{Abstract}
+
+
+~\newpage~\newpage
+
+\tableofcontents
+
+\input{Chapters/IntroductionAndMotivation} % Your work
+\input{Chapters/Background}        % Work done by others!
+\input{Chapters/RelatedWork} % Work done by others!
+\input{Chapters/RequirementsAnalysis} % Your work
+\input{Chapters/Design} % Your work
+\input{Chapters/Implementation} % Your work
+\input{Chapters/Experiments} % Your work
+\input{Chapters/Discussion} % Your work
+\input{Chapters/ConclusionsAndFutureWork}  % Your work
+\input{Chapters/SelectedCodeFragments} % Your work
+ 
+\bibliographystyle{alphaurl}
+\bibliography{references}
+\end{document}
+
+==== SOME PRECIOUS SUGGESTIONS ON HOW TO WRITE YOUR THESIS ====
+
+The structure heavily depends on the content and type (theoretical, experimental, applicative…).
+
+A Thesis is divided into Chapters. Sometimes, Chapters are grouped into Parts. 
+
+Parts are useful to clearly separate your own contribution from contributions by other scientists. Whether you use Parts or not, it should be always clear to the reader if what you are presenting is needed to provide the context of your work, but has not been developed by yourself. Your own work should be clearly recognizable. The work by others, too.
+
+Chapters are “atomic, consistent and homogeneous units”, dealing with some homogeneous issue. They should be neither too long (in case, split), nor too short (in case, merge). There is no rule stating the right length of a Thesis, and of a Thesis chapter, but - apart from the Introduction and the Conclusions - a 2 pages chapter may seem too short, and a 30 pages one is surely too long. 
+
+A chapter should start with some paragraphs clearly explaining the goal of the chapter, its context, and its main contribution. Sometimes, these few paragraphs introducing the chapter’s contents are presented using a different font to make them more visible.
+
+Sometimes, a Thesis has an Abstract stating, in half a page, the Thesis main goals and achievements. 
+
+Abstract, Introduction and Conclusions are usually written after all the other chapters. 
+
+Do not worry if a chapter is too short/too long, during the writing. Merging and splitting can be faced when the Thesis is almost ready.  
+
+For an internal, “standard” Thesis describing the conception and development of a SW application, a reasonable structure might be (in Latex format):
+
+\input{Chapters/IntroductionAndMotivation} % Your work
+
+\input{Chapters/Background}        % Work done by others!
+
+\input{Chapters/RelatedWork} % Work done by others!
+
+\input{Chapters/RequirementsAnalysis} % Your work
+
+\input{Chapters/Design} % Your work
+
+\input{Chapters/Implementation} % Your work
+
+\input{Chapters/Experiments} % Your work
+
+\input{Chapters/Discussion} % Your work
+
+\input{Chapters/ConclusionsAndFutureWork}  % Your work
+
+\input{Appendix/SelectedCodeFragments} % Your work
+
+Some chapters can be merged, for example, "Background & Related Work", or "Discussion & Conclusions". Ask your supervisor if this structure may fit your Thesis contents, and how to fill each chapter.
+
+For external Theses, somehow different structures might be adopted, but an external Thesis is, however, a Master Thesis in Computer Science, and it must be accompanied by a good quality document. In particular, for external Theses which are very applicative, we suggest to include a “Lessons Learned” chapter. This chapter, which might substitute or be merged with the “Discussion”, should clarify to the reader which are the main obstacles you met in the practical work you carried out, and the main mistakes that should be avoided by persons facing the same problems you faced. 
+
+If you are working on an external Thesis, ask for further advice to your supervisor, so to avoid to end up with writing a Manual instead of a Thesis. 
+Thesis style
+
+This guide is concise and helpful, please read it before starting to write your Thesis: 
+
+https://www.gfdl.noaa.gov/wp-content/uploads/2018/08/Elements_of_Style.pdf
+
+A classical resource for the style of documents is   https://www.chicagomanualofstyle.org/home.html
+(trial free access is available).
+
+A good English Dictionary is https://www.merriam-webster.com/
+
+Some facts you cannot ignore, that are based on the experience of your teachers, who collected and listed the most common errors that students use to make. Your supervisor expects that you learn these facts before starting to write the Thesis, and that you carefully check and avoid all the errors explicitly listed in this section. 
+
+Do not underestimate the time and effort required for writing the Thesis. One month before your graduation day, the Thesis should be almost complete: you supervisor and examiner must have the time to check this (almost final) version and give you feedback on it, before uploading it into this AulaWeb module 15 days before your graduation. As a general rule, you might start writing the Thesis three months before your graduation day. If your Thesis is a survey, you should start immediately. If it is a very applicative one, you might start a couple of weeks later. If you know that your English is poor and/or that you spend a lot of time in writing, you should start much earlier.
+
+A Thesis is almost always written in "we" form, even if you are the only author of the document. Some exceptions might be allowed in some chapters, for example when you present the “Lessons Learned” and you comment on your personal experience. Simple rule: use the “we” form and ask your supervisor if you have doubts. 
+
+Never write "We tried to...", "the tool tries to face...", "the Thesis tries to address...", “We hoped to achieve this goal”. Be assertive: "We did", "the tool faces", "the Thesis addresses". The committee will evaluate your work and decide whether you succeeded or not, but by using "try/hope/..." and similar locutions, you convey the very bad feeling that you are not confident in the value of your work. 
+
+On the other hand, never write enthusiastic sentences like "This tool has great performances...", "The results we got are great", “The code is so easy to read”, etc. Your statements must be objective and backed up by evidence. You can write that your tool has some performances and that these performances are better than those of toolX, toolY, toolZ. Of course, you must prove what you write. You can write that you developed 1000 Lines of Code (LOC), but you cannot state that it is “easy to read” unless you are carrying out experiments on code readability, and you can measure this feature in a scientific way.
+
+The committee does not care if you are satisfied: the scientific content of the Thesis is the only thing that matters, and that will be evaluated. So, avoid sentences like "We are very happy with the tool we developed..."
+
+Use short and simple sentences.
+
+Use as few adverbs and adverbial locutions as possible. Most of them are completely useless, and just make the reading harder. Try to remove them and check the result. If the meaning of the sentence is not affected, than definitively remove them.
+
+Do not use slang and abbreviations: the Thesis is a scientific document and must meet a scientific style. Do not use "Don't", "Can't", "Let's". Use "Do not", "Can not/cannot", "Let us".
+
+All figures and tables must have meaningful, informative captions. Tagging all of them as “Experiment” conveys no information. Also, they must be referenced from inside the text and explained in a satisfactory way in your Thesis. 
+
+Plots on the Cartesian plane must include textual, informative labels for x- and y- axes; in general, all kinds of graphs (bar charts, histograms, pies) must include labels to allow the reader to immediately grasp their content.  
+
+If you use or define an equation, all the terms which appear inside it must be properly introduced and explained in the text, before the equation itself. 
+
+All captions and footnotes must start with uppercase. 
+
+The words Section/Figure/Table/ etc must be uppercase when followed by a number ("In Section 2.4 we present..."), lowercase in the other cases ("In this section, we address...").
+
+All the figures, tables, bibliographic items must be referenced from inside the text.
+
+Bibliography: all the entries must be as complete as possible, even those for web sites (you cannot just put a url). You find already made, complete bibliographic items for articles and books in many existing databases such as DBLP (https://dblp.uni-trier.de/) and ACM.
+
+If you use Latex, you may safely use the BibTex items in both DBLP and the ACM library. Do not fully trust the BibTex items you find in CiteSeer and Google Scholar: sometimes their quality is very low. 
+
+The months you spend on your Thesis are special ones: you can do what you always dreamt of, you can experiment, you can be autonomous in your choices, but still counting on very experienced professors willing to help you.
+
+And hence … stick to the guidelines and enjoy your Thesis!
