@@ -44,7 +44,7 @@ library(randomForest)
 
 root <- normalizePath(".")
 in_dir <- file.path(root, "data/input")
-out_dir <- file.path(root, "data/output")
+out_dir <- Sys.getenv("BIOMOD_OUTPUT_DIR", file.path(root, "data/output"))
 dir.create(out_dir, showWarnings = FALSE)
 
 ####################################
