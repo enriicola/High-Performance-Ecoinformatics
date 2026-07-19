@@ -13,6 +13,10 @@
 options(echo = TRUE) # stampa ogni statement prima di eseguirlo
 options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
 
+env_true <- function(name, default) {
+  tolower(Sys.getenv(name, default)) %in% c("1", "true", "yes", "y")
+}
+
 # Global worker count for BIOMOD_Modeling and BIOMOD_Projection. By default it
 # follows the CPUs allocated by Slurm; BIOMOD_NCPU can override it for tests.
 n_cpu <- suppressWarnings(as.integer(Sys.getenv(
@@ -27,10 +31,14 @@ if (!is.na(allocated_cpus) && n_cpu > allocated_cpus) {
   stop("BIOMOD_NCPU cannot exceed SLURM_CPUS_PER_TASK (", allocated_cpus, ")")
 }
 ensemble_n_cpu <- min(n_cpu, 2L)
+projection_keep_in_memory <- env_true("PROJ_KEEP_IN_MEMORY", "false")
+projection_do_stack <- env_true("PROJ_DO_STACK", "true")
 cat(
   "DEBUG: BIOMOD workers =", n_cpu,
   "| ensemble workers =", ensemble_n_cpu,
-  "| Slurm CPUs =", ifelse(is.na(allocated_cpus), "unknown", allocated_cpus), "\n"
+  "| Slurm CPUs =", ifelse(is.na(allocated_cpus), "unknown", allocated_cpus), "\n",
+  "DEBUG: projection keep.in.memory =", projection_keep_in_memory,
+  "| do.stack =", projection_do_stack, "\n"
 )
 
 library(biomod2)
@@ -214,8 +222,8 @@ myBiomodProj <- BIOMOD_Projection(
   new.env = cur_proj,
   models.chosen = "all",
   build.clamping.mask = T, # opzione per avere un'idea delle località in cui la predizione è incerta, dove non è sicuro di quello che sta predicendo, predizione potrebbe essere incerta, perchè i dati ambientali potrebbero non essere così fedeli alle variabili attinenti alla presenza vera delal specie (un modo per capire l'incertezza della predizione per ogni cella (km quadrato))
-  keep.in.memory = FALSE,
-  do.stack = TRUE,
+  keep.in.memory = projection_keep_in_memory,
+  do.stack = projection_do_stack,
   nb.cpu = n_cpu
 )
 end.time <- Sys.time()
@@ -284,8 +292,8 @@ for (k in 1:nf) {
     new.env = fut_proj,
     models.chosen = "all",
     build.clamping.mask = T,
-    keep.in.memory = FALSE,
-    do.stack = TRUE,
+    keep.in.memory = projection_keep_in_memory,
+    do.stack = projection_do_stack,
     nb.cpu = n_cpu
   )
   projection_end <- Sys.time()
