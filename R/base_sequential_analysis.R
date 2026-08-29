@@ -32,7 +32,7 @@ if (!is.na(allocated_cpus) && n_cpu > allocated_cpus) {
 }
 ensemble_n_cpu <- min(n_cpu, 2L)
 projection_keep_in_memory <- env_true("PROJ_KEEP_IN_MEMORY", "false")
-projection_do_stack <- env_true("PROJ_DO_STACK", "true")
+projection_do_stack <- env_true("PROJ_DO_STACK", "false")
 cat(
   "DEBUG: BIOMOD workers =", n_cpu,
   "| ensemble workers =", ensemble_n_cpu,
@@ -139,7 +139,7 @@ myBiomodData <- BIOMOD_FormatingData(
   expl.var = cur_cal, # explenatory variable
   resp.xy = myRespXY, # longitude and latitude of species occurrences
   resp.name = myRespName,
-  PA.nb.rep = 5, # value used by the original analysis
+  PA.nb.rep = 10, # production value confirmed by the domain supervisor
   PA.nb.absences = 10000, # production value (was toy 10); grows modeling only, projection unchanged
   PA.strategy = "random",
   na.rm = TRUE,
