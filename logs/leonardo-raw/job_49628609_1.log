@@ -1,0 +1,201 @@
+Job: id=49628609 array_task=1 node=lrdn4030
+Resources: cpus=2 memory=all-node
+R script: /work/R/base_sequential_analysis.R
+Started: 2026-07-17T16:55:46+02:00
+Resource log: /leonardo_work/IscrC_SPECC/logs/resources_49628609_1.txt
+[2026-07-17 16:55:50] > options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
+[2026-07-17 16:55:50] > 
+[2026-07-17 16:55:50] > # Global worker count for BIOMOD_Modeling and BIOMOD_Projection. By default it
+[2026-07-17 16:55:50] > # follows the CPUs allocated by Slurm; BIOMOD_NCPU can override it for tests.
+[2026-07-17 16:55:50] > n_cpu <- suppressWarnings(as.integer(Sys.getenv(
+[2026-07-17 16:55:50] +   "BIOMOD_NCPU",
+[2026-07-17 16:55:50] +   Sys.getenv("SLURM_CPUS_PER_TASK", "5")
+[2026-07-17 16:55:50] + )))
+[2026-07-17 16:55:50] > if (is.na(n_cpu) || n_cpu < 1L) {
+[2026-07-17 16:55:50] +   stop("BIOMOD_NCPU must be a positive integer")
+[2026-07-17 16:55:50] + }
+[2026-07-17 16:55:50] > allocated_cpus <- suppressWarnings(as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "")))
+[2026-07-17 16:55:50] > if (!is.na(allocated_cpus) && n_cpu > allocated_cpus) {
+[2026-07-17 16:55:50] +   stop("BIOMOD_NCPU cannot exceed SLURM_CPUS_PER_TASK (", allocated_cpus, ")")
+[2026-07-17 16:55:50] + }
+[2026-07-17 16:55:50] > ensemble_n_cpu <- min(n_cpu, 2L)
+[2026-07-17 16:55:50] > cat(
+[2026-07-17 16:55:50] +   "DEBUG: BIOMOD workers =", n_cpu,
+[2026-07-17 16:55:50] +   "| ensemble workers =", ensemble_n_cpu,
+[2026-07-17 16:55:50] +   "| Slurm CPUs =", ifelse(is.na(allocated_cpus), "unknown", allocated_cpus), "\n"
+[2026-07-17 16:55:50] + )
+[2026-07-17 16:55:50] DEBUG: BIOMOD workers = 2 | ensemble workers = 2 | Slurm CPUs = 2 
+[2026-07-17 16:55:50] > 
+[2026-07-17 16:55:50] > library(biomod2)
+[2026-07-17 16:55:55] biomod2 4.3-4-5 loaded.
+[2026-07-17 16:55:55]  /!\ Welcome to augmented biomod2 with abundance modeling available! (*o*)
+[2026-07-17 16:55:55]  Take a look at the HOME and NEWS section on the website to see all the features!
+[2026-07-17 16:55:55] 
+[2026-07-17 16:55:55] Loading required package: nnet
+[2026-07-17 16:55:55] Loading required package: rpart
+[2026-07-17 16:55:55] Loading required package: cito
+[2026-07-17 16:55:55] Warning in library(package, lib.loc = lib.loc, character.only = TRUE, logical.return = TRUE,  :
+[2026-07-17 16:55:55]   there is no package called ‘cito’
+[2026-07-17 16:55:55] Loading required package: mda
+[2026-07-17 16:55:55] Loading required package: class
+[2026-07-17 16:55:55] Loaded mda 0.5-5
+[2026-07-17 16:55:55] 
+[2026-07-17 16:55:55] Loading required package: gam
+[2026-07-17 16:55:55] Loading required package: splines
+[2026-07-17 16:55:55] Loading required package: foreach
+[2026-07-17 16:55:55] Loaded gam 1.22-7
+[2026-07-17 16:55:55] 
+[2026-07-17 16:55:55] Loading required package: mgcv
+[2026-07-17 16:55:55] Loading required package: nlme
+[2026-07-17 16:55:55] This is mgcv 1.9-4. For overview type '?mgcv'.
+[2026-07-17 16:55:55] 
+[2026-07-17 16:55:55] Attaching package: ‘mgcv’
+[2026-07-17 16:55:55] 
+[2026-07-17 16:55:55] The following objects are masked from ‘package:gam’:
+[2026-07-17 16:55:55] 
+[2026-07-17 16:55:55]     gam, gam.control, gam.fit, s
+[2026-07-17 16:55:55] 
+[2026-07-17 16:55:55] The following object is masked from ‘package:nnet’:
+[2026-07-17 16:55:55] 
+[2026-07-17 16:55:55]     multinom
+[2026-07-17 16:55:55] 
+[2026-07-17 16:55:55] Loading required package: gbm
+[2026-07-17 16:55:55] Loaded gbm 2.2.3
+[2026-07-17 16:55:55] This version of gbm is no longer under development. Consider transitioning to gbm3, https://github.com/gbm-developers/gbm3
+[2026-07-17 16:55:55] Loading required package: earth
+[2026-07-17 16:55:55] Loading required package: Formula
+[2026-07-17 16:55:55] Loading required package: plotmo
+[2026-07-17 16:55:55] Loading required package: plotrix
+[2026-07-17 16:55:55] Loading required package: maxnet
+[2026-07-17 16:55:55] Loading required package: randomForest
+[2026-07-17 16:55:55] randomForest 4.7-1.2
+[2026-07-17 16:55:55] Type rfNews() to see new features/changes/bug fixes.
+[2026-07-17 16:55:55] Loading required package: xgboost
+[2026-07-17 16:55:56] > library(terra)
+[2026-07-17 16:55:56] terra 1.9.11
+[2026-07-17 16:55:56] 
+[2026-07-17 16:55:56] Attaching package: ‘terra’
+[2026-07-17 16:55:56] 
+[2026-07-17 16:55:56] The following object is masked from ‘package:plotrix’:
+[2026-07-17 16:55:56] 
+[2026-07-17 16:55:56]     rescale
+[2026-07-17 16:55:56] 
+[2026-07-17 16:55:56] > library(gbm)
+[2026-07-17 16:55:56] > library(mda)
+[2026-07-17 16:55:56] > library(randomForest)
+[2026-07-17 16:55:56] > 
+[2026-07-17 16:55:56] > # biomod2 registers its own doParallel backend from nb.cpu; an external cluster
+[2026-07-17 16:55:56] > # is unnecessary and previously hung inside the Singularity container.
+[2026-07-17 16:55:56] > 
+[2026-07-17 16:55:56] > root <- normalizePath(".")
+[2026-07-17 16:55:56] > in_dir <- file.path(root, "data/input")
+[2026-07-17 16:55:56] > out_dir <- file.path(root, "data/output")
+[2026-07-17 16:55:56] > dir.create(out_dir, showWarnings = FALSE)
+[2026-07-17 16:55:56] > 
+[2026-07-17 16:55:56] > ####################################
+[2026-07-17 16:55:56] > # loading species occurrences data
+[2026-07-17 16:55:56] > ####################################
+[2026-07-17 16:55:56] > spocc <- read.csv(file.path(in_dir, "full_1km_EUNIS.csv"), head = TRUE)
+[2026-07-17 16:56:03] > spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
+[2026-07-17 16:56:03] > spocc$sp_name <- sub(" ", ".", spocc$sp_name)
+[2026-07-17 16:56:04] > sp.names <- levels(factor(spocc[, 1]))
+[2026-07-17 16:56:04] > num_sp <- length(sp.names)
+[2026-07-17 16:56:04] > cat("DEBUG: num_sp =", num_sp, "| total rows =", nrow(spocc), "\n")
+[2026-07-17 16:56:04] DEBUG: num_sp = 167 | total rows = 2583359 
+[2026-07-17 16:56:04] > 
+[2026-07-17 16:56:04] > #####################################
+[2026-07-17 16:56:04] > # CALIBRATION environmental data
+[2026-07-17 16:56:04] > #####################################
+[2026-07-17 16:56:04] > cat("DEBUG: loading calibration rasters...\n")
+[2026-07-17 16:56:04] DEBUG: loading calibration rasters...
+[2026-07-17 16:56:04] > clim_cal <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+[2026-07-17 16:56:04] > tri_cal <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+[2026-07-17 16:56:04] > soil_cal <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+[2026-07-17 16:56:04] > cur_cal <- c(clim_cal, tri_cal, soil_cal)
+[2026-07-17 16:56:04] > names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+[2026-07-17 16:56:04] > cat("DEBUG: raster dim =", dim(cur_cal)[1], "x", dim(cur_cal)[2], "| ncell =", ncell(cur_cal), "\n")
+[2026-07-17 16:56:04] DEBUG: raster dim = 5873 x 10889 | ncell = 63951097 
+[2026-07-17 16:56:04] > 
+[2026-07-17 16:56:04] > #####################################
+[2026-07-17 16:56:04] > # PROJECTION environmental data
+[2026-07-17 16:56:04] > #####################################
+[2026-07-17 16:56:04] > # Projection and calibration use the same baseline rasters. Reuse their handles
+[2026-07-17 16:56:04] > # instead of loading a second copy into the R process.
+[2026-07-17 16:56:04] > cur_proj <- cur_cal
+[2026-07-17 16:56:04] > tri_proj <- tri_cal
+[2026-07-17 16:56:04] > soil_proj <- soil_cal
+[2026-07-17 16:56:04] > 
+[2026-07-17 16:56:04] > #####################################
+[2026-07-17 16:56:04] > # loading FUTURE list (leaf dirs containing tif)
+[2026-07-17 16:56:04] > #####################################
+[2026-07-17 16:56:04] > lf <- list.dirs(file.path(in_dir, "climate_vars/future"), full.names = T, recursive = T)[-1]
+[2026-07-17 16:56:04] > lf <- lf[sapply(lf, function(d) length(list.files(d, pattern = "\\.tif$")) > 0)]
+[2026-07-17 16:56:04] > cat("DEBUG: testing with", length(lf), "future scenarios\n")
+[2026-07-17 16:56:04] DEBUG: testing with 8 future scenarios
+[2026-07-17 16:56:04] > 
+[2026-07-17 16:56:04] > # outputs (biomod2 writes species folders into the working dir)
+[2026-07-17 16:56:04] > setwd(out_dir)
+[2026-07-17 16:56:04] > 
+[2026-07-17 16:56:04] > selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
+[2026-07-17 16:56:04] > 
+[2026-07-17 16:56:04] > # One Slurm array task processes exactly one species.
+[2026-07-17 16:56:04] > task_id <- suppressWarnings(as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1")))
+[2026-07-17 16:56:04] > if (is.na(task_id) || task_id < 1L || task_id > num_sp) {
+[2026-07-17 16:56:04] +   stop("SLURM_ARRAY_TASK_ID must be between 1 and ", num_sp)
+[2026-07-17 16:56:04] + }
+[2026-07-17 16:56:04] > species_name <- sp.names[[task_id]]
+[2026-07-17 16:56:04] > spocc1 <- spocc[spocc[, 1] == species_name, , drop = FALSE]
+[2026-07-17 16:56:04] > cat(
+[2026-07-17 16:56:04] +   "DEBUG: array task", task_id,
+[2026-07-17 16:56:04] +   "-> species =", species_name,
+[2026-07-17 16:56:04] +   "| occurrences =", nrow(spocc1), "\n"
+[2026-07-17 16:56:04] + )
+[2026-07-17 16:56:04] DEBUG: array task 1 -> species = Achillea.atrata | occurrences = 1475 
+[2026-07-17 16:56:04] > 
+[2026-07-17 16:56:04] > # The full occurrence table is no longer needed by this isolated species task.
+[2026-07-17 16:56:04] > rm(spocc)
+[2026-07-17 16:56:04] > gc(verbose = FALSE)
+[2026-07-17 16:56:05]           used  (Mb) gc trigger  (Mb) max used  (Mb)
+[2026-07-17 16:56:05] Ncells 3150309 168.3    9577165 511.5  6188289 330.5
+[2026-07-17 16:56:05] Vcells 6886956  52.6   40574405 309.6 50352127 384.2
+[2026-07-17 16:56:05] > 
+[2026-07-17 16:56:05] > # Per-species cleanup is safe when different array tasks process distinct species.
+[2026-07-17 16:56:05] > species_dir <- file.path(out_dir, species_name)
+[2026-07-17 16:56:05] > unlink(species_dir, recursive = TRUE)
+[2026-07-17 16:56:06] > 
+[2026-07-17 16:56:06] > ###########################################################################
+[2026-07-17 16:56:06] > ######################     CALIBRATION ON EUROPE      #####################
+[2026-07-17 16:56:06] > ###########################################################################
+[2026-07-17 16:56:06] > 
+[2026-07-17 16:56:06] > start.time <- Sys.time()
+[2026-07-17 16:56:06] > myRespName <- species_name
+[2026-07-17 16:56:06] > myRespXY <- spocc1[, 2:3] # coordinates of points
+[2026-07-17 16:56:06] > myResp <- rep(1, nrow(spocc1)) # species occurences
+[2026-07-17 16:56:06] > 
+[2026-07-17 16:56:06] > cat("DEBUG: starting BIOMOD_FormatingData at", format(Sys.time(), "%H:%M:%S"), "\n")
+[2026-07-17 16:56:06] DEBUG: starting BIOMOD_FormatingData at 16:56:06 
+[2026-07-17 16:56:06] > flush.console()
+[2026-07-17 16:56:06] > 
+[2026-07-17 16:56:06] > # 1. Formatting Data (5 sets of pseudo-absences, 10000 absences each, random strategy)
+[2026-07-17 16:56:06] > # resp è la distribuzione della specie
+[2026-07-17 16:56:06] > # expl sono le variabili che vanno a spiegare la distribuzione della specie (spiegano la resp) (caldo, freddo, neve, etc)
+[2026-07-17 16:56:06] > 
+[2026-07-17 16:56:06] > myBiomodData <- BIOMOD_FormatingData(
+[2026-07-17 16:56:06] +   resp.var = myResp, # response variable
+[2026-07-17 16:56:06] +   expl.var = cur_cal, # explenatory variable
+[2026-07-17 16:56:06] +   resp.xy = myRespXY, # longitude and latitude of species occurrences
+[2026-07-17 16:56:06] +   resp.name = myRespName,
+[2026-07-17 16:56:06] +   PA.nb.rep = 5, # value used by the original analysis
+[2026-07-17 16:56:06] +   PA.nb.absences = 10000, # production value (was toy 10); grows modeling only, projection unchanged
+[2026-07-17 16:56:06] +   PA.strategy = "random",
+[2026-07-17 16:56:06] +   na.rm = TRUE,
+[2026-07-17 16:56:06] +   filter.raster = F # se la response var deve essere filtrata (se troppi punti vanno nella stessa cella), se true si rischia di andare a sovrastimare (overfitting)
+[2026-07-17 16:56:06] + )
+[2026-07-17 16:56:06] 
+[2026-07-17 16:56:06] -=-=-=-=-=-=-=-=-=-=-=-= Achillea.atrata Data Formating -=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-17 16:56:06] 
+[2026-07-17 16:56:06] 
+[2026-07-17 16:56:06] Checking Pseudo-absence selection arguments...
+[2026-07-17 16:56:06] 
+[2026-07-17 16:56:06]    > random pseudo absences selection
+slurmstepd: error: *** JOB 49628609 ON lrdn4030 CANCELLED AT 2026-07-17T17:10:00 ***

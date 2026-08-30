@@ -1,0 +1,2585 @@
+[12:18:02] > options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
+[12:18:02] > 
+[12:18:02] > library(biomod2)
+[12:18:07] biomod2 4.3-4-5 loaded.
+[12:18:07]  /!\ Welcome to augmented biomod2 with abundance modeling available! (*o*)
+[12:18:07]  Take a look at the HOME and NEWS section on the website to see all the features!
+[12:18:07] 
+[12:18:07] Loading required package: nnet
+[12:18:07] Loading required package: rpart
+[12:18:07] Loading required package: cito
+[12:18:07] Warning in library(package, lib.loc = lib.loc, character.only = TRUE, logical.return = TRUE,  :
+[12:18:07]   there is no package called ‘cito’
+[12:18:07] Loading required package: mda
+[12:18:07] Loading required package: class
+[12:18:07] Loaded mda 0.5-5
+[12:18:07] 
+[12:18:07] Loading required package: gam
+[12:18:07] Loading required package: splines
+[12:18:07] Loading required package: foreach
+[12:18:07] Loaded gam 1.22-7
+[12:18:07] 
+[12:18:07] Loading required package: mgcv
+[12:18:07] Loading required package: nlme
+[12:18:07] This is mgcv 1.9-4. For overview type '?mgcv'.
+[12:18:07] 
+[12:18:07] Attaching package: ‘mgcv’
+[12:18:07] 
+[12:18:07] The following objects are masked from ‘package:gam’:
+[12:18:07] 
+[12:18:07]     gam, gam.control, gam.fit, s
+[12:18:07] 
+[12:18:07] The following object is masked from ‘package:nnet’:
+[12:18:07] 
+[12:18:07]     multinom
+[12:18:07] 
+[12:18:07] Loading required package: gbm
+[12:18:07] Loaded gbm 2.2.3
+[12:18:07] This version of gbm is no longer under development. Consider transitioning to gbm3, https://github.com/gbm-developers/gbm3
+[12:18:07] Loading required package: earth
+[12:18:07] Loading required package: Formula
+[12:18:07] Loading required package: plotmo
+[12:18:07] Loading required package: plotrix
+[12:18:07] Loading required package: maxnet
+[12:18:07] Loading required package: randomForest
+[12:18:07] randomForest 4.7-1.2
+[12:18:07] Type rfNews() to see new features/changes/bug fixes.
+[12:18:07] Loading required package: xgboost
+[12:18:07] > library(terra)
+[12:18:07] terra 1.9.11
+[12:18:07] 
+[12:18:07] Attaching package: ‘terra’
+[12:18:07] 
+[12:18:07] The following object is masked from ‘package:plotrix’:
+[12:18:07] 
+[12:18:07]     rescale
+[12:18:07] 
+[12:18:07] > library(gbm)
+[12:18:07] > library(mda)
+[12:18:07] > library(randomForest)
+[12:18:07] > 
+[12:18:07] > # NOTE: makeCluster/registerDoParallel removed - hangs inside Singularity container.
+[12:18:07] > 
+[12:18:07] > root <- normalizePath(".")
+[12:18:07] > in_dir <- file.path(root, "data/input")
+[12:18:07] > out_dir <- file.path(root, "data/output")
+[12:18:07] > dir.create(out_dir, showWarnings = FALSE)
+[12:18:07] > 
+[12:18:07] > ####################################
+[12:18:07] > # loading species occurrences data
+[12:18:07] > ####################################
+[12:18:07] > spocc <- read.csv(file.path(in_dir, "agrostis_1km_EUNIS.csv"), head = TRUE)
+[12:18:07] > spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
+[12:18:07] > spocc$sp_name <- sub(" ", ".", spocc$sp_name)
+[12:18:07] > sp.names <- levels(factor(spocc[, 1]))
+[12:18:07] > num_sp <- length(sp.names)
+[12:18:07] > cat("DEBUG: num_sp =", num_sp, "| total rows =", nrow(spocc), "\n")
+[12:18:07] DEBUG: num_sp = 1 | total rows = 170701 
+[12:18:07] > 
+[12:18:07] > #####################################
+[12:18:07] > # CALIBRATION environmental data
+[12:18:07] > #####################################
+[12:18:07] > cat("DEBUG: loading calibration rasters...\n")
+[12:18:07] DEBUG: loading calibration rasters...
+[12:18:07] > clim_cal <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+[12:18:07] > tri_cal <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+[12:18:07] > soil_cal <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+[12:18:07] > cur_cal <- c(clim_cal, tri_cal, soil_cal)
+[12:18:07] > names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+[12:18:07] > cat("DEBUG: raster dim =", dim(cur_cal)[1], "x", dim(cur_cal)[2], "| ncell =", ncell(cur_cal), "\n")
+[12:18:07] DEBUG: raster dim = 5873 x 10889 | ncell = 63951097 
+[12:18:07] > 
+[12:18:07] > #####################################
+[12:18:07] > # PROJECTION environmental data
+[12:18:07] > #####################################
+[12:18:07] > clim_proj <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+[12:18:07] > tri_proj <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+[12:18:07] > soil_proj <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+[12:18:07] > cur_proj <- c(clim_proj, tri_proj, soil_proj)
+[12:18:07] > names(cur_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+[12:18:07] > 
+[12:18:07] > #####################################
+[12:18:07] > # loading FUTURE list (leaf dirs containing tif)
+[12:18:07] > #####################################
+[12:18:07] > lf <- list.dirs(file.path(in_dir, "climate_vars/future"), full.names = T, recursive = T)[-1]
+[12:18:08] > lf <- lf[sapply(lf, function(d) length(list.files(d, pattern = "\\.tif$")) > 0)]
+[12:18:08] > cat("DEBUG: testing with", length(lf), "future scenarios\n")
+[12:18:08] DEBUG: testing with 8 future scenarios
+[12:18:08] > 
+[12:18:08] > # outputs (biomod2 writes species folders into the working dir)
+[12:18:08] > setwd(out_dir)
+[12:18:08] > 
+[12:18:08] > pb <- txtProgressBar(min = 0, max = num_sp, style = 3, width = 50, char = "=")
+[12:18:08]   |                                                          |                                                  |   0%> 
+[12:18:08] > selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
+[12:18:08] > 
+[12:18:08] > # parallel fork count for Modeling + Projection only. EnsembleForecasting stays nb.cpu=1:
+[12:18:08] > # its bm.proj reuse already avoids the re-projection fork that caused the step-6 OOM.
+[12:18:08] > # Cap modest: nb.cpu >= 16 historically OOM'd (big-parent forks). Raise only after a clean test.
+[12:18:08] > n_cpu <- 4L
+[12:18:08] > 
+[12:18:08] > # DEBUG: use first species
+[12:18:08] > i <- 1
+[12:18:08] > spocc1 <- subset(spocc, spocc[, 1] == sp.names[i])
+[12:18:08] > cat("DEBUG: species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
+[12:18:08] DEBUG: species = Agrostis.capillaris | occurrences = 170701 
+[12:18:08] > 
+[12:18:08] > ###########################################################################
+[12:18:08] > ######################     CALIBRATION ON EUROPE      #####################
+[12:18:08] > ###########################################################################
+[12:18:08] > 
+[12:18:08] > start.time <- Sys.time()
+[12:18:08] > myRespName <- paste(sp.names[i], sep = ".")
+[12:18:08] > myRespXY <- spocc1[, 2:3] # coordinates of points
+[12:18:08] > myResp <- rep(1, nrow(spocc1)) # species occurences
+[12:18:08] > 
+[12:18:08] > cat("DEBUG: starting BIOMOD_FormatingData at", format(Sys.time(), "%H:%M:%S"), "\n")
+[12:18:08] DEBUG: starting BIOMOD_FormatingData at 12:18:08 
+[12:18:08] > flush.console()
+[12:18:08] > 
+[12:18:08] > # 1. Formatting Data
+[12:18:08] > myBiomodData <- BIOMOD_FormatingData(
+[12:18:08] +   resp.var = myResp,
+[12:18:08] +   expl.var = cur_cal,
+[12:18:08] +   resp.xy = myRespXY,
+[12:18:08] +   resp.name = myRespName,
+[12:18:08] +   PA.nb.rep = 3,
+[12:18:08] +   PA.nb.absences = 10,
+[12:18:08] +   PA.strategy = "random",
+[12:18:08] +   na.rm = TRUE,
+[12:18:08] +   filter.raster = F
+[12:18:08] + )
+[12:18:08] 
+[12:18:08] -=-=-=-=-=-=-=-=-=-=-= Agrostis.capillaris Data Formating -=-=-=-=-=-=-=-=-=-=-=
+[12:18:08] 
+[12:18:08] 
+[12:18:08] Checking Pseudo-absence selection arguments...
+[12:18:08] 
+[12:18:08]    > random pseudo absences selection
+[12:18:45]    > Pseudo absences are selected in explanatory variables
+[12:18:45] 
+[12:18:57]  ! Some NAs have been automatically removed from your data
+[12:18:57] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:18:57] > 
+[12:18:57] > cat("DEBUG: BIOMOD_FormatingData done at", format(Sys.time(), "%H:%M:%S"), "\n")
+[12:18:57] DEBUG: BIOMOD_FormatingData done at 12:18:57 
+[12:18:57] > end.time <- Sys.time()
+[12:18:57] > time.formating <- end.time - start.time
+[12:18:57] > 
+[12:18:57] > start.time <- Sys.time()
+[12:18:57] > # 2. Defining Models Options (bigboss preset)
+[12:18:57] > opt.b <- bm_ModelingOptions(
+[12:18:57] +   data.type = "binary",
+[12:18:57] +   models = selModels,
+[12:18:57] +   strategy = "bigboss",
+[12:18:57] +   bm.format = myBiomodData
+[12:18:57] + )
+[12:18:57] 
+[12:18:57] -=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Modeling Options -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:18:57] 
+[12:18:58] 	>  GLM options ( datatype: binary , package: stats , function: glm )...
+[12:18:58] 	>  GBM options ( datatype: binary , package: gbm , function: gbm )...
+[12:18:58] 	>  ANN options ( datatype: binary , package: nnet , function: nnet )...
+[12:18:58] 	>  FDA options ( datatype: binary , package: mda , function: fda )...
+[12:18:58] 	>  MAXNET options ( datatype: binary , package: maxnet , function: maxnet )...
+[12:18:58] 
+[12:18:58] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:18:58] > 
+[12:18:58] > # 3. Computing the models
+[12:18:58] > myBiomodModelOut <- BIOMOD_Modeling(
+[12:18:58] +   myBiomodData,
+[12:18:58] +   models = selModels,
+[12:18:58] +   CV.strategy = "random",
+[12:18:58] +   CV.nb.rep = 2, # DEBUG: reduced from 5
+[12:18:58] +   CV.perc = 0.7,
+[12:18:58] +   OPT.strategy = "bigboss",
+[12:18:58] +   metric.eval = c("TSS", "AUCroc", "KAPPA", "POD", "FAR"),
+[12:18:58] +   scale.models = FALSE,
+[12:18:58] +   CV.do.full.models = FALSE,
+[12:18:58] +   nb.cpu = n_cpu,
+[12:18:58] +   do.progress = T
+[12:18:58] + )
+[12:18:58] 
+[12:18:58] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Single Models -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:18:58] 
+[12:18:58] 
+[12:18:58] Checking Models arguments...
+[12:18:58] 
+[12:18:58] 	> Automatic weights creation to rise a 0.5 prevalence
+[12:18:58] Creating suitable Workdir...
+[12:19:00] 
+[12:19:00] 
+[12:19:00] Checking Cross-Validation arguments...
+[12:19:00] 
+[12:19:00]    > Random cross-validation selection
+[12:19:01] 
+[12:19:01] -=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Modeling Options -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:19:01] 
+[12:19:01] 	>  GLM options ( datatype: binary , package: stats , function: glm )...
+[12:19:01] 	>  GBM options ( datatype: binary , package: gbm , function: gbm )...
+[12:19:01] 	>  ANN options ( datatype: binary , package: nnet , function: nnet )...
+[12:19:01] 	>  FDA options ( datatype: binary , package: mda , function: fda )...
+[12:19:01] 	>  MAXNET options ( datatype: binary , package: maxnet , function: maxnet )...
+[12:19:01] 
+[12:19:01] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:19:01] 
+[12:19:01] 
+[12:19:01] 
+[12:19:01] -=-=-=-=-=-=-=-=-=-= Agrostis.capillaris Modeling Summary -=-=-=-=-=-=-=-=-=-=
+[12:19:01] 
+[12:19:01] > 5 environmental variables ( PC1_clim PC2_clim tri PC1_soil PC2_soil )
+[12:19:01] 
+[12:19:01] > Number of PA datasets : 3
+[12:19:01] 
+[12:19:01] > Number of calibration/validation splits : 2
+[12:19:01] 
+[12:19:01] > Algorithms selected : GLM GBM ANN FDA MAXNET
+[12:19:01]  6 models for each algorithm
+[12:19:01] 
+[12:19:01] Total number of model runs: 30 
+[12:19:01] 
+[12:19:01] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:19:01] 
+[12:19:01] 
+[12:19:01] -=-=-=--=-=-=- Agrostis.capillaris_PA1_RUN1_GLM 
+[12:19:01] 
+[12:19:01] 
+[12:19:01] -=-=-=--=-=-=- Agrostis.capillaris_PA1_RUN1_GBM 
+[12:19:01] 
+[12:19:01] 
+[12:19:01] -=-=-=--=-=-=- Agrostis.capillaris_PA1_RUN1_ANN 
+[12:19:01] 
+[12:19:01] 
+[12:19:01] -=-=-=--=-=-=- Agrostis.capillaris_PA1_RUN1_FDA 
+[12:19:01] CV: 1 
+[12:19:02] 
+[12:19:02] 	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:19:03] 
+[12:19:03] 	Evaluating Model stuff...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:19:04] Warning in predict.lm(object, newdata, se.fit, scale = 1, type = if (type ==  :
+[12:19:04]   prediction from rank-deficient fit; attr(*, "non-estim") has doubtful cases
+[12:19:04] 
+[12:19:04] *** single value predicted
+[12:19:04]    ! Note :  Agrostis.capillaris_PA1_RUN1_FDA failed!
+[12:19:04] 
+[12:19:04] 
+[12:19:04] -=-=-=--=-=-=- Agrostis.capillaris_PA1_RUN2_ANN 
+[12:19:07] 
+[12:19:09] 	Model scaling...
+[12:19:09] 	Evaluating Model stuff...
+[12:19:10] 	Model scaling...
+[12:19:10] 	Evaluating Model stuff...Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:16] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:18] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:19:20] 
+[12:19:20] 
+[12:19:20] -=-=-=--=-=-=- Agrostis.capillaris_PA1_RUN1_MAXNET 
+[12:19:25] 
+[12:19:25] 
+[12:19:25] -=-=-=--=-=-=- Agrostis.capillaris_PA1_RUN2_GBM 
+[12:19:25] CV: 1 
+[12:19:26] 
+[12:19:26] 
+[12:19:26] -=-=-=--=-=-=- Agrostis.capillaris_PA2_RUN1_GBM 
+[12:19:26] CV: 1 
+[12:19:59] 
+[12:19:59] *** single value predicted
+[12:19:59]    ! Note :  Agrostis.capillaris_PA1_RUN1_MAXNET failed!
+[12:19:59] 
+[12:19:59] 
+[12:19:59] -=-=-=--=-=-=- Agrostis.capillaris_PA1_RUN2_FDA 
+[12:20:00] 
+[12:20:00] 	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:20:01] Warning in predict.lm(object, newdata, se.fit, scale = 1, type = if (type ==  :
+[12:20:01]   prediction from rank-deficient fit; attr(*, "non-estim") has doubtful cases
+[12:20:01] 
+[12:20:01] *** single value predicted
+[12:20:01]    ! Note :  Agrostis.capillaris_PA1_RUN2_FDA failed!
+[12:20:01] 
+[12:20:01] 
+[12:20:01] -=-=-=--=-=-=- Agrostis.capillaris_PA2_RUN1_ANN 
+[12:20:07] 
+[12:20:08] 	Model scaling...
+[12:20:10] 	Evaluating Model stuff...CV: 2 
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:15] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:20:24] 
+[12:20:24] 
+[12:20:24] -=-=-=--=-=-=- Agrostis.capillaris_PA2_RUN2_GBM 
+[12:20:24] CV: 1 
+[12:20:34] CV: 2 
+[12:20:34] CV: 2 
+[12:21:19] CV: 3 
+[12:21:32] CV: 2 
+[12:21:42] CV: 3 
+[12:21:43] CV: 3 
+[12:22:40] CV: 3 
+[12:24:10] 
+[12:24:17] 	Evaluating Model stuff...Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:17] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:26] 
+[12:24:26] 
+[12:24:26] -=-=-=--=-=-=- Agrostis.capillaris_PA1_RUN2_GLM 
+[12:24:26] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:24:26] 
+[12:24:30] 	Evaluating Model stuff...
+[12:24:31] 	Evaluating Model stuff...Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:32] 
+[12:24:32] 
+[12:24:32] -=-=-=--=-=-=- Agrostis.capillaris_PA2_RUN2_GLM 
+[12:24:32] 
+[12:24:33] 	Evaluating Model stuff...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:24:33] 
+[12:24:33] 	Evaluating Model stuff...Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:33] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:35] 
+[12:24:35] 
+[12:24:35] -=-=-=--=-=-=- Agrostis.capillaris_PA2_RUN1_GLM 
+[12:24:35] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:24:35] 
+[12:24:40] 	Evaluating Model stuff...Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:40] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:24:43] 
+[12:24:43] 
+[12:24:43] -=-=-=--=-=-=- Agrostis.capillaris_PA1_RUN2_MAXNET 
+[12:24:50] 
+[12:24:50] 
+[12:24:50] -=-=-=--=-=-=- Agrostis.capillaris_PA2_RUN2_MAXNET 
+[12:24:52] 
+[12:24:52] 
+[12:24:52] -=-=-=--=-=-=- Agrostis.capillaris_PA2_RUN1_MAXNET 
+[12:25:21] 
+[12:25:21] *** single value predicted
+[12:25:21]    ! Note :  Agrostis.capillaris_PA1_RUN2_MAXNET failed!
+[12:25:21] 
+[12:25:21] 
+[12:25:21] -=-=-=--=-=-=- Agrostis.capillaris_PA2_RUN1_FDA 
+[12:25:22] 
+[12:25:22] 	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:25:23] Warning in predict.lm(object, newdata, se.fit, scale = 1, type = if (type ==  :
+[12:25:23]   prediction from rank-deficient fit; attr(*, "non-estim") has doubtful cases
+[12:25:23] 
+[12:25:23] *** single value predicted
+[12:25:23]    ! Note :  Agrostis.capillaris_PA2_RUN1_FDA failed!
+[12:25:23] 
+[12:25:23] 
+[12:25:23] -=-=-=--=-=-=- Agrostis.capillaris_PA2_RUN2_ANN 
+[12:25:29] 
+[12:25:29] *** single value predicted
+[12:25:29]    ! Note :  Agrostis.capillaris_PA2_RUN2_MAXNET failed!
+[12:25:29] 
+[12:25:29] 
+[12:25:29] -=-=-=--=-=-=- Agrostis.capillaris_PA3_RUN1_FDA 
+[12:25:29] 
+[12:25:29] 	Model scaling...
+[12:25:29] 	Evaluating Model stuff...
+[12:25:30] 	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:25:31] Warning in predict.lm(object, newdata, se.fit, scale = 1, type = if (type ==  :
+[12:25:31]   prediction from rank-deficient fit; attr(*, "non-estim") has doubtful cases
+[12:25:31] 
+[12:25:31] *** single value predicted
+[12:25:31]    ! Note :  Agrostis.capillaris_PA3_RUN1_FDA failed!
+[12:25:31] 
+[12:25:31] 
+[12:25:31] -=-=-=--=-=-=- Agrostis.capillaris_PA3_RUN2_ANN 
+[12:25:31] 
+[12:25:31] *** single value predicted
+[12:25:31]    ! Note :  Agrostis.capillaris_PA2_RUN1_MAXNET failed!
+[12:25:31] 
+[12:25:31] 
+[12:25:31] -=-=-=--=-=-=- Agrostis.capillaris_PA2_RUN2_FDA 
+[12:25:32] 
+[12:25:32] 	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:25:33] Warning in predict.lm(object, newdata, se.fit, scale = 1, type = if (type ==  :
+[12:25:33]   prediction from rank-deficient fit; attr(*, "non-estim") has doubtful cases
+[12:25:33] 
+[12:25:33] *** single value predicted
+[12:25:33]    ! Note :  Agrostis.capillaris_PA2_RUN2_FDA failed!
+[12:25:33] 
+[12:25:33] 
+[12:25:33] -=-=-=--=-=-=- Agrostis.capillaris_PA3_RUN1_ANN 
+[12:25:35] 
+[12:25:37] 	Evaluating Model stuff...Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:37] 
+[12:25:37] 	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:25:37] 
+[12:25:40] 	Evaluating Model stuff...
+[12:25:41] 	Model scaling...
+[12:25:42] 	Evaluating Model stuff...Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:45] 
+[12:25:45] 
+[12:25:45] -=-=-=--=-=-=- Agrostis.capillaris_PA3_RUN1_GBM 
+[12:25:45] CV: 1 
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:48] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:51] 
+[12:25:51] 
+[12:25:51] -=-=-=--=-=-=- Agrostis.capillaris_PA3_RUN1_GLM 
+[12:25:51] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:25:51] 
+[12:25:57] 	Evaluating Model stuff...
+[12:25:57] 
+[12:25:57] -=-=-=--=-=-=- Agrostis.capillaris_PA3_RUN2_GBM 
+[12:25:57] CV: 1 
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:25:58] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:26:08] 
+[12:26:08] 
+[12:26:08] -=-=-=--=-=-=- Agrostis.capillaris_PA3_RUN1_MAXNET 
+[12:26:45] 
+[12:26:45] *** single value predicted
+[12:26:45]    ! Note :  Agrostis.capillaris_PA3_RUN1_MAXNET failed!
+[12:26:45] 
+[12:26:45] 
+[12:26:45] -=-=-=--=-=-=- Agrostis.capillaris_PA3_RUN2_FDA 
+[12:26:46] 
+[12:26:46] 	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:26:47] Warning in predict.lm(object, newdata, se.fit, scale = 1, type = if (type ==  :
+[12:26:47]   prediction from rank-deficient fit; attr(*, "non-estim") has doubtful cases
+[12:26:47] 
+[12:26:47] *** single value predicted
+[12:26:47]    ! Note :  Agrostis.capillaris_PA3_RUN2_FDA failed!
+[12:26:55] CV: 2 
+[12:27:06] CV: 2 
+[12:28:05] CV: 3 
+[12:28:14] CV: 3 
+[12:30:56] 
+[12:30:57] 	Evaluating Model stuff...Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:57] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:30:59] 
+[12:30:59] 
+[12:30:59] -=-=-=--=-=-=- Agrostis.capillaris_PA3_RUN2_GLM 
+[12:31:00] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[12:31:00] 
+[12:31:02] 	Evaluating Model stuff...
+[12:31:07] 	Evaluating Model stuff...Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:07] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:10] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:31:17] 
+[12:31:17] 
+[12:31:17] -=-=-=--=-=-=- Agrostis.capillaris_PA3_RUN2_MAXNET 
+[12:31:58] 
+[12:31:58] *** single value predicted
+[12:31:58]    ! Note :  Agrostis.capillaris_PA3_RUN2_MAXNET failed!
+[12:32:02] 
+[12:32:02] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:32:02] > end.time <- Sys.time()
+[12:32:02] > time.modeling <- end.time - start.time
+[12:32:02] > 
+[12:32:02] > start.time <- Sys.time()
+[12:32:02] > # 4. Model ensemble models
+[12:32:02] > myBiomodEM <- BIOMOD_EnsembleModeling(
+[12:32:02] +   bm.mod = myBiomodModelOut,
+[12:32:02] +   models.chosen = "all",
+[12:32:02] +   em.by = "all",
+[12:32:02] +   em.algo = c("EMmean", "EMcv"),
+[12:32:02] +   metric.select = c("AUCroc"),
+[12:32:02] +   metric.select.thresh = c(0.6),
+[12:32:02] +   metric.eval = c("TSS", "AUCroc", "KAPPA"),
+[12:32:02] +   nb.cpu = 1
+[12:32:02] + )
+[12:32:02] 
+[12:32:02] -=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Ensemble Models -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:32:02] 
+[12:32:02]    ! all models available will be included in ensemble.modeling
+[12:32:02]   ! Ensemble Models will be filtered and/or weighted using validation dataset (if possible). Please use `metric.select.dataset` for alternative options.
+[12:32:02]    > Evaluation & Weighting methods summary :
+[12:32:02]       AUCroc over 0.6
+[12:32:03] 
+[12:32:04] 
+[12:32:08]   > mergedData_mergedRun_mergedAlgo ensemble modeling
+[12:32:12]    ! Additional projection required for ensemble models merging several pseudo-absence dataset...
+[12:32:12] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:32:12] 
+[12:32:12] 	> Projecting Agrostis.capillaris_PA1_RUN1_GBM ...
+[12:32:12] 	> Projecting Agrostis.capillaris_PA1_RUN2_GLM ...
+[12:32:13] 	> Projecting Agrostis.capillaris_PA1_RUN2_GBM ...
+[12:32:13] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:32:16] 
+[12:32:16] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:32:16] 
+[12:32:16] 	> Projecting Agrostis.capillaris_PA2_RUN1_GLM ...
+[12:32:16] 	> Projecting Agrostis.capillaris_PA2_RUN1_ANN ...
+[12:32:16] 	> Projecting Agrostis.capillaris_PA2_RUN2_GLM ...
+[12:32:17] 	> Projecting Agrostis.capillaris_PA2_RUN2_GBM ...
+[12:32:17] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:32:20] 
+[12:32:20] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:32:20] 
+[12:32:20] 	> Projecting Agrostis.capillaris_PA3_RUN1_GLM ...
+[12:32:20] 	> Projecting Agrostis.capillaris_PA3_RUN1_GBM ...
+[12:32:20] 	> Projecting Agrostis.capillaris_PA3_RUN1_ANN ...
+[12:32:20] 	> Projecting Agrostis.capillaris_PA3_RUN2_GLM ...
+[12:32:21] 	> Projecting Agrostis.capillaris_PA3_RUN2_ANN ...
+[12:32:21] 	> Projecting Agrostis.capillaris_PA3_RUN2_GBM ...
+[12:32:21] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:32:22] 
+[12:32:23] 
+[12:32:23] 
+[12:32:23]    > Mean of probabilities by AUCroc ...
+[12:32:23] 
+[12:32:31]    > Coef of variation of probabilities by AUCroc ...
+[12:32:42] 			Evaluating Model stuff...Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:42] Warning in forecast_1 * observed_1 : NAs produced by integer overflow
+[12:32:44] 
+[12:32:44] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:32:44] > end.time <- Sys.time()
+[12:32:44] > time.modeling_EM <- end.time - start.time
+[12:32:44] > 
+[12:32:44] > ### Models evaluations
+[12:32:44] > myBiomodModelEval <- get_evaluations(myBiomodModelOut)
+[12:32:44] > myBiomodModelEval_ensamble <- get_evaluations(myBiomodEM)
+[12:32:44] > 
+[12:32:44] > nome <- paste0("Eval_", sp.names[i], ".txt", sep = "")
+[12:32:44] > write.table(myBiomodModelEval, file = nome, sep = "\t")
+[12:32:44] > 
+[12:32:44] > nome1 <- paste0("Eval_EM_", sp.names[i], ".txt", sep = "")
+[12:32:44] > write.table(myBiomodModelEval_ensamble, file = nome1, sep = "\t")
+[12:32:44] > 
+[12:32:44] > ###########################################################################
+[12:32:44] > ######################      PROJECTION ON ALPS        #####################
+[12:32:44] > ###########################################################################
+[12:32:44] > 
+[12:32:44] > ###########################################################################
+[12:32:44] > ###########################           CURRENT   ###########################
+[12:32:44] > ###########################################################################
+[12:32:44] > 
+[12:32:44] > # 5. Individual models projections on current environmental conditions
+[12:32:44] > start.time <- Sys.time()
+[12:32:44] > myBiomodProj <- BIOMOD_Projection(
+[12:32:44] +   bm.mod = myBiomodModelOut,
+[12:32:44] +   proj.name = "current",
+[12:32:44] +   new.env = cur_proj,
+[12:32:44] +   models.chosen = "all",
+[12:32:44] +   build.clamping.mask = T,
+[12:32:44] +   nb.cpu = n_cpu
+[12:32:44] + )
+[12:32:44] 
+[12:32:44] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:33:08] 
+[12:33:08] 	> Building clamping mask
+[12:34:12] 
+[12:34:12] 	> Projecting Agrostis.capillaris_PA1_RUN1_GLM ...
+[12:34:12] 	> Projecting Agrostis.capillaris_PA1_RUN1_GBM ...
+[12:34:12] 	> Projecting Agrostis.capillaris_PA1_RUN1_ANN ...
+[12:34:56] 	> Projecting Agrostis.capillaris_PA1_RUN2_GLM ...
+[12:34:56] 	> Projecting Agrostis.capillaris_PA1_RUN2_GBM ...
+[12:35:22] 	> Projecting Agrostis.capillaris_PA2_RUN1_GBM ...
+[12:35:24] 	> Projecting Agrostis.capillaris_PA2_RUN2_ANN ...
+[12:35:25] 	> Projecting Agrostis.capillaris_PA2_RUN1_GLM ...
+[12:36:03] 	> Projecting Agrostis.capillaris_PA2_RUN1_ANN ...
+[12:36:27] 	> Projecting Agrostis.capillaris_PA2_RUN2_GBM ...
+[12:36:30] 	> Projecting Agrostis.capillaris_PA3_RUN2_GLM ...
+[12:36:57] 	> Projecting Agrostis.capillaris_PA3_RUN1_GLM ...
+[12:37:12] 	> Projecting Agrostis.capillaris_PA1_RUN2_ANN ...
+[12:38:04] 	> Projecting Agrostis.capillaris_PA3_RUN2_GBM ...
+[12:38:08] 	> Projecting Agrostis.capillaris_PA3_RUN1_ANN ...
+[12:38:48] 	> Projecting Agrostis.capillaris_PA2_RUN2_GLM ...
+[12:39:25] 	> Projecting Agrostis.capillaris_PA3_RUN1_GBM ...
+[12:43:18] 	> Projecting Agrostis.capillaris_PA3_RUN2_ANN ...
+[12:43:18] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[12:43:18] > end.time <- Sys.time()
+[12:43:18] > time.cur_proj <- end.time - start.time
+[12:43:18] > 
+[12:43:18] > # 6. Project ensemble models (reuse bm.proj to avoid internal re-projection)
+[12:43:18] > start.time <- Sys.time()
+[12:43:18] > myBiomodEMProj <- BIOMOD_EnsembleForecasting(
+[12:43:18] +   bm.em = myBiomodEM,
+[12:43:18] +   bm.proj = myBiomodProj, # reuse computed projection; biomod2 wants XOR(bm.proj, new.env)
+[12:43:18] +   proj.name = "CurrentEM",
+[12:43:18] +   models.chosen = "all",
+[12:43:18] +   metric.binary = "all",
+[12:43:18] +   metric.filter = "all",
+[12:43:18] +   nb.cpu = 1
+[12:43:18] + )
+[12:43:18] 
+[12:43:18] -=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+[12:43:18] 
+[12:43:18] Creating suitable Workdir...
+[12:43:47] 
+[12:43:47] 	> Projecting Agrostis.capillaris_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[12:59:50] 	> Projecting Agrostis.capillaris_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[12:59:50] 
+[12:59:50] ! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+[12:59:57] 	> Building TSS binaries / filtered
+[13:00:03] 	> Building AUCroc binaries / filtered
+[13:00:09] 	> Building KAPPA binaries / filtered
+[13:00:23] 
+[13:00:23] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[13:00:23] > end.time <- Sys.time()
+[13:00:23] > time.cur_proj_EM <- end.time - start.time
+[13:00:23] > 
+[13:00:23] > ###########################################################################
+[13:00:23] > #######################################   FUTURE     ######################
+[13:00:23] > ###########################################################################
+[13:00:23] > 
+[13:00:23] > ## Number of future projections
+[13:00:23] > nf <- length(lf)
+[13:00:23] > 
+[13:00:23] > start.time <- Sys.time()
+[13:00:23] > for (k in 1:nf) {
+[13:00:23] +   name <- lf[k]
+[13:00:23] +   cat("\n\nDEBUG: Processing future scenario", k, "of", nf, ":", name, "\n")
+[13:00:23] + 
+[13:00:23] +   fut_files <- dir(lf[k], full.names = T)
+[13:00:23] +   fut1 <- rast(fut_files)
+[13:00:23] +   cat("DEBUG: Raster loaded, ncell =", ncell(fut1), ", hasValues =", hasValues(fut1), "\n")
+[13:00:23] + 
+[13:00:23] +   fut <- fut1
+[13:00:23] +   fut_proj <- c(fut[[1]], fut[[2]], tri_proj, soil_proj[[1]], soil_proj[[2]])
+[13:00:23] +   names(fut_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+[13:00:23] + 
+[13:00:23] +   # path-depth independent: <gcm>/<ssp> are the last two path components
+[13:00:23] +   nm1 <- strsplit(name, "/")[[1]]
+[13:00:23] +   nm <- paste0(nm1[length(nm1) - 1], "_", nm1[length(nm1)])
+[13:00:23] +   nm2 <- paste0("futureEM_", nm1[length(nm1) - 1], "_", nm1[length(nm1)])
+[13:00:23] + 
+[13:00:23] +   # 5. Individual models projections on future environmental conditions
+[13:00:23] +   myBiomodProj_fut <- BIOMOD_Projection(
+[13:00:23] +     bm.mod = myBiomodModelOut,
+[13:00:23] +     proj.name = nm,
+[13:00:23] +     new.env = fut_proj,
+[13:00:23] +     models.chosen = "all",
+[13:00:23] +     build.clamping.mask = T,
+[13:00:23] +     nb.cpu = n_cpu
+[13:00:23] +   )
+[13:00:23] + 
+[13:00:23] +   myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
+[13:00:23] +     bm.em = myBiomodEM,
+[13:00:23] +     bm.proj = myBiomodProj_fut, # reuse computed projection; biomod2 wants XOR(bm.proj, new.env)
+[13:00:23] +     proj.name = nm2,
+[13:00:23] +     models.chosen = "all",
+[13:00:23] +     metric.binary = "all",
+[13:00:23] +     metric.filter = "all",
+[13:00:23] +     nb.cpu = 1
+[13:00:23] +   )
+[13:00:23] + }
+[13:00:23] 
+[13:00:23] 
+[13:00:23] DEBUG: Processing future scenario 1 of 8 : /work/data/input/climate_vars/future/gfdl.esm4/ssp370 
+[13:00:23] DEBUG: Raster loaded, ncell = 63951097 , hasValues = TRUE 
+[13:00:23] 
+[13:00:23] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[13:00:47] 
+[13:00:47] 	> Building clamping mask
+[13:01:52] 
+[13:01:52] 	> Projecting Agrostis.capillaris_PA1_RUN1_GLM ...
+[13:01:53] 	> Projecting Agrostis.capillaris_PA1_RUN1_GBM ...
+[13:01:54] 	> Projecting Agrostis.capillaris_PA1_RUN1_ANN ...
+[13:02:36] 	> Projecting Agrostis.capillaris_PA1_RUN2_GLM ...
+[13:02:37] 	> Projecting Agrostis.capillaris_PA2_RUN1_GBM ...
+[13:02:59] 	> Projecting Agrostis.capillaris_PA1_RUN2_GBM ...
+[13:03:05] 	> Projecting Agrostis.capillaris_PA2_RUN2_ANN ...
+[13:03:09] 	> Projecting Agrostis.capillaris_PA2_RUN1_ANN ...
+[13:03:48] 	> Projecting Agrostis.capillaris_PA2_RUN1_GLM ...
+[13:03:57] 	> Projecting Agrostis.capillaris_PA2_RUN2_GBM ...
+[13:04:09] 	> Projecting Agrostis.capillaris_PA3_RUN2_GLM ...
+[13:04:38] 	> Projecting Agrostis.capillaris_PA3_RUN1_GLM ...
+[13:04:45] 	> Projecting Agrostis.capillaris_PA1_RUN2_ANN ...
+[13:05:44] 	> Projecting Agrostis.capillaris_PA3_RUN2_GBM ...
+[13:05:46] 	> Projecting Agrostis.capillaris_PA2_RUN2_GLM ...
+[13:06:21] 	> Projecting Agrostis.capillaris_PA3_RUN1_ANN ...
+[13:06:52] 	> Projecting Agrostis.capillaris_PA3_RUN1_GBM ...
+[13:10:41] 	> Projecting Agrostis.capillaris_PA3_RUN2_ANN ...
+[13:10:41] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[13:10:41] 
+[13:10:41] -=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+[13:10:41] 
+[13:10:41] Creating suitable Workdir...
+[13:11:09] 
+[13:11:09] 	> Projecting Agrostis.capillaris_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[13:27:16] 	> Projecting Agrostis.capillaris_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[13:27:16] 
+[13:27:16] ! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+[13:27:23] 	> Building TSS binaries / filtered
+[13:27:29] 	> Building AUCroc binaries / filtered
+[13:27:36] 	> Building KAPPA binaries / filtered
+[13:27:49] 
+[13:27:49] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[13:27:49] 
+[13:27:49] 
+[13:27:49] DEBUG: Processing future scenario 2 of 8 : /work/data/input/climate_vars/future/gfdl.esm4/ssp585 
+[13:27:49] DEBUG: Raster loaded, ncell = 63951097 , hasValues = TRUE 
+[13:27:49] 
+[13:27:49] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[13:28:13] 
+[13:28:13] 	> Building clamping mask
+[13:29:20] 
+[13:29:20] 	> Projecting Agrostis.capillaris_PA1_RUN1_GLM ...
+[13:29:20] 	> Projecting Agrostis.capillaris_PA1_RUN1_GBM ...
+[13:29:20] 	> Projecting Agrostis.capillaris_PA1_RUN1_ANN ...
+[13:30:02] 	> Projecting Agrostis.capillaris_PA1_RUN2_GLM ...
+[13:30:02] 	> Projecting Agrostis.capillaris_PA1_RUN2_GBM ...
+[13:30:25] 	> Projecting Agrostis.capillaris_PA2_RUN1_GBM ...
+[13:30:28] 	> Projecting Agrostis.capillaris_PA2_RUN2_ANN ...
+[13:30:31] 	> Projecting Agrostis.capillaris_PA2_RUN1_ANN ...
+[13:31:10] 	> Projecting Agrostis.capillaris_PA2_RUN1_GLM ...
+[13:31:24] 	> Projecting Agrostis.capillaris_PA2_RUN2_GBM ...
+[13:31:28] 	> Projecting Agrostis.capillaris_PA3_RUN2_GLM ...
+[13:32:00] 	> Projecting Agrostis.capillaris_PA3_RUN1_GLM ...
+[13:32:05] 	> Projecting Agrostis.capillaris_PA3_RUN2_GBM ...
+[13:32:56] 	> Projecting Agrostis.capillaris_PA1_RUN2_ANN ...
+[13:33:17] 	> Projecting Agrostis.capillaris_PA3_RUN1_ANN ...
+[13:33:58] 	> Projecting Agrostis.capillaris_PA2_RUN2_GLM ...
+[13:34:30] 	> Projecting Agrostis.capillaris_PA3_RUN1_GBM ...
+[13:38:16] 	> Projecting Agrostis.capillaris_PA3_RUN2_ANN ...
+[13:38:16] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[13:38:16] 
+[13:38:16] -=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+[13:38:16] 
+[13:38:16] Creating suitable Workdir...
+[13:38:45] 
+[13:38:45] 	> Projecting Agrostis.capillaris_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[13:54:54] 	> Projecting Agrostis.capillaris_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[13:54:54] 
+[13:54:54] ! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+[13:55:01] 	> Building TSS binaries / filtered
+[13:55:07] 	> Building AUCroc binaries / filtered
+[13:55:14] 	> Building KAPPA binaries / filtered
+[13:55:27] 
+[13:55:27] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[13:55:27] 
+[13:55:27] 
+[13:55:27] DEBUG: Processing future scenario 3 of 8 : /work/data/input/climate_vars/future/ipsl.cm6a.lr/ssp370 
+[13:55:27] DEBUG: Raster loaded, ncell = 63951097 , hasValues = TRUE 
+[13:55:27] 
+[13:55:27] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[13:55:51] 
+[13:55:51] 	> Building clamping mask
+[13:56:55] 
+[13:56:55] 	> Projecting Agrostis.capillaris_PA1_RUN1_GLM ...
+[13:56:55] 	> Projecting Agrostis.capillaris_PA1_RUN1_GBM ...
+[13:56:56] 	> Projecting Agrostis.capillaris_PA1_RUN1_ANN ...
+[13:57:37] 	> Projecting Agrostis.capillaris_PA1_RUN2_GLM ...
+[13:57:38] 	> Projecting Agrostis.capillaris_PA2_RUN1_GBM ...
+[13:58:03] 	> Projecting Agrostis.capillaris_PA1_RUN2_GBM ...
+[13:58:08] 	> Projecting Agrostis.capillaris_PA2_RUN2_ANN ...
+[13:58:08] 	> Projecting Agrostis.capillaris_PA2_RUN1_ANN ...
+[13:58:49] 	> Projecting Agrostis.capillaris_PA2_RUN1_GLM ...
+[13:58:56] 	> Projecting Agrostis.capillaris_PA2_RUN2_GBM ...
+[13:59:03] 	> Projecting Agrostis.capillaris_PA3_RUN2_GLM ...
+[13:59:42] 	> Projecting Agrostis.capillaris_PA3_RUN1_GLM ...
+[13:59:44] 	> Projecting Agrostis.capillaris_PA1_RUN2_ANN ...
+[14:00:41] 	> Projecting Agrostis.capillaris_PA3_RUN2_GBM ...
+[14:00:51] 	> Projecting Agrostis.capillaris_PA3_RUN1_ANN ...
+[14:01:28] 	> Projecting Agrostis.capillaris_PA2_RUN2_GLM ...
+[14:02:04] 	> Projecting Agrostis.capillaris_PA3_RUN1_GBM ...
+[14:05:45] 	> Projecting Agrostis.capillaris_PA3_RUN2_ANN ...
+[14:05:45] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[14:05:45] 
+[14:05:45] -=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+[14:05:45] 
+[14:05:45] Creating suitable Workdir...
+[14:06:15] 
+[14:06:15] 	> Projecting Agrostis.capillaris_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[14:22:21] 	> Projecting Agrostis.capillaris_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[14:22:21] 
+[14:22:21] ! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+[14:22:28] 	> Building TSS binaries / filtered
+[14:22:35] 	> Building AUCroc binaries / filtered
+[14:22:41] 	> Building KAPPA binaries / filtered
+[14:22:54] 
+[14:22:54] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[14:22:54] 
+[14:22:54] 
+[14:22:54] DEBUG: Processing future scenario 4 of 8 : /work/data/input/climate_vars/future/ipsl.cm6a.lr/ssp585 
+[14:22:54] DEBUG: Raster loaded, ncell = 63951097 , hasValues = TRUE 
+[14:22:54] 
+[14:22:54] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[14:23:18] 
+[14:23:18] 	> Building clamping mask
+[14:24:23] 
+[14:24:24] 	> Projecting Agrostis.capillaris_PA1_RUN1_GLM ...
+[14:24:24] 	> Projecting Agrostis.capillaris_PA1_RUN1_GBM ...
+[14:24:25] 	> Projecting Agrostis.capillaris_PA1_RUN1_ANN ...
+[14:25:07] 	> Projecting Agrostis.capillaris_PA1_RUN2_GLM ...
+[14:25:08] 	> Projecting Agrostis.capillaris_PA2_RUN1_GBM ...
+[14:25:31] 	> Projecting Agrostis.capillaris_PA1_RUN2_GBM ...
+[14:25:36] 	> Projecting Agrostis.capillaris_PA2_RUN2_ANN ...
+[14:25:43] 	> Projecting Agrostis.capillaris_PA2_RUN1_ANN ...
+[14:26:24] 	> Projecting Agrostis.capillaris_PA2_RUN1_GLM ...
+[14:26:30] 	> Projecting Agrostis.capillaris_PA2_RUN2_GBM ...
+[14:26:38] 	> Projecting Agrostis.capillaris_PA3_RUN2_GLM ...
+[14:27:07] 	> Projecting Agrostis.capillaris_PA3_RUN1_GLM ...
+[14:27:15] 	> Projecting Agrostis.capillaris_PA1_RUN2_ANN ...
+[14:28:08] 	> Projecting Agrostis.capillaris_PA3_RUN2_GBM ...
+[14:28:15] 	> Projecting Agrostis.capillaris_PA3_RUN1_ANN ...
+[14:28:48] 	> Projecting Agrostis.capillaris_PA2_RUN2_GLM ...
+[14:29:20] 	> Projecting Agrostis.capillaris_PA3_RUN1_GBM ...
+[14:32:59] 	> Projecting Agrostis.capillaris_PA3_RUN2_ANN ...
+[14:32:59] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[14:32:59] 
+[14:32:59] -=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+[14:32:59] 
+[14:32:59] Creating suitable Workdir...
+[14:33:28] 
+[14:33:28] 	> Projecting Agrostis.capillaris_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[14:49:52] 	> Projecting Agrostis.capillaris_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[14:49:52] 
+[14:49:52] ! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+[14:49:58] 	> Building TSS binaries / filtered
+[14:50:05] 	> Building AUCroc binaries / filtered
+[14:50:11] 	> Building KAPPA binaries / filtered
+[14:50:24] 
+[14:50:24] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[14:50:24] 
+[14:50:24] 
+[14:50:24] DEBUG: Processing future scenario 5 of 8 : /work/data/input/climate_vars/future/mpi.esm1.2.hr/ssp370 
+[14:50:24] DEBUG: Raster loaded, ncell = 63951097 , hasValues = TRUE 
+[14:50:24] 
+[14:50:24] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[14:50:48] 
+[14:50:48] 	> Building clamping mask
+[14:51:55] 
+[14:51:56] 	> Projecting Agrostis.capillaris_PA1_RUN1_GLM ...
+[14:51:56] 	> Projecting Agrostis.capillaris_PA1_RUN1_GBM ...
+[14:51:56] 	> Projecting Agrostis.capillaris_PA1_RUN1_ANN ...
+[14:52:37] 	> Projecting Agrostis.capillaris_PA1_RUN2_GLM ...
+[14:52:39] 	> Projecting Agrostis.capillaris_PA1_RUN2_GBM ...
+[14:53:02] 	> Projecting Agrostis.capillaris_PA2_RUN1_GBM ...
+[14:53:03] 	> Projecting Agrostis.capillaris_PA2_RUN2_ANN ...
+[14:53:05] 	> Projecting Agrostis.capillaris_PA2_RUN1_ANN ...
+[14:53:38] 	> Projecting Agrostis.capillaris_PA2_RUN1_GLM ...
+[14:54:01] 	> Projecting Agrostis.capillaris_PA2_RUN2_GBM ...
+[14:54:02] 	> Projecting Agrostis.capillaris_PA3_RUN1_GLM ...
+[14:54:35] 	> Projecting Agrostis.capillaris_PA3_RUN2_GLM ...
+[14:54:45] 	> Projecting Agrostis.capillaris_PA3_RUN2_GBM ...
+[14:55:33] 	> Projecting Agrostis.capillaris_PA1_RUN2_ANN ...
+[14:55:53] 	> Projecting Agrostis.capillaris_PA3_RUN1_ANN ...
+[14:56:28] 	> Projecting Agrostis.capillaris_PA2_RUN2_GLM ...
+[14:57:01] 	> Projecting Agrostis.capillaris_PA3_RUN1_GBM ...
+[15:00:48] 	> Projecting Agrostis.capillaris_PA3_RUN2_ANN ...
+[15:00:48] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[15:00:48] 
+[15:00:48] -=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+[15:00:48] 
+[15:00:48] Creating suitable Workdir...
+[15:01:17] 
+[15:01:17] 	> Projecting Agrostis.capillaris_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[15:17:47] 	> Projecting Agrostis.capillaris_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[15:17:47] 
+[15:17:47] ! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+[15:17:54] 	> Building TSS binaries / filtered
+[15:18:00] 	> Building AUCroc binaries / filtered
+[15:18:07] 	> Building KAPPA binaries / filtered
+[15:18:20] 
+[15:18:20] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[15:18:20] 
+[15:18:20] 
+[15:18:20] DEBUG: Processing future scenario 6 of 8 : /work/data/input/climate_vars/future/mpi.esm1.2.hr/ssp585 
+[15:18:20] DEBUG: Raster loaded, ncell = 63951097 , hasValues = TRUE 
+[15:18:20] 
+[15:18:20] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[15:18:44] 
+[15:18:44] 	> Building clamping mask
+[15:19:49] 
+[15:19:49] 	> Projecting Agrostis.capillaris_PA1_RUN1_GLM ...
+[15:19:50] 	> Projecting Agrostis.capillaris_PA1_RUN1_GBM ...
+[15:19:50] 	> Projecting Agrostis.capillaris_PA1_RUN1_ANN ...
+[15:20:31] 	> Projecting Agrostis.capillaris_PA1_RUN2_GLM ...
+[15:20:33] 	> Projecting Agrostis.capillaris_PA1_RUN2_GBM ...
+[15:20:57] 	> Projecting Agrostis.capillaris_PA2_RUN1_GBM ...
+[15:20:57] 	> Projecting Agrostis.capillaris_PA2_RUN1_ANN ...
+[15:21:02] 	> Projecting Agrostis.capillaris_PA2_RUN2_ANN ...
+[15:21:42] 	> Projecting Agrostis.capillaris_PA2_RUN1_GLM ...
+[15:21:55] 	> Projecting Agrostis.capillaris_PA2_RUN2_GBM ...
+[15:21:57] 	> Projecting Agrostis.capillaris_PA3_RUN1_GLM ...
+[15:22:29] 	> Projecting Agrostis.capillaris_PA3_RUN2_GLM ...
+[15:22:42] 	> Projecting Agrostis.capillaris_PA3_RUN2_GBM ...
+[15:23:34] 	> Projecting Agrostis.capillaris_PA1_RUN2_ANN ...
+[15:23:50] 	> Projecting Agrostis.capillaris_PA3_RUN1_ANN ...
+[15:24:28] 	> Projecting Agrostis.capillaris_PA2_RUN2_GLM ...
+[15:25:01] 	> Projecting Agrostis.capillaris_PA3_RUN1_GBM ...
+[15:28:52] 	> Projecting Agrostis.capillaris_PA3_RUN2_ANN ...
+[15:28:52] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[15:28:52] 
+[15:28:52] -=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+[15:28:52] 
+[15:28:52] Creating suitable Workdir...
+[15:29:21] 
+[15:29:21] 	> Projecting Agrostis.capillaris_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[15:45:32] 	> Projecting Agrostis.capillaris_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[15:45:32] 
+[15:45:32] ! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+[15:45:39] 	> Building TSS binaries / filtered
+[15:45:46] 	> Building AUCroc binaries / filtered
+[15:45:52] 	> Building KAPPA binaries / filtered
+[15:46:05] 
+[15:46:05] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[15:46:05] 
+[15:46:05] 
+[15:46:05] DEBUG: Processing future scenario 7 of 8 : /work/data/input/climate_vars/future/mri.esm2.0/ssp370 
+[15:46:05] DEBUG: Raster loaded, ncell = 63951097 , hasValues = TRUE 
+[15:46:05] 
+[15:46:05] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[15:46:29] 
+[15:46:29] 	> Building clamping mask
+[15:47:35] 
+[15:47:36] 	> Projecting Agrostis.capillaris_PA1_RUN1_GLM ...
+[15:47:36] 	> Projecting Agrostis.capillaris_PA1_RUN1_GBM ...
+[15:47:36] 	> Projecting Agrostis.capillaris_PA1_RUN1_ANN ...
+[15:48:17] 	> Projecting Agrostis.capillaris_PA1_RUN2_GLM ...
+[15:48:18] 	> Projecting Agrostis.capillaris_PA1_RUN2_GBM ...
+[15:48:41] 	> Projecting Agrostis.capillaris_PA2_RUN1_GBM ...
+[15:48:42] 	> Projecting Agrostis.capillaris_PA2_RUN1_GLM ...
+[15:48:44] 	> Projecting Agrostis.capillaris_PA2_RUN2_ANN ...
+[15:49:15] 	> Projecting Agrostis.capillaris_PA2_RUN1_ANN ...
+[15:49:39] 	> Projecting Agrostis.capillaris_PA2_RUN2_GBM ...
+[15:49:41] 	> Projecting Agrostis.capillaris_PA3_RUN2_GLM ...
+[15:50:18] 	> Projecting Agrostis.capillaris_PA3_RUN1_GLM ...
+[15:50:21] 	> Projecting Agrostis.capillaris_PA3_RUN2_GBM ...
+[15:51:09] 	> Projecting Agrostis.capillaris_PA1_RUN2_ANN ...
+[15:51:26] 	> Projecting Agrostis.capillaris_PA3_RUN1_ANN ...
+[15:52:00] 	> Projecting Agrostis.capillaris_PA2_RUN2_GLM ...
+[15:52:32] 	> Projecting Agrostis.capillaris_PA3_RUN1_GBM ...
+[15:56:15] 	> Projecting Agrostis.capillaris_PA3_RUN2_ANN ...
+[15:56:15] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[15:56:15] 
+[15:56:15] -=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+[15:56:15] 
+[15:56:15] Creating suitable Workdir...
+[15:56:44] 
+[15:56:45] 	> Projecting Agrostis.capillaris_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[16:12:45] 	> Projecting Agrostis.capillaris_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[16:12:45] 
+[16:12:45] ! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+[16:12:52] 	> Building TSS binaries / filtered
+[16:12:58] 	> Building AUCroc binaries / filtered
+[16:13:05] 	> Building KAPPA binaries / filtered
+[16:13:18] 
+[16:13:18] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[16:13:18] 
+[16:13:18] 
+[16:13:18] DEBUG: Processing future scenario 8 of 8 : /work/data/input/climate_vars/future/mri.esm2.0/ssp585 
+[16:13:18] DEBUG: Raster loaded, ncell = 63951097 , hasValues = TRUE 
+[16:13:18] 
+[16:13:18] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[16:13:42] 
+[16:13:42] 	> Building clamping mask
+[16:14:48] 
+[16:14:49] 	> Projecting Agrostis.capillaris_PA1_RUN1_GLM ...
+[16:14:50] 	> Projecting Agrostis.capillaris_PA1_RUN1_GBM ...
+[16:14:51] 	> Projecting Agrostis.capillaris_PA1_RUN1_ANN ...
+[16:15:38] 	> Projecting Agrostis.capillaris_PA1_RUN2_GLM ...
+[16:15:40] 	> Projecting Agrostis.capillaris_PA1_RUN2_GBM ...
+[16:15:59] 	> Projecting Agrostis.capillaris_PA2_RUN1_GBM ...
+[16:16:06] 	> Projecting Agrostis.capillaris_PA2_RUN1_GLM ...
+[16:16:07] 	> Projecting Agrostis.capillaris_PA2_RUN2_ANN ...
+[16:16:33] 	> Projecting Agrostis.capillaris_PA2_RUN1_ANN ...
+[16:17:12] 	> Projecting Agrostis.capillaris_PA2_RUN2_GBM ...
+[16:17:14] 	> Projecting Agrostis.capillaris_PA3_RUN2_GLM ...
+[16:17:41] 	> Projecting Agrostis.capillaris_PA3_RUN1_GLM ...
+[16:17:52] 	> Projecting Agrostis.capillaris_PA1_RUN2_ANN ...
+[16:18:26] 	> Projecting Agrostis.capillaris_PA3_RUN2_GBM ...
+[16:18:52] 	> Projecting Agrostis.capillaris_PA3_RUN1_ANN ...
+[16:19:29] 	> Projecting Agrostis.capillaris_PA2_RUN2_GLM ...
+[16:20:03] 	> Projecting Agrostis.capillaris_PA3_RUN1_GBM ...
+[16:23:54] 	> Projecting Agrostis.capillaris_PA3_RUN2_ANN ...
+[16:23:54] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[16:23:54] 
+[16:23:54] -=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+[16:23:54] 
+[16:23:54] Creating suitable Workdir...
+[16:24:23] 
+[16:24:23] 	> Projecting Agrostis.capillaris_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[16:40:34] 	> Projecting Agrostis.capillaris_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+[16:40:34] 
+[16:40:34] ! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+[16:40:41] 	> Building TSS binaries / filtered
+[16:40:47] 	> Building AUCroc binaries / filtered
+[16:40:54] 	> Building KAPPA binaries / filtered
+[16:41:07] 
+[16:41:07] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[16:41:07] > setTxtProgressBar(pb, i)
+[16:41:07]   |                                                          |==================================================| 100%> Sys.sleep(10)
+[16:41:17] > end.time <- Sys.time()
+[16:41:17] > time.fut_proj <- end.time - start.time
+[16:41:17] > close(pb)
+[16:41:17] 
+[16:41:17] > 
+[16:41:17] > # force seconds: write.table strips difftime units and R auto-picks a unit per value,
+[16:41:17] > # so columns aren't comparable. as.numeric(., units="secs") makes them uniform.
+[16:41:17] > time <- data.frame(
+[16:41:17] +   formating = as.numeric(time.formating, units = "secs"),
+[16:41:17] +   modeling = as.numeric(time.modeling, units = "secs"),
+[16:41:17] +   modeling_EM = as.numeric(time.modeling_EM, units = "secs"),
+[16:41:17] +   cur_projection = as.numeric(time.cur_proj, units = "secs"),
+[16:41:17] +   cur_projection_EM = as.numeric(time.cur_proj_EM, units = "secs"),
+[16:41:17] +   fut_projection = as.numeric(time.fut_proj, units = "secs")
+[16:41:17] + )
+[16:41:17] > write.table(time, paste0("time_", sp.names[i], ".txt"), sep = "\t")
+[16:41:17] > 
+
+real	263m22.347s
+user	407m42.648s
+sys	86m21.219s

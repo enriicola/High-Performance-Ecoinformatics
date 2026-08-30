@@ -1,0 +1,227 @@
+biomod2 4.3-4-5 loaded.
+ /!\ Welcome to augmented biomod2 with abundance modeling available! (*o*)
+ Take a look at the HOME and NEWS section on the website to see all the features!
+
+Loading required package: nnet
+Loading required package: rpart
+Loading required package: cito
+Warning in library(package, lib.loc = lib.loc, character.only = TRUE, logical.return = TRUE,  :
+  there is no package called ‘cito’
+Loading required package: mda
+Loading required package: class
+Loaded mda 0.5-5
+
+Loading required package: gam
+Loading required package: splines
+Loading required package: foreach
+Loaded gam 1.22-7
+
+Loading required package: mgcv
+Loading required package: nlme
+This is mgcv 1.9-4. For overview type '?mgcv'.
+
+Attaching package: ‘mgcv’
+
+The following objects are masked from ‘package:gam’:
+
+    gam, gam.control, gam.fit, s
+
+The following object is masked from ‘package:nnet’:
+
+    multinom
+
+Loading required package: gbm
+Loaded gbm 2.2.3
+This version of gbm is no longer under development. Consider transitioning to gbm3, https://github.com/gbm-developers/gbm3
+Loading required package: earth
+Loading required package: Formula
+Loading required package: plotmo
+Loading required package: plotrix
+Loading required package: maxnet
+Loading required package: randomForest
+randomForest 4.7-1.2
+Type rfNews() to see new features/changes/bug fixes.
+Loading required package: xgboost
+terra 1.9.11
+
+Attaching package: ‘terra’
+
+The following object is masked from ‘package:plotrix’:
+
+    rescale
+
+DEBUG: input_csv = small_1km_EUNIS.csv | PA.nb.rep = 1 | PA.nb.absences = 10 | CV.nb.rep = 1 | species_index = 1 | out_dir = /work/data/output_split_leo_pa10 
+> step02_load_occurrences(ctx)
+DEBUG: num_sp = 1 | total rows = 9 
+> step03_load_calibration_env(ctx)
+DEBUG: loading calibration rasters...
+DEBUG: raster dim = 5873 x 10889 | ncell = 63951097 
+> step04_load_projection_env(ctx)
+> step05_load_future_list(ctx)
+DEBUG: testing with 0 future scenarios
+  |                                                          |                                                  |   0%> step06_prepare_species(ctx)
+DEBUG: array task 1 -> species = Achillea.atrata | occurrences = 9 
+DEBUG: n_cpu = 1 (threshold 50k)
+> step07_format_data(ctx)
+DEBUG: starting BIOMOD_FormatingData at 20:02:17 
+
+-=-=-=-=-=-=-=-=-=-=-=-= Achillea.atrata Data Formating -=-=-=-=-=-=-=-=-=-=-=-=
+
+
+Checking Pseudo-absence selection arguments...
+
+   > random pseudo absences selection
+   > Pseudo absences are selected in explanatory variables
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+DEBUG: BIOMOD_FormatingData done at 20:02:50 
+> step08_model_options(ctx)
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Modeling Options -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+	>  GLM options ( datatype: binary , package: stats , function: glm )...
+	>  GBM options ( datatype: binary , package: gbm , function: gbm )...
+	>  ANN options ( datatype: binary , package: nnet , function: nnet )...
+	>  FDA options ( datatype: binary , package: mda , function: fda )...
+	>  MAXNET options ( datatype: binary , package: maxnet , function: maxnet )...
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> step09_modeling(ctx)
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Single Models -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+Checking Models arguments...
+
+	> Automatic weights creation to rise a 0.5 prevalence
+Creating suitable Workdir...
+
+
+Checking Cross-Validation arguments...
+
+   > Random cross-validation selection
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Modeling Options -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+	>  GLM options ( datatype: binary , package: stats , function: glm )...
+	>  GBM options ( datatype: binary , package: gbm , function: gbm )...
+	>  ANN options ( datatype: binary , package: nnet , function: nnet )...
+	>  FDA options ( datatype: binary , package: mda , function: fda )...
+	>  MAXNET options ( datatype: binary , package: maxnet , function: maxnet )...
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+
+-=-=-=-=-=-=-=-=-=-=-=-= Achillea.atrata Modeling Summary -=-=-=-=-=-=-=-=-=-=-=-=
+
+> 5 environmental variables ( PC1_clim PC2_clim tri PC1_soil PC2_soil )
+
+> Number of PA datasets : 1
+
+> Number of calibration/validation splits : 1
+
+> Algorithms selected : GLM GBM ANN FDA MAXNET
+ 1 models for each algorithm
+
+Total number of model runs: 5 
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Warning: executing %dopar% sequentially: no parallel backend registered
+
+
+-=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_GLM 
+Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+
+	Evaluating Model stuff...
+
+-=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_GBM 
+CV: 1 
+Error in gbm.fit(x = x, y = y, offset = offset, distribution = distribution,  : 
+  The data set is too small or the subsampling rate is too large: `nTrain * bag.fraction <= 2 * n.minobsinnode + 1`
+
+*** Error in  GBM , calibration failed
+*** inherits(g.pred,'try-error')
+   ! Note :  Achillea.atrata_PA1_RUN1_GBM failed!
+
+
+-=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_ANN 
+
+	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+
+	Evaluating Model stuff...
+
+-=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_FDA 
+
+	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+
+	Evaluating Model stuff...
+
+-=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_MAXNET 
+Warning in lognet(x, is.sparse, y, weights, offset, alpha, nobs, nvars,  :
+  one multinomial or binomial class has fewer than 8  observations; dangerous ground
+
+	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+  no non-missing arguments to max; returning -Inf
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> step10_ensemble_modeling(ctx)
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Ensemble Models -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+   ! all models available will be included in ensemble.modeling
+  ! Ensemble Models will be filtered and/or weighted using validation dataset (if possible). Please use `metric.select.dataset` for alternative options.
+   > Evaluation & Weighting methods summary :
+      AUCroc over 0.6
+
+
+  > mergedData_mergedRun_mergedAlgo ensemble modeling
+
+   > Mean of probabilities by AUCroc ...
+			Evaluating Model stuff...
+
+   > Coef of variation of probabilities by AUCroc ...
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> step11_write_evaluations(ctx)
+> step12_current_projection(ctx)
+
+-=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+
+		! 'overwrite' arg is set as FALSE. Projections that have already been saved will not be redone. 
+        Please be carfeul if you have changed the models in the meantime. 
+	> Building clamping mask
+
+	> Projecting Achillea.atrata_PA1_RUN1_GLM ...
+		Writing projection on hard drive...
+		 /work/data/output_split_leo_pa10/Achillea.atrata/proj_current/individual_projections/proj_current_Achillea.atrata_PA1_RUN1_GLM.tif
+	> Projecting Achillea.atrata_PA1_RUN1_ANN ...
+		Writing projection on hard drive...
+		 /work/data/output_split_leo_pa10/Achillea.atrata/proj_current/individual_projections/proj_current_Achillea.atrata_PA1_RUN1_ANN.tif
+	> Projecting Achillea.atrata_PA1_RUN1_FDA ...
+		Writing projection on hard drive...
+		 /work/data/output_split_leo_pa10/Achillea.atrata/proj_current/individual_projections/proj_current_Achillea.atrata_PA1_RUN1_FDA.tif
+	> Projecting Achillea.atrata_PA1_RUN1_MAXNET ...
+		Writing projection on hard drive...
+		 /work/data/output_split_leo_pa10/Achillea.atrata/proj_current/individual_projections/proj_current_Achillea.atrata_PA1_RUN1_MAXNET.tif
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> step13_current_ensemble_projection(ctx)
+
+-=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+
+Creating suitable Workdir...
+
+	> Projecting Achillea.atrata_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+		Writing projection on hard drive...
+	> Projecting Achillea.atrata_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+		Writing projection on hard drive...
+
+! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+	> Building TSS binaries / filtered
+	> Building AUCroc binaries / filtered
+	> Building KAPPA binaries / filtered
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> step14_future_projection(ctx)
+  |                                                          |==================================================| 100%> step15_write_timing(ctx)
+
+> 

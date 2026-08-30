@@ -1,0 +1,24 @@
+Command exited with non-zero status 1
+	Command being timed: "singularity exec --pwd /work --bind /leonardo_work/IscrC_SPECC:/work /leonardo_work/IscrC_SPECC/container/geospatial.sif Rscript /work/R/base_sequential_analysis.R"
+	User time (seconds): 32167.70
+	System time (seconds): 2380.63
+	Percent of CPU this job got: 242%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:57:21
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 404400492
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 936
+	Minor (reclaiming a frame) page faults: 1766540794
+	Voluntary context switches: 1227446
+	Involuntary context switches: 156850
+	Swaps: 0
+	File system inputs: 2010707
+	File system outputs: 2946888
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

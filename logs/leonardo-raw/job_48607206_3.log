@@ -1,0 +1,94 @@
++ export OMP_NUM_THREADS=4
++ OMP_NUM_THREADS=4
++ RSCRIPT_PATH=/work/R/fast.test_risolto.R
++ R_DEBUG_ECHO=false
++ FORCE_CLEAN=false
++ FORCE_REBUILD_FUTURE=false
++ PROJ_KEEP_IN_MEMORY=false
++ PROJ_DO_STACK=false
++ TERRA_MEMFRAC=0.7
++ echo 'CONFIG: RSCRIPT_PATH=/work/R/fast.test_risolto.R'
+CONFIG: RSCRIPT_PATH=/work/R/fast.test_risolto.R
++ echo 'CONFIG: R_DEBUG_ECHO=false FORCE_CLEAN=false FORCE_REBUILD_FUTURE=false'
+CONFIG: R_DEBUG_ECHO=false FORCE_CLEAN=false FORCE_REBUILD_FUTURE=false
++ echo 'CONFIG: PROJ_KEEP_IN_MEMORY=false PROJ_DO_STACK=false TERRA_MEMFRAC=0.7'
+CONFIG: PROJ_KEEP_IN_MEMORY=false PROJ_DO_STACK=false TERRA_MEMFRAC=0.7
++ mkdir -p data/output logs
++ T_START=0
++ singularity exec --pwd /work --bind /leonardo_work/IscrC_SPECC:/work /leonardo_work/IscrC_SPECC/container/geospatial.sif env R_DEBUG_ECHO=false FORCE_CLEAN=false FORCE_REBUILD_FUTURE=false PROJ_KEEP_IN_MEMORY=false PROJ_DO_STACK=false TERRA_MEMFRAC=0.7 OMP_NUM_THREADS=4 Rscript /work/R/fast.test_risolto.R
++ gawk '{ print strftime("[%H:%M:%S]"), $0; fflush() }'
+[11:20:28] biomod2 4.3-4-5 loaded.
+[11:20:28]  /!\ Welcome to augmented biomod2 with abundance modeling available! (*o*)
+[11:20:28]  Take a look at the HOME and NEWS section on the website to see all the features!
+[11:20:28] 
+[11:20:28] Loading required package: nnet
+[11:20:28] Loading required package: rpart
+[11:20:28] Loading required package: cito
+[11:20:28] Warning in library(package, lib.loc = lib.loc, character.only = TRUE, logical.return = TRUE,  :
+[11:20:28]   there is no package called ‘cito’
+[11:20:28] Loading required package: mda
+[11:20:28] Loading required package: class
+[11:20:28] Loaded mda 0.5-5
+[11:20:28] 
+[11:20:28] Loading required package: gam
+[11:20:28] Loading required package: splines
+[11:20:28] Loading required package: foreach
+[11:20:28] Loaded gam 1.22-7
+[11:20:28] 
+[11:20:28] Loading required package: mgcv
+[11:20:28] Loading required package: nlme
+[11:20:29] This is mgcv 1.9-4. For overview type '?mgcv'.
+[11:20:29] 
+[11:20:29] Attaching package: ‘mgcv’
+[11:20:29] 
+[11:20:29] The following objects are masked from ‘package:gam’:
+[11:20:29] 
+[11:20:29]     gam, gam.control, gam.fit, s
+[11:20:29] 
+[11:20:29] The following object is masked from ‘package:nnet’:
+[11:20:29] 
+[11:20:29]     multinom
+[11:20:29] 
+[11:20:29] Loading required package: gbm
+[11:20:29] Loaded gbm 2.2.3
+[11:20:29] This version of gbm is no longer under development. Consider transitioning to gbm3, https://github.com/gbm-developers/gbm3
+[11:20:29] Loading required package: earth
+[11:20:29] Loading required package: Formula
+[11:20:29] Loading required package: plotmo
+[11:20:29] Loading required package: plotrix
+[11:20:29] Loading required package: maxnet
+[11:20:29] Loading required package: randomForest
+[11:20:29] randomForest 4.7-1.2
+[11:20:29] Type rfNews() to see new features/changes/bug fixes.
+[11:20:29] Loading required package: xgboost
+[11:20:29] terra 1.9.11
+[11:20:29] 
+[11:20:29] Attaching package: ‘terra’
+[11:20:29] 
+[11:20:29] The following object is masked from ‘package:plotrix’:
+[11:20:29] 
+[11:20:29]     rescale
+[11:20:29] 
+[11:20:29] DEBUG: R_DEBUG_ECHO = FALSE | TERRA_MEMFRAC = 0.7 
+[11:20:37] DEBUG: species order = shortest-job-first by occurrence count
+[11:20:37] DEBUG: num_sp = 167 | total rows = 2583359 
+[11:20:37] DEBUG: loading calibration rasters...
+[11:20:38] DEBUG: raster dim = 5873 x 10889 | ncell = 63951097 
+[11:20:38] DEBUG: testing with 8 future scenarios
+[11:20:38]   |                                                          |                                                  |   0%DEBUG: seed_val = 42 
+[11:20:38] DEBUG: SJF rank 3 of 167 | species = Achillea.clusiana | occurrences = 174 
+[11:20:38] DEBUG: loaded species rows = 174 
+[11:20:38]           used  (Mb) gc trigger  (Mb) max used  (Mb)
+[11:20:38] Ncells 3154638 168.5    9579658 511.7  5746370 306.9
+[11:20:38] Vcells 6891431  52.6   40579068 309.6 50152349 382.7
+[11:20:38] DEBUG: n_cpu = 1 (threshold 50k)
+[11:20:38] DEBUG: projection_keep_in_memory = FALSE | projection_do_stack = FALSE 
+[11:20:38] DEBUG: starting BIOMOD_FormatingData at 11:20:38 
+[11:20:38] 
+[11:20:38] -=-=-=-=-=-=-=-=-=-=-=-= Achillea.clusiana Data Formating -=-=-=-=-=-=-=-=-=-=-=-=
+[11:20:38] 
+[11:20:38] 
+[11:20:38] Checking Pseudo-absence selection arguments...
+[11:20:38] 
+[11:20:38]    > random pseudo absences selection
+slurmstepd: error: *** JOB 48607211 ON lrdn4690 CANCELLED AT 2026-07-05T11:26:15 ***

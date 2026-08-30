@@ -1,0 +1,175 @@
+[22:47:07] > options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
+[22:47:07] > 
+[22:47:07] > library(biomod2)
+[22:47:11] biomod2 4.3-4-5 loaded.
+[22:47:11]  /!\ Welcome to augmented biomod2 with abundance modeling available! (*o*)
+[22:47:11]  Take a look at the HOME and NEWS section on the website to see all the features!
+[22:47:11] 
+[22:47:11] Loading required package: nnet
+[22:47:11] Loading required package: rpart
+[22:47:11] Loading required package: cito
+[22:47:11] Warning in library(package, lib.loc = lib.loc, character.only = TRUE, logical.return = TRUE,  :
+[22:47:11]   there is no package called ‘cito’
+[22:47:11] Loading required package: mda
+[22:47:11] Loading required package: class
+[22:47:11] Loaded mda 0.5-5
+[22:47:11] 
+[22:47:11] Loading required package: gam
+[22:47:11] Loading required package: splines
+[22:47:11] Loading required package: foreach
+[22:47:11] Loaded gam 1.22-7
+[22:47:11] 
+[22:47:11] Loading required package: mgcv
+[22:47:11] Loading required package: nlme
+[22:47:11] This is mgcv 1.9-4. For overview type '?mgcv'.
+[22:47:11] 
+[22:47:11] Attaching package: ‘mgcv’
+[22:47:11] 
+[22:47:11] The following objects are masked from ‘package:gam’:
+[22:47:11] 
+[22:47:11]     gam, gam.control, gam.fit, s
+[22:47:11] 
+[22:47:11] The following object is masked from ‘package:nnet’:
+[22:47:11] 
+[22:47:11]     multinom
+[22:47:11] 
+[22:47:11] Loading required package: gbm
+[22:47:11] Loaded gbm 2.2.3
+[22:47:11] This version of gbm is no longer under development. Consider transitioning to gbm3, https://github.com/gbm-developers/gbm3
+[22:47:11] Loading required package: earth
+[22:47:11] Loading required package: Formula
+[22:47:11] Loading required package: plotmo
+[22:47:11] Loading required package: plotrix
+[22:47:11] Loading required package: maxnet
+[22:47:11] Loading required package: randomForest
+[22:47:11] randomForest 4.7-1.2
+[22:47:11] Type rfNews() to see new features/changes/bug fixes.
+[22:47:11] Loading required package: xgboost
+[22:47:11] > library(terra)
+[22:47:11] terra 1.9.11
+[22:47:11] 
+[22:47:11] Attaching package: ‘terra’
+[22:47:11] 
+[22:47:11] The following object is masked from ‘package:plotrix’:
+[22:47:11] 
+[22:47:11]     rescale
+[22:47:11] 
+[22:47:11] > library(gbm)
+[22:47:11] > library(mda)
+[22:47:11] > library(randomForest)
+[22:47:11] > 
+[22:47:11] > # NOTE: makeCluster/registerDoParallel removed - hangs inside Singularity container.
+[22:47:11] > # TODO: check if without makeCluster nb.cpu=x is ignored and if actually runs in parallel
+[22:47:11] > # cl <- makeCluster(10)
+[22:47:11] > # registerDoParallel(cl)
+[22:47:11] > 
+[22:47:11] > root <- normalizePath(".")
+[22:47:11] > in_dir <- file.path(root, "data/input")
+[22:47:11] > out_dir <- file.path(root, "data/output")
+[22:47:11] > dir.create(out_dir, showWarnings = FALSE)
+[22:47:11] > 
+[22:47:11] > ####################################
+[22:47:11] > # loading species occurrences data
+[22:47:11] > ####################################
+[22:47:11] > spocc <- read.csv(file.path(in_dir, "full_1km_EUNIS.csv"), head = TRUE)
+[22:47:19] > spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
+[22:47:19] > spocc$sp_name <- sub(" ", ".", spocc$sp_name)
+[22:47:19] > sp.names <- levels(factor(spocc[, 1]))
+[22:47:19] > num_sp <- length(sp.names)
+[22:47:19] > cat("DEBUG: num_sp =", num_sp, "| total rows =", nrow(spocc), "\n")
+[22:47:19] DEBUG: num_sp = 167 | total rows = 2583359 
+[22:47:19] > 
+[22:47:19] > #####################################
+[22:47:19] > # CALIBRATION environmental data
+[22:47:19] > #####################################
+[22:47:19] > cat("DEBUG: loading calibration rasters...\n")
+[22:47:19] DEBUG: loading calibration rasters...
+[22:47:19] > clim_cal <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+[22:47:19] > tri_cal <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+[22:47:20] > soil_cal <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+[22:47:20] > cur_cal <- c(clim_cal, tri_cal, soil_cal)
+[22:47:20] > names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+[22:47:20] > cat("DEBUG: raster dim =", dim(cur_cal)[1], "x", dim(cur_cal)[2], "| ncell =", ncell(cur_cal), "\n")
+[22:47:20] DEBUG: raster dim = 5873 x 10889 | ncell = 63951097 
+[22:47:20] > 
+[22:47:20] > #####################################
+[22:47:20] > # PROJECTION environmental data
+[22:47:20] > #####################################
+[22:47:20] > clim_proj <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+[22:47:20] > tri_proj <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+[22:47:20] > soil_proj <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+[22:47:20] > cur_proj <- c(clim_proj, tri_proj, soil_proj)
+[22:47:20] > names(cur_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+[22:47:20] > 
+[22:47:20] > #####################################
+[22:47:20] > # loading FUTURE list (leaf dirs containing tif)
+[22:47:20] > #####################################
+[22:47:20] > lf <- list.dirs(file.path(in_dir, "climate_vars/future"), full.names = T, recursive = T)[-1]
+[22:47:20] > lf <- lf[sapply(lf, function(d) length(list.files(d, pattern = "\\.tif$")) > 0)]
+[22:47:20] > cat("DEBUG: testing with", length(lf), "future scenarios\n")
+[22:47:20] DEBUG: testing with 8 future scenarios
+[22:47:20] > 
+[22:47:20] > # outputs (biomod2 writes species folders into the working dir)
+[22:47:20] > setwd(out_dir)
+[22:47:20] > 
+[22:47:20] > pb <- txtProgressBar(min = 0, max = num_sp, style = 3, width = 50, char = "=")
+[22:47:20]   |                                                          |                                                  |   0%> 
+[22:47:20] > selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
+[22:47:20] > 
+[22:47:20] > # SLURM array task -> one species (array id = index into full sorted species list)
+[22:47:20] > k <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
+[22:47:20] > i <- k
+[22:47:20] > spocc1 <- subset(spocc, spocc[, 1] == sp.names[i])
+[22:47:20] > cat("DEBUG: array task", k, "-> species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
+[22:47:20] DEBUG: array task 8 -> species = Alyssum.alyssoides | occurrences = 12396 
+[22:47:20] > 
+[22:47:20] > # TODO: study if quicker to run for loop inside r or submit slurm arrays of jobs
+[22:47:20] > # TODO maybe do both
+[22:47:20] > # TODO check if it's possible to run multicore with a sinle ram copy, instead of a copy for each core
+[22:47:20] > 
+[22:47:20] > # parallel fork count for Modeling + Projection only. EnsembleForecasting stays nb.cpu=1.
+[22:47:20] > # Small datasets (<50k occ) trigger mclapply SIGPIPE race conditions at n_cpu>1 (job 47510573_2/_3).
+[22:47:20] > # Use n_cpu=1 for small species to avoid the forking bug.
+[22:47:20] > n_cpu <- if (nrow(spocc1) >= 50000) 4L else 1L
+[22:47:20] > cat("DEBUG: n_cpu =", n_cpu, "(threshold 50k)\n")
+[22:47:20] DEBUG: n_cpu = 1 (threshold 50k)
+[22:47:20] > 
+[22:47:20] > # per-species output wipe (array-safe: only this task's species dir, not sibling tasks')
+[22:47:20] > unlink(file.path(out_dir, sp.names[i]), recursive = TRUE)
+[22:47:20] > 
+[22:47:20] > ###########################################################################
+[22:47:20] > ######################     CALIBRATION ON EUROPE      #####################
+[22:47:20] > ###########################################################################
+[22:47:20] > 
+[22:47:20] > start.time <- Sys.time()
+[22:47:20] > myRespName <- paste(sp.names[i], sep = ".")
+[22:47:20] > myRespXY <- spocc1[, 2:3] # coordinates of points
+[22:47:20] > myResp <- rep(1, nrow(spocc1)) # species occurences
+[22:47:20] > 
+[22:47:20] > cat("DEBUG: starting BIOMOD_FormatingData at", format(Sys.time(), "%H:%M:%S"), "\n")
+[22:47:20] DEBUG: starting BIOMOD_FormatingData at 22:47:20 
+[22:47:20] > flush.console()
+[22:47:20] > 
+[22:47:20] > # 1. Formatting Data (10 set of pseudo-absences, 10000 absences each, random strategy)
+[22:47:20] > # resp è la distribuzione della specie
+[22:47:20] > # expl sono le variabili che vanno a spiegare la distribuzione della specie (spiegano la resp) (caldo, freddo, neve, etc)
+[22:47:20] > 
+[22:47:20] > myBiomodData <- BIOMOD_FormatingData(
+[22:47:20] +   resp.var = myResp, # response variable
+[22:47:20] +   expl.var = cur_cal, # explenatory variable
+[22:47:20] +   resp.xy = myRespXY, # longitude and latitude of species occurrences
+[22:47:20] +   resp.name = myRespName,
+[22:47:20] +   PA.nb.rep = 10, # production value, set of replicas
+[22:47:20] +   PA.nb.absences = 10000, # production value (was toy 10); grows modeling only, projection unchanged
+[22:47:20] +   PA.strategy = "random",
+[22:47:20] +   na.rm = TRUE,
+[22:47:20] +   filter.raster = F # se la response var deve essere filtrata (se troppi punti vanno nella stessa cella), se true si rischia di andare a sovrastimare (overfitting)
+[22:47:20] + )
+[22:47:20] 
+[22:47:20] -=-=-=-=-=-=-=-=-=-=-= Alyssum.alyssoides Data Formating -=-=-=-=-=-=-=-=-=-=-=
+[22:47:20] 
+[22:47:20] 
+[22:47:20] Checking Pseudo-absence selection arguments...
+[22:47:20] 
+[22:47:20]    > random pseudo absences selection
+slurmstepd: error: *** JOB 48230446 ON lrdn3602 CANCELLED AT 2026-07-02T00:21:41 ***

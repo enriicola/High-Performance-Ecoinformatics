@@ -1,0 +1,1537 @@
+Job: id=49843592 array_task=1 node=lrdn4682
+Resources: cpus=4 memory=all-node
+R script: /work/R/base_sequential_analysis.R
+Started: 2026-07-19T19:55:08+02:00
+Resource log: /leonardo_work/IscrC_SPECC/logs/resources_49843592_1.txt
+[2026-07-19 19:55:14] > options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
+[2026-07-19 19:55:14] > 
+[2026-07-19 19:55:14] > # Global worker count for BIOMOD_Modeling and BIOMOD_Projection. By default it
+[2026-07-19 19:55:14] > # follows the CPUs allocated by Slurm; BIOMOD_NCPU can override it for tests.
+[2026-07-19 19:55:14] > n_cpu <- suppressWarnings(as.integer(Sys.getenv(
+[2026-07-19 19:55:14] +   "BIOMOD_NCPU",
+[2026-07-19 19:55:14] +   Sys.getenv("SLURM_CPUS_PER_TASK", "5")
+[2026-07-19 19:55:14] + )))
+[2026-07-19 19:55:14] > if (is.na(n_cpu) || n_cpu < 1L) {
+[2026-07-19 19:55:14] +   stop("BIOMOD_NCPU must be a positive integer")
+[2026-07-19 19:55:14] + }
+[2026-07-19 19:55:14] > allocated_cpus <- suppressWarnings(as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "")))
+[2026-07-19 19:55:14] > if (!is.na(allocated_cpus) && n_cpu > allocated_cpus) {
+[2026-07-19 19:55:14] +   stop("BIOMOD_NCPU cannot exceed SLURM_CPUS_PER_TASK (", allocated_cpus, ")")
+[2026-07-19 19:55:14] + }
+[2026-07-19 19:55:14] > ensemble_n_cpu <- min(n_cpu, 2L)
+[2026-07-19 19:55:14] > cat(
+[2026-07-19 19:55:14] +   "DEBUG: BIOMOD workers =", n_cpu,
+[2026-07-19 19:55:14] +   "| ensemble workers =", ensemble_n_cpu,
+[2026-07-19 19:55:14] +   "| Slurm CPUs =", ifelse(is.na(allocated_cpus), "unknown", allocated_cpus), "\n"
+[2026-07-19 19:55:14] + )
+[2026-07-19 19:55:14] DEBUG: BIOMOD workers = 4 | ensemble workers = 2 | Slurm CPUs = 4 
+[2026-07-19 19:55:14] > 
+[2026-07-19 19:55:14] > library(biomod2)
+[2026-07-19 19:55:22] biomod2 4.3-4-5 loaded.
+[2026-07-19 19:55:22]  /!\ Welcome to augmented biomod2 with abundance modeling available! (*o*)
+[2026-07-19 19:55:22]  Take a look at the HOME and NEWS section on the website to see all the features!
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22] Loading required package: nnet
+[2026-07-19 19:55:22] Loading required package: rpart
+[2026-07-19 19:55:22] Loading required package: cito
+[2026-07-19 19:55:22] Warning in library(package, lib.loc = lib.loc, character.only = TRUE, logical.return = TRUE,  :
+[2026-07-19 19:55:22]   there is no package called ‘cito’
+[2026-07-19 19:55:22] Loading required package: mda
+[2026-07-19 19:55:22] Loading required package: class
+[2026-07-19 19:55:22] Loaded mda 0.5-5
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22] Loading required package: gam
+[2026-07-19 19:55:22] Loading required package: splines
+[2026-07-19 19:55:22] Loading required package: foreach
+[2026-07-19 19:55:22] Loaded gam 1.22-7
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22] Loading required package: mgcv
+[2026-07-19 19:55:22] Loading required package: nlme
+[2026-07-19 19:55:22] This is mgcv 1.9-4. For overview type '?mgcv'.
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22] Attaching package: ‘mgcv’
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22] The following objects are masked from ‘package:gam’:
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22]     gam, gam.control, gam.fit, s
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22] The following object is masked from ‘package:nnet’:
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22]     multinom
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22] Loading required package: gbm
+[2026-07-19 19:55:22] Loaded gbm 2.2.3
+[2026-07-19 19:55:22] This version of gbm is no longer under development. Consider transitioning to gbm3, https://github.com/gbm-developers/gbm3
+[2026-07-19 19:55:22] Loading required package: earth
+[2026-07-19 19:55:22] Loading required package: Formula
+[2026-07-19 19:55:22] Loading required package: plotmo
+[2026-07-19 19:55:22] Loading required package: plotrix
+[2026-07-19 19:55:22] Loading required package: maxnet
+[2026-07-19 19:55:22] Loading required package: randomForest
+[2026-07-19 19:55:22] randomForest 4.7-1.2
+[2026-07-19 19:55:22] Type rfNews() to see new features/changes/bug fixes.
+[2026-07-19 19:55:22] Loading required package: xgboost
+[2026-07-19 19:55:22] > library(terra)
+[2026-07-19 19:55:22] terra 1.9.11
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22] Attaching package: ‘terra’
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22] The following object is masked from ‘package:plotrix’:
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22]     rescale
+[2026-07-19 19:55:22] 
+[2026-07-19 19:55:22] > library(gbm)
+[2026-07-19 19:55:22] > library(mda)
+[2026-07-19 19:55:22] > library(randomForest)
+[2026-07-19 19:55:22] > 
+[2026-07-19 19:55:22] > # biomod2 registers its own doParallel backend from nb.cpu; an external cluster
+[2026-07-19 19:55:22] > # is unnecessary and previously hung inside the Singularity container.
+[2026-07-19 19:55:22] > 
+[2026-07-19 19:55:22] > root <- normalizePath(".")
+[2026-07-19 19:55:22] > in_dir <- file.path(root, "data/input")
+[2026-07-19 19:55:22] > out_dir <- Sys.getenv("BIOMOD_OUTPUT_DIR", file.path(root, "data/output"))
+[2026-07-19 19:55:22] > dir.create(out_dir, showWarnings = FALSE)
+[2026-07-19 19:55:22] > 
+[2026-07-19 19:55:22] > ####################################
+[2026-07-19 19:55:22] > # loading species occurrences data
+[2026-07-19 19:55:22] > ####################################
+[2026-07-19 19:55:22] > spocc <- read.csv(file.path(in_dir, "full_1km_EUNIS.csv"), head = TRUE)
+[2026-07-19 19:55:30] > spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
+[2026-07-19 19:55:30] > spocc$sp_name <- sub(" ", ".", spocc$sp_name)
+[2026-07-19 19:55:30] > sp.names <- levels(factor(spocc[, 1]))
+[2026-07-19 19:55:30] > num_sp <- length(sp.names)
+[2026-07-19 19:55:30] > cat("DEBUG: num_sp =", num_sp, "| total rows =", nrow(spocc), "\n")
+[2026-07-19 19:55:30] DEBUG: num_sp = 167 | total rows = 2583359 
+[2026-07-19 19:55:30] > 
+[2026-07-19 19:55:30] > #####################################
+[2026-07-19 19:55:30] > # CALIBRATION environmental data
+[2026-07-19 19:55:30] > #####################################
+[2026-07-19 19:55:30] > cat("DEBUG: loading calibration rasters...\n")
+[2026-07-19 19:55:30] DEBUG: loading calibration rasters...
+[2026-07-19 19:55:30] > clim_cal <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+[2026-07-19 19:55:31] > tri_cal <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+[2026-07-19 19:55:31] > soil_cal <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+[2026-07-19 19:55:31] > cur_cal <- c(clim_cal, tri_cal, soil_cal)
+[2026-07-19 19:55:31] > names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+[2026-07-19 19:55:31] > cat("DEBUG: raster dim =", dim(cur_cal)[1], "x", dim(cur_cal)[2], "| ncell =", ncell(cur_cal), "\n")
+[2026-07-19 19:55:31] DEBUG: raster dim = 5873 x 10889 | ncell = 63951097 
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > #####################################
+[2026-07-19 19:55:31] > # PROJECTION environmental data
+[2026-07-19 19:55:31] > #####################################
+[2026-07-19 19:55:31] > # Projection and calibration use the same baseline rasters. Reuse their handles
+[2026-07-19 19:55:31] > # instead of loading a second copy into the R process.
+[2026-07-19 19:55:31] > cur_proj <- cur_cal
+[2026-07-19 19:55:31] > tri_proj <- tri_cal
+[2026-07-19 19:55:31] > soil_proj <- soil_cal
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > #####################################
+[2026-07-19 19:55:31] > # loading FUTURE list (leaf dirs containing tif)
+[2026-07-19 19:55:31] > #####################################
+[2026-07-19 19:55:31] > lf <- list.dirs(file.path(in_dir, "climate_vars/future"), full.names = T, recursive = T)[-1]
+[2026-07-19 19:55:31] > lf <- lf[sapply(lf, function(d) length(list.files(d, pattern = "\\.tif$")) > 0)]
+[2026-07-19 19:55:31] > cat("DEBUG: testing with", length(lf), "future scenarios\n")
+[2026-07-19 19:55:31] DEBUG: testing with 8 future scenarios
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > # outputs (biomod2 writes species folders into the working dir)
+[2026-07-19 19:55:31] > setwd(out_dir)
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > # One Slurm array task processes exactly one species.
+[2026-07-19 19:55:31] > task_id <- suppressWarnings(as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1")))
+[2026-07-19 19:55:31] > if (is.na(task_id) || task_id < 1L || task_id > num_sp) {
+[2026-07-19 19:55:31] +   stop("SLURM_ARRAY_TASK_ID must be between 1 and ", num_sp)
+[2026-07-19 19:55:31] + }
+[2026-07-19 19:55:31] > species_name <- sp.names[[task_id]]
+[2026-07-19 19:55:31] > spocc1 <- spocc[spocc[, 1] == species_name, , drop = FALSE]
+[2026-07-19 19:55:31] > cat(
+[2026-07-19 19:55:31] +   "DEBUG: array task", task_id,
+[2026-07-19 19:55:31] +   "-> species =", species_name,
+[2026-07-19 19:55:31] +   "| occurrences =", nrow(spocc1), "\n"
+[2026-07-19 19:55:31] + )
+[2026-07-19 19:55:31] DEBUG: array task 1 -> species = Achillea.atrata | occurrences = 1475 
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > # The full occurrence table is no longer needed by this isolated species task.
+[2026-07-19 19:55:31] > rm(spocc)
+[2026-07-19 19:55:31] > gc(verbose = FALSE)
+[2026-07-19 19:55:31]           used  (Mb) gc trigger  (Mb) max used  (Mb)
+[2026-07-19 19:55:31] Ncells 3150309 168.3    9577168 511.5  6188289 330.5
+[2026-07-19 19:55:31] Vcells 6886960  52.6   40574414 309.6 50352131 384.2
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > # Per-species cleanup is safe when different array tasks process distinct species.
+[2026-07-19 19:55:31] > species_dir <- file.path(out_dir, species_name)
+[2026-07-19 19:55:31] > unlink(species_dir, recursive = TRUE)
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > ###########################################################################
+[2026-07-19 19:55:31] > ######################     CALIBRATION ON EUROPE      #####################
+[2026-07-19 19:55:31] > ###########################################################################
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > start.time <- Sys.time()
+[2026-07-19 19:55:31] > myRespName <- species_name
+[2026-07-19 19:55:31] > myRespXY <- spocc1[, 2:3] # coordinates of points
+[2026-07-19 19:55:31] > myResp <- rep(1, nrow(spocc1)) # species occurences
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > cat("DEBUG: starting BIOMOD_FormatingData at", format(Sys.time(), "%H:%M:%S"), "\n")
+[2026-07-19 19:55:31] DEBUG: starting BIOMOD_FormatingData at 19:55:31 
+[2026-07-19 19:55:31] > flush.console()
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > # 1. Formatting Data (5 sets of pseudo-absences, 10000 absences each, random strategy)
+[2026-07-19 19:55:31] > # resp è la distribuzione della specie
+[2026-07-19 19:55:31] > # expl sono le variabili che vanno a spiegare la distribuzione della specie (spiegano la resp) (caldo, freddo, neve, etc)
+[2026-07-19 19:55:31] > 
+[2026-07-19 19:55:31] > myBiomodData <- BIOMOD_FormatingData(
+[2026-07-19 19:55:31] +   resp.var = myResp, # response variable
+[2026-07-19 19:55:31] +   expl.var = cur_cal, # explenatory variable
+[2026-07-19 19:55:31] +   resp.xy = myRespXY, # longitude and latitude of species occurrences
+[2026-07-19 19:55:31] +   resp.name = myRespName,
+[2026-07-19 19:55:31] +   PA.nb.rep = 5, # value used by the original analysis
+[2026-07-19 19:55:31] +   PA.nb.absences = 10000, # production value (was toy 10); grows modeling only, projection unchanged
+[2026-07-19 19:55:31] +   PA.strategy = "random",
+[2026-07-19 19:55:31] +   na.rm = TRUE,
+[2026-07-19 19:55:31] +   filter.raster = F # se la response var deve essere filtrata (se troppi punti vanno nella stessa cella), se true si rischia di andare a sovrastimare (overfitting)
+[2026-07-19 19:55:31] + )
+[2026-07-19 19:55:31] 
+[2026-07-19 19:55:31] -=-=-=-=-=-=-=-=-=-=-=-= Achillea.atrata Data Formating -=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 19:55:31] 
+[2026-07-19 19:55:31] 
+[2026-07-19 19:55:31] Checking Pseudo-absence selection arguments...
+[2026-07-19 19:55:31] 
+[2026-07-19 19:55:31]    > random pseudo absences selection
+[2026-07-19 21:10:46]    > Pseudo absences are selected in explanatory variables
+[2026-07-19 21:10:46] 
+[2026-07-19 21:10:59]  ! Some NAs have been automatically removed from your data
+[2026-07-19 21:10:59] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:10:59] > 
+[2026-07-19 21:10:59] > cat("DEBUG: BIOMOD_FormatingData done at", format(Sys.time(), "%H:%M:%S"), "\n")
+[2026-07-19 21:10:59] DEBUG: BIOMOD_FormatingData done at 21:10:59 
+[2026-07-19 21:10:59] > end.time <- Sys.time()
+[2026-07-19 21:10:59] > time.formating <- end.time - start.time
+[2026-07-19 21:10:59] > 
+[2026-07-19 21:10:59] > start.time <- Sys.time()
+[2026-07-19 21:10:59] > # 2. Defining Models Options (bigboss preset)
+[2026-07-19 21:10:59] > opt.b <- bm_ModelingOptions(
+[2026-07-19 21:10:59] +   data.type = "binary",
+[2026-07-19 21:10:59] +   models = selModels,
+[2026-07-19 21:10:59] +   strategy = "bigboss", # statistic method, parametri definiti dal team di biomod2, strategia già definita, parametri ottimali, ps: non sono quelli di default, sono quelli ottimali
+[2026-07-19 21:10:59] +   bm.format = myBiomodData
+[2026-07-19 21:10:59] + )
+[2026-07-19 21:10:59] 
+[2026-07-19 21:10:59] -=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Modeling Options -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:10:59] 
+[2026-07-19 21:10:59] 	>  GLM options ( datatype: binary , package: stats , function: glm )...
+[2026-07-19 21:10:59] 	>  GBM options ( datatype: binary , package: gbm , function: gbm )...
+[2026-07-19 21:10:59] 	>  ANN options ( datatype: binary , package: nnet , function: nnet )...
+[2026-07-19 21:10:59] 	>  FDA options ( datatype: binary , package: mda , function: fda )...
+[2026-07-19 21:10:59] 	>  MAXNET options ( datatype: binary , package: maxnet , function: maxnet )...
+[2026-07-19 21:10:59] 
+[2026-07-19 21:10:59] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:10:59] > 
+[2026-07-19 21:10:59] > # 3. Computing the models
+[2026-07-19 21:10:59] > myBiomodModelOut <- BIOMOD_Modeling(
+[2026-07-19 21:10:59] +   myBiomodData,
+[2026-07-19 21:10:59] +   models = selModels,
+[2026-07-19 21:10:59] +   CV.strategy = "random",
+[2026-07-19 21:10:59] +   CV.nb.rep = 5, # number of repetitions for cross validation, in order to validate the performance of the single model/algorithm
+[2026-07-19 21:10:59] +   CV.perc = 0.7, # valuta sul 70% dei dati e anche per calibrarsi (training) e testa querllo che ha imparato sul 30% dei dati, e va a fare un cross validation per vedere quanto è stato performante il modello rispetto al testing
+[2026-07-19 21:10:59] +   OPT.strategy = "bigboss",
+[2026-07-19 21:10:59] +   metric.eval = c("TSS", "AUCroc", "KAPPA", "POD", "FAR"),
+[2026-07-19 21:10:59] +   scale.models = FALSE, # default, chiede se tutte le proiezioni debbano essere scalate in binomiale (TODO check if we can delete this param, as it is default false)
+[2026-07-19 21:10:59] +   CV.do.full.models = FALSE, # default a false, chiede se venga fatta calibrazione e valutazione anche sulle pseudo-assenze
+[2026-07-19 21:10:59] +   nb.cpu = n_cpu,
+[2026-07-19 21:10:59] +   do.progress = T
+[2026-07-19 21:10:59] + )
+[2026-07-19 21:10:59] 
+[2026-07-19 21:10:59] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Single Models -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:10:59] 
+[2026-07-19 21:10:59] 
+[2026-07-19 21:10:59] Checking Models arguments...
+[2026-07-19 21:10:59] 
+[2026-07-19 21:10:59] 	> Automatic weights creation to rise a 0.5 prevalence
+[2026-07-19 21:10:59] Creating suitable Workdir...
+[2026-07-19 21:11:01] 
+[2026-07-19 21:11:01] 
+[2026-07-19 21:11:01] Checking Cross-Validation arguments...
+[2026-07-19 21:11:01] 
+[2026-07-19 21:11:02]    > Random cross-validation selection
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] -=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Modeling Options -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] 	>  GLM options ( datatype: binary , package: stats , function: glm )...
+[2026-07-19 21:11:02] 	>  GBM options ( datatype: binary , package: gbm , function: gbm )...
+[2026-07-19 21:11:02] 	>  ANN options ( datatype: binary , package: nnet , function: nnet )...
+[2026-07-19 21:11:02] 	>  FDA options ( datatype: binary , package: mda , function: fda )...
+[2026-07-19 21:11:02] 	>  MAXNET options ( datatype: binary , package: maxnet , function: maxnet )...
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] -=-=-=-=-=-=-=-=-=-=-=-= Achillea.atrata Modeling Summary -=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] > 5 environmental variables ( PC1_clim PC2_clim tri PC1_soil PC2_soil )
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] > Number of PA datasets : 5
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] > Number of calibration/validation splits : 5
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] > Algorithms selected : GLM GBM ANN FDA MAXNET
+[2026-07-19 21:11:02]  25 models for each algorithm
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] Total number of model runs: 125 
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_GLM 
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_GBM 
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_ANN 
+[2026-07-19 21:11:02] CV: 1 
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:02] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_FDA 
+[2026-07-19 21:11:02] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:11:02] 
+[2026-07-19 21:11:03] 	Evaluating Model stuff...
+[2026-07-19 21:11:03] 	Model scaling...
+[2026-07-19 21:11:03] 	Evaluating Model stuff...
+[2026-07-19 21:11:03] 	Model scaling...
+[2026-07-19 21:11:04] 	Evaluating Model stuff...
+[2026-07-19 21:11:04] 
+[2026-07-19 21:11:04] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_MAXNET 
+[2026-07-19 21:11:04] 
+[2026-07-19 21:11:04] 
+[2026-07-19 21:11:04] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN2_ANN 
+[2026-07-19 21:11:04] 
+[2026-07-19 21:11:04] 	Model scaling...
+[2026-07-19 21:11:04] 	Evaluating Model stuff...
+[2026-07-19 21:11:04] 
+[2026-07-19 21:11:04] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN2_GBM 
+[2026-07-19 21:11:04] CV: 1 
+[2026-07-19 21:11:05] 
+[2026-07-19 21:11:05] 
+[2026-07-19 21:11:05] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN3_GBM 
+[2026-07-19 21:11:05] CV: 1 
+[2026-07-19 21:11:07] CV: 2 
+[2026-07-19 21:11:09] CV: 2 
+[2026-07-19 21:11:10] CV: 2 
+[2026-07-19 21:11:11] CV: 3 
+[2026-07-19 21:11:13] CV: 3 
+[2026-07-19 21:11:14] CV: 3 
+[2026-07-19 21:11:15] 
+[2026-07-19 21:11:16] 	Evaluating Model stuff...
+[2026-07-19 21:11:16] 
+[2026-07-19 21:11:16] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN2_FDA 
+[2026-07-19 21:11:16] 
+[2026-07-19 21:11:16] 	Model scaling...
+[2026-07-19 21:11:17] 	Evaluating Model stuff...
+[2026-07-19 21:11:17] 
+[2026-07-19 21:11:17] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN3_ANN 
+[2026-07-19 21:11:18] 
+[2026-07-19 21:11:18] 	Model scaling...
+[2026-07-19 21:11:19] 	Evaluating Model stuff...
+[2026-07-19 21:11:19] 
+[2026-07-19 21:11:19] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN4_GBM 
+[2026-07-19 21:11:19] CV: 1 
+[2026-07-19 21:11:23] CV: 2 
+[2026-07-19 21:11:23] 
+[2026-07-19 21:11:24] 	Evaluating Model stuff...
+[2026-07-19 21:11:24] 
+[2026-07-19 21:11:24] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN2_GLM 
+[2026-07-19 21:11:24] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:11:24] 
+[2026-07-19 21:11:25] 	Evaluating Model stuff...
+[2026-07-19 21:11:25] 	Evaluating Model stuff...
+[2026-07-19 21:11:25] 
+[2026-07-19 21:11:25] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN2_MAXNET 
+[2026-07-19 21:11:26] 
+[2026-07-19 21:11:26] 	Evaluating Model stuff...
+[2026-07-19 21:11:26] 
+[2026-07-19 21:11:26] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN3_GLM 
+[2026-07-19 21:11:26] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:11:26] 
+[2026-07-19 21:11:27] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:11:27]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:11:27] 
+[2026-07-19 21:11:27] 
+[2026-07-19 21:11:27] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN4_GLM 
+[2026-07-19 21:11:27] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:11:27] 
+[2026-07-19 21:11:27] 	Evaluating Model stuff...
+[2026-07-19 21:11:27] 
+[2026-07-19 21:11:27] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN3_MAXNET 
+[2026-07-19 21:11:27] CV: 3 
+[2026-07-19 21:11:28] 
+[2026-07-19 21:11:28] 
+[2026-07-19 21:11:28] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN4_MAXNET 
+[2026-07-19 21:11:37] 
+[2026-07-19 21:11:38] 	Evaluating Model stuff...
+[2026-07-19 21:11:38] 
+[2026-07-19 21:11:38] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN3_FDA 
+[2026-07-19 21:11:38] 
+[2026-07-19 21:11:38] 	Model scaling...
+[2026-07-19 21:11:39] 	Evaluating Model stuff...
+[2026-07-19 21:11:39] 
+[2026-07-19 21:11:39] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN4_ANN 
+[2026-07-19 21:11:39] 
+[2026-07-19 21:11:39] 	Evaluating Model stuff...
+[2026-07-19 21:11:39] 	Model scaling...
+[2026-07-19 21:11:39] 	Evaluating Model stuff...
+[2026-07-19 21:11:39] 	Evaluating Model stuff...
+[2026-07-19 21:11:40] 	Evaluating Model stuff...
+[2026-07-19 21:11:40] 
+[2026-07-19 21:11:40] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN4_FDA 
+[2026-07-19 21:11:40] 
+[2026-07-19 21:11:40] 	Model scaling...
+[2026-07-19 21:11:40] 	Evaluating Model stuff...
+[2026-07-19 21:11:40] 
+[2026-07-19 21:11:40] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN5_GBM 
+[2026-07-19 21:11:40] CV: 1 
+[2026-07-19 21:11:40] 
+[2026-07-19 21:11:40] 
+[2026-07-19 21:11:40] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN5_GLM 
+[2026-07-19 21:11:40] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:11:40] 
+[2026-07-19 21:11:40] 	Evaluating Model stuff...
+[2026-07-19 21:11:40] 
+[2026-07-19 21:11:40] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN5_FDA 
+[2026-07-19 21:11:40] 
+[2026-07-19 21:11:40] 	Model scaling...
+[2026-07-19 21:11:41] 	Evaluating Model stuff...
+[2026-07-19 21:11:41] 
+[2026-07-19 21:11:41] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN5_ANN 
+[2026-07-19 21:11:41] 
+[2026-07-19 21:11:41] 	Model scaling...
+[2026-07-19 21:11:41] 	Evaluating Model stuff...
+[2026-07-19 21:11:41] 
+[2026-07-19 21:11:41] -=-=-=--=-=-=- Achillea.atrata_PA1_RUN5_MAXNET 
+[2026-07-19 21:11:41] 
+[2026-07-19 21:11:41] 
+[2026-07-19 21:11:41] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN1_ANN 
+[2026-07-19 21:11:42] 
+[2026-07-19 21:11:42] 	Model scaling...
+[2026-07-19 21:11:42] 	Evaluating Model stuff...
+[2026-07-19 21:11:42] 
+[2026-07-19 21:11:42] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN1_GBM 
+[2026-07-19 21:11:42] CV: 1 
+[2026-07-19 21:11:43] 
+[2026-07-19 21:11:43] 
+[2026-07-19 21:11:43] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN2_GBM 
+[2026-07-19 21:11:43] CV: 1 
+[2026-07-19 21:11:44] CV: 2 
+[2026-07-19 21:11:46] CV: 2 
+[2026-07-19 21:11:47] CV: 2 
+[2026-07-19 21:11:49] CV: 3 
+[2026-07-19 21:11:51] CV: 3 
+[2026-07-19 21:11:52] CV: 3 
+[2026-07-19 21:11:53] 
+[2026-07-19 21:11:53] 	Evaluating Model stuff...
+[2026-07-19 21:11:53] 
+[2026-07-19 21:11:53] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN1_FDA 
+[2026-07-19 21:11:53] 
+[2026-07-19 21:11:53] 	Model scaling...
+[2026-07-19 21:11:54] 	Evaluating Model stuff...
+[2026-07-19 21:11:54] 
+[2026-07-19 21:11:54] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN2_ANN 
+[2026-07-19 21:11:55] 
+[2026-07-19 21:11:55] 	Model scaling...
+[2026-07-19 21:11:56] 	Evaluating Model stuff...
+[2026-07-19 21:11:56] 
+[2026-07-19 21:11:56] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN3_GBM 
+[2026-07-19 21:11:56] CV: 1 
+[2026-07-19 21:12:00] CV: 2 
+[2026-07-19 21:12:01] 
+[2026-07-19 21:12:02] 	Evaluating Model stuff...
+[2026-07-19 21:12:02] 
+[2026-07-19 21:12:02] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN1_GLM 
+[2026-07-19 21:12:02] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:12:02] 
+[2026-07-19 21:12:02] 	Evaluating Model stuff...
+[2026-07-19 21:12:02] 	Evaluating Model stuff...
+[2026-07-19 21:12:02] 
+[2026-07-19 21:12:02] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN1_MAXNET 
+[2026-07-19 21:12:03] 
+[2026-07-19 21:12:03] 
+[2026-07-19 21:12:03] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN2_GLM 
+[2026-07-19 21:12:03] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:12:03] 
+[2026-07-19 21:12:03] 	Evaluating Model stuff...
+[2026-07-19 21:12:04] 	Evaluating Model stuff...
+[2026-07-19 21:12:04] 
+[2026-07-19 21:12:04] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN2_MAXNET 
+[2026-07-19 21:12:04] 
+[2026-07-19 21:12:04] 
+[2026-07-19 21:12:04] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN3_GLM 
+[2026-07-19 21:12:04] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:12:04] 
+[2026-07-19 21:12:05] 	Evaluating Model stuff...CV: 3 
+[2026-07-19 21:12:05] 
+[2026-07-19 21:12:05] 
+[2026-07-19 21:12:05] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN3_MAXNET 
+[2026-07-19 21:12:14] 
+[2026-07-19 21:12:14] 	Evaluating Model stuff...
+[2026-07-19 21:12:14] 
+[2026-07-19 21:12:14] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN2_FDA 
+[2026-07-19 21:12:15] 
+[2026-07-19 21:12:15] 	Model scaling...
+[2026-07-19 21:12:15] 	Evaluating Model stuff...
+[2026-07-19 21:12:15] 
+[2026-07-19 21:12:15] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN3_ANN 
+[2026-07-19 21:12:16] 
+[2026-07-19 21:12:16] 	Evaluating Model stuff...
+[2026-07-19 21:12:16] 	Model scaling...
+[2026-07-19 21:12:16] 	Evaluating Model stuff...
+[2026-07-19 21:12:16] 
+[2026-07-19 21:12:16] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN3_FDA 
+[2026-07-19 21:12:16] 
+[2026-07-19 21:12:16] 	Evaluating Model stuff...
+[2026-07-19 21:12:16] 	Model scaling...
+[2026-07-19 21:12:16] 	Evaluating Model stuff...
+[2026-07-19 21:12:17] 	Evaluating Model stuff...
+[2026-07-19 21:12:17] 
+[2026-07-19 21:12:17] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN4_GBM 
+[2026-07-19 21:12:17] CV: 1 
+[2026-07-19 21:12:17] Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:12:17]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:12:17] 
+[2026-07-19 21:12:17] 
+[2026-07-19 21:12:17] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN4_FDA 
+[2026-07-19 21:12:17] 
+[2026-07-19 21:12:17] 
+[2026-07-19 21:12:17] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN4_GLM 
+[2026-07-19 21:12:17] 
+[2026-07-19 21:12:17] 	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:12:17] 
+[2026-07-19 21:12:17] 	Evaluating Model stuff...
+[2026-07-19 21:12:17] 	Evaluating Model stuff...
+[2026-07-19 21:12:17] 
+[2026-07-19 21:12:17] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN4_ANN 
+[2026-07-19 21:12:18] 
+[2026-07-19 21:12:18] 	Model scaling...
+[2026-07-19 21:12:18] 	Evaluating Model stuff...
+[2026-07-19 21:12:18] 
+[2026-07-19 21:12:18] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN4_MAXNET 
+[2026-07-19 21:12:18] 
+[2026-07-19 21:12:18] 
+[2026-07-19 21:12:18] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN5_ANN 
+[2026-07-19 21:12:18] 
+[2026-07-19 21:12:18] 	Model scaling...
+[2026-07-19 21:12:19] 	Evaluating Model stuff...
+[2026-07-19 21:12:19] 
+[2026-07-19 21:12:19] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN5_GBM 
+[2026-07-19 21:12:19] CV: 1 
+[2026-07-19 21:12:19] 
+[2026-07-19 21:12:19] 
+[2026-07-19 21:12:19] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN1_GBM 
+[2026-07-19 21:12:19] CV: 1 
+[2026-07-19 21:12:21] CV: 2 
+[2026-07-19 21:12:23] CV: 2 
+[2026-07-19 21:12:24] CV: 2 
+[2026-07-19 21:12:26] CV: 3 
+[2026-07-19 21:12:28] CV: 3 
+[2026-07-19 21:12:28] CV: 3 
+[2026-07-19 21:12:29] 
+[2026-07-19 21:12:30] 	Evaluating Model stuff...
+[2026-07-19 21:12:30] 
+[2026-07-19 21:12:30] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN5_FDA 
+[2026-07-19 21:12:30] 
+[2026-07-19 21:12:30] 	Model scaling...
+[2026-07-19 21:12:31] 	Evaluating Model stuff...
+[2026-07-19 21:12:31] 
+[2026-07-19 21:12:31] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN1_ANN 
+[2026-07-19 21:12:31] 
+[2026-07-19 21:12:31] 	Model scaling...
+[2026-07-19 21:12:32] 	Evaluating Model stuff...
+[2026-07-19 21:12:32] 
+[2026-07-19 21:12:32] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN2_GBM 
+[2026-07-19 21:12:32] CV: 1 
+[2026-07-19 21:12:37] CV: 2 
+[2026-07-19 21:12:37] 
+[2026-07-19 21:12:38] 	Evaluating Model stuff...
+[2026-07-19 21:12:38] 
+[2026-07-19 21:12:38] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN5_GLM 
+[2026-07-19 21:12:38] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:12:38] 
+[2026-07-19 21:12:39] 	Evaluating Model stuff...
+[2026-07-19 21:12:39] 
+[2026-07-19 21:12:39] -=-=-=--=-=-=- Achillea.atrata_PA2_RUN5_MAXNET 
+[2026-07-19 21:12:39] 
+[2026-07-19 21:12:40] 	Evaluating Model stuff...
+[2026-07-19 21:12:40] 	Evaluating Model stuff...
+[2026-07-19 21:12:40] 
+[2026-07-19 21:12:40] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN1_GLM 
+[2026-07-19 21:12:40] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:12:40] 
+[2026-07-19 21:12:41] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:12:41]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:12:41] 
+[2026-07-19 21:12:41] 
+[2026-07-19 21:12:41] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN2_GLM 
+[2026-07-19 21:12:41] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:12:41] 
+[2026-07-19 21:12:41] 	Evaluating Model stuff...CV: 3 
+[2026-07-19 21:12:41] 
+[2026-07-19 21:12:41] 
+[2026-07-19 21:12:41] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN1_MAXNET 
+[2026-07-19 21:12:42] 
+[2026-07-19 21:12:42] 
+[2026-07-19 21:12:42] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN2_MAXNET 
+[2026-07-19 21:12:51] 
+[2026-07-19 21:12:51] 	Evaluating Model stuff...
+[2026-07-19 21:12:51] 
+[2026-07-19 21:12:51] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN1_FDA 
+[2026-07-19 21:12:52] 
+[2026-07-19 21:12:52] 	Model scaling...
+[2026-07-19 21:12:52] 	Evaluating Model stuff...
+[2026-07-19 21:12:52] 	Evaluating Model stuff...
+[2026-07-19 21:12:52] 
+[2026-07-19 21:12:52] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN2_ANN 
+[2026-07-19 21:12:53] 
+[2026-07-19 21:12:53] 	Model scaling...
+[2026-07-19 21:12:53] 	Evaluating Model stuff...
+[2026-07-19 21:12:53] 	Evaluating Model stuff...
+[2026-07-19 21:12:53] 	Evaluating Model stuff...
+[2026-07-19 21:12:53] 
+[2026-07-19 21:12:53] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN2_FDA 
+[2026-07-19 21:12:53] 
+[2026-07-19 21:12:53] 	Model scaling...
+[2026-07-19 21:12:54] 	Evaluating Model stuff...
+[2026-07-19 21:12:54] 
+[2026-07-19 21:12:54] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN3_FDA 
+[2026-07-19 21:12:54] 
+[2026-07-19 21:12:54] 	Model scaling...
+[2026-07-19 21:12:54] 	Evaluating Model stuff...
+[2026-07-19 21:12:54] 
+[2026-07-19 21:12:54] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN3_GBM 
+[2026-07-19 21:12:54] Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:12:54]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:12:54] CV: 1 
+[2026-07-19 21:12:54] 
+[2026-07-19 21:12:54] 
+[2026-07-19 21:12:54] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN3_GLM 
+[2026-07-19 21:12:54] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:12:54] 
+[2026-07-19 21:12:54] 	Evaluating Model stuff...
+[2026-07-19 21:12:54] 
+[2026-07-19 21:12:54] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN3_ANN 
+[2026-07-19 21:12:54] 
+[2026-07-19 21:12:54] 	Model scaling...
+[2026-07-19 21:12:55] 	Evaluating Model stuff...
+[2026-07-19 21:12:55] 
+[2026-07-19 21:12:55] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN4_ANN 
+[2026-07-19 21:12:55] 
+[2026-07-19 21:12:55] 
+[2026-07-19 21:12:55] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN3_MAXNET 
+[2026-07-19 21:12:55] 
+[2026-07-19 21:12:55] 	Model scaling...
+[2026-07-19 21:12:55] 	Evaluating Model stuff...
+[2026-07-19 21:12:55] 
+[2026-07-19 21:12:55] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN4_GBM 
+[2026-07-19 21:12:55] CV: 1 
+[2026-07-19 21:12:56] 
+[2026-07-19 21:12:56] 
+[2026-07-19 21:12:56] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN5_GBM 
+[2026-07-19 21:12:56] CV: 1 
+[2026-07-19 21:12:58] CV: 2 
+[2026-07-19 21:13:00] CV: 2 
+[2026-07-19 21:13:00] CV: 2 
+[2026-07-19 21:13:03] CV: 3 
+[2026-07-19 21:13:04] CV: 3 
+[2026-07-19 21:13:05] CV: 3 
+[2026-07-19 21:13:06] 
+[2026-07-19 21:13:06] 	Evaluating Model stuff...
+[2026-07-19 21:13:06] 
+[2026-07-19 21:13:06] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN4_FDA 
+[2026-07-19 21:13:07] 
+[2026-07-19 21:13:07] 	Model scaling...
+[2026-07-19 21:13:08] 	Evaluating Model stuff...
+[2026-07-19 21:13:08] 
+[2026-07-19 21:13:08] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN5_ANN 
+[2026-07-19 21:13:08] 
+[2026-07-19 21:13:08] 	Model scaling...
+[2026-07-19 21:13:09] 	Evaluating Model stuff...
+[2026-07-19 21:13:09] 
+[2026-07-19 21:13:09] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN1_GBM 
+[2026-07-19 21:13:09] CV: 1 
+[2026-07-19 21:13:13] CV: 2 
+[2026-07-19 21:13:14] 
+[2026-07-19 21:13:15] 	Evaluating Model stuff...
+[2026-07-19 21:13:15] 
+[2026-07-19 21:13:15] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN4_GLM 
+[2026-07-19 21:13:15] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:13:15] 
+[2026-07-19 21:13:16] 	Evaluating Model stuff...
+[2026-07-19 21:13:16] 	Evaluating Model stuff...
+[2026-07-19 21:13:16] 
+[2026-07-19 21:13:16] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN4_MAXNET 
+[2026-07-19 21:13:17] 
+[2026-07-19 21:13:17] 	Evaluating Model stuff...
+[2026-07-19 21:13:17] 
+[2026-07-19 21:13:17] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN5_GLM 
+[2026-07-19 21:13:17] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:13:17] 
+[2026-07-19 21:13:17] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:13:17]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:13:17] 
+[2026-07-19 21:13:17] 
+[2026-07-19 21:13:17] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN1_GLM 
+[2026-07-19 21:13:17] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:13:17] 
+[2026-07-19 21:13:18] 	Evaluating Model stuff...CV: 3 
+[2026-07-19 21:13:18] 
+[2026-07-19 21:13:18] 
+[2026-07-19 21:13:18] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN5_MAXNET 
+[2026-07-19 21:13:18] 
+[2026-07-19 21:13:18] 
+[2026-07-19 21:13:18] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN1_MAXNET 
+[2026-07-19 21:13:27] 
+[2026-07-19 21:13:28] 	Evaluating Model stuff...
+[2026-07-19 21:13:28] 
+[2026-07-19 21:13:28] -=-=-=--=-=-=- Achillea.atrata_PA3_RUN5_FDA 
+[2026-07-19 21:13:28] 
+[2026-07-19 21:13:28] 	Model scaling...
+[2026-07-19 21:13:29] 	Evaluating Model stuff...
+[2026-07-19 21:13:29] 	Evaluating Model stuff...
+[2026-07-19 21:13:29] 
+[2026-07-19 21:13:29] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN1_ANN 
+[2026-07-19 21:13:29] 
+[2026-07-19 21:13:29] 	Evaluating Model stuff...
+[2026-07-19 21:13:29] 
+[2026-07-19 21:13:29] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN1_FDA 
+[2026-07-19 21:13:29] 
+[2026-07-19 21:13:29] 	Model scaling...
+[2026-07-19 21:13:29] 	Evaluating Model stuff...
+[2026-07-19 21:13:29] 	Evaluating Model stuff...
+[2026-07-19 21:13:29] 	Model scaling...
+[2026-07-19 21:13:30] 	Evaluating Model stuff...
+[2026-07-19 21:13:30] 
+[2026-07-19 21:13:30] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN2_FDA 
+[2026-07-19 21:13:30] 
+[2026-07-19 21:13:30] 	Model scaling...
+[2026-07-19 21:13:30] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:13:30]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:13:30] 
+[2026-07-19 21:13:30] 
+[2026-07-19 21:13:30] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN2_GLM 
+[2026-07-19 21:13:30] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:13:30] 
+[2026-07-19 21:13:30] 	Evaluating Model stuff...
+[2026-07-19 21:13:30] 
+[2026-07-19 21:13:30] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN2_GBM 
+[2026-07-19 21:13:30] CV: 1 
+[2026-07-19 21:13:30] 
+[2026-07-19 21:13:30] 
+[2026-07-19 21:13:30] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN2_ANN 
+[2026-07-19 21:13:31] 
+[2026-07-19 21:13:31] 	Model scaling...
+[2026-07-19 21:13:31] 	Evaluating Model stuff...
+[2026-07-19 21:13:31] 
+[2026-07-19 21:13:31] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN3_ANN 
+[2026-07-19 21:13:31] 
+[2026-07-19 21:13:31] 
+[2026-07-19 21:13:31] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN2_MAXNET 
+[2026-07-19 21:13:31] 
+[2026-07-19 21:13:31] 	Model scaling...
+[2026-07-19 21:13:32] 	Evaluating Model stuff...
+[2026-07-19 21:13:32] 
+[2026-07-19 21:13:32] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN3_GBM 
+[2026-07-19 21:13:32] CV: 1 
+[2026-07-19 21:13:32] 
+[2026-07-19 21:13:32] 
+[2026-07-19 21:13:32] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN4_GBM 
+[2026-07-19 21:13:32] CV: 1 
+[2026-07-19 21:13:35] CV: 2 
+[2026-07-19 21:13:36] CV: 2 
+[2026-07-19 21:13:37] CV: 2 
+[2026-07-19 21:13:39] CV: 3 
+[2026-07-19 21:13:41] CV: 3 
+[2026-07-19 21:13:41] CV: 3 
+[2026-07-19 21:13:42] 
+[2026-07-19 21:13:43] 	Evaluating Model stuff...
+[2026-07-19 21:13:43] 
+[2026-07-19 21:13:43] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN3_FDA 
+[2026-07-19 21:13:43] 
+[2026-07-19 21:13:43] 	Model scaling...
+[2026-07-19 21:13:44] 	Evaluating Model stuff...
+[2026-07-19 21:13:44] 
+[2026-07-19 21:13:44] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN4_ANN 
+[2026-07-19 21:13:44] 
+[2026-07-19 21:13:44] 	Model scaling...
+[2026-07-19 21:13:45] 	Evaluating Model stuff...
+[2026-07-19 21:13:45] 
+[2026-07-19 21:13:45] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN5_GBM 
+[2026-07-19 21:13:45] CV: 1 
+[2026-07-19 21:13:50] CV: 2 
+[2026-07-19 21:13:51] 
+[2026-07-19 21:13:52] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:13:52]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:13:52] 
+[2026-07-19 21:13:52] 
+[2026-07-19 21:13:52] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN3_GLM 
+[2026-07-19 21:13:52] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:13:52] 
+[2026-07-19 21:13:52] 	Evaluating Model stuff...
+[2026-07-19 21:13:53] 	Evaluating Model stuff...
+[2026-07-19 21:13:53] 
+[2026-07-19 21:13:53] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN3_MAXNET 
+[2026-07-19 21:13:53] 
+[2026-07-19 21:13:53] 	Evaluating Model stuff...
+[2026-07-19 21:13:53] 
+[2026-07-19 21:13:53] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN4_GLM 
+[2026-07-19 21:13:53] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:13:53] 
+[2026-07-19 21:13:54] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:13:54]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:13:54] 
+[2026-07-19 21:13:54] 
+[2026-07-19 21:13:54] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN5_GLM 
+[2026-07-19 21:13:54] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:13:54] 
+[2026-07-19 21:13:54] 	Evaluating Model stuff...CV: 3 
+[2026-07-19 21:13:54] 
+[2026-07-19 21:13:54] 
+[2026-07-19 21:13:54] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN4_MAXNET 
+[2026-07-19 21:13:55] 
+[2026-07-19 21:13:55] 
+[2026-07-19 21:13:55] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN5_MAXNET 
+[2026-07-19 21:14:04] 
+[2026-07-19 21:14:05] 	Evaluating Model stuff...
+[2026-07-19 21:14:05] 
+[2026-07-19 21:14:05] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN4_FDA 
+[2026-07-19 21:14:05] 
+[2026-07-19 21:14:05] 	Model scaling...
+[2026-07-19 21:14:05] 	Evaluating Model stuff...
+[2026-07-19 21:14:06] 	Evaluating Model stuff...
+[2026-07-19 21:14:06] 	Evaluating Model stuff...
+[2026-07-19 21:14:06] 	Evaluating Model stuff...
+[2026-07-19 21:14:06] 
+[2026-07-19 21:14:06] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN5_ANN 
+[2026-07-19 21:14:06] 
+[2026-07-19 21:14:06] 
+[2026-07-19 21:14:06] -=-=-=--=-=-=- Achillea.atrata_PA4_RUN5_FDA 
+[2026-07-19 21:14:06] 
+[2026-07-19 21:14:06] 	Model scaling...
+[2026-07-19 21:14:06] 	Model scaling...
+[2026-07-19 21:14:06] 	Evaluating Model stuff...
+[2026-07-19 21:14:06] 	Evaluating Model stuff...
+[2026-07-19 21:14:06] 
+[2026-07-19 21:14:06] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN1_FDA 
+[2026-07-19 21:14:07] 
+[2026-07-19 21:14:07] 	Model scaling...
+[2026-07-19 21:14:07] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:14:07]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:14:07] 
+[2026-07-19 21:14:07] 
+[2026-07-19 21:14:07] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN1_GLM 
+[2026-07-19 21:14:07] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:14:07] 
+[2026-07-19 21:14:07] 	Evaluating Model stuff...
+[2026-07-19 21:14:07] 
+[2026-07-19 21:14:07] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN1_ANN 
+[2026-07-19 21:14:07] 
+[2026-07-19 21:14:07] 
+[2026-07-19 21:14:07] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN1_GBM 
+[2026-07-19 21:14:07] CV: 1 
+[2026-07-19 21:14:07] 
+[2026-07-19 21:14:07] 	Model scaling...
+[2026-07-19 21:14:08] 	Evaluating Model stuff...
+[2026-07-19 21:14:08] 
+[2026-07-19 21:14:08] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN2_ANN 
+[2026-07-19 21:14:08] 
+[2026-07-19 21:14:08] 
+[2026-07-19 21:14:08] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN1_MAXNET 
+[2026-07-19 21:14:08] 
+[2026-07-19 21:14:08] 	Model scaling...
+[2026-07-19 21:14:08] 	Evaluating Model stuff...
+[2026-07-19 21:14:08] 
+[2026-07-19 21:14:08] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN2_GBM 
+[2026-07-19 21:14:08] CV: 1 
+[2026-07-19 21:14:09] 
+[2026-07-19 21:14:09] 
+[2026-07-19 21:14:09] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN3_GBM 
+[2026-07-19 21:14:09] CV: 1 
+[2026-07-19 21:14:12] CV: 2 
+[2026-07-19 21:14:13] CV: 2 
+[2026-07-19 21:14:13] CV: 2 
+[2026-07-19 21:14:16] CV: 3 
+[2026-07-19 21:14:17] CV: 3 
+[2026-07-19 21:14:18] CV: 3 
+[2026-07-19 21:14:19] 
+[2026-07-19 21:14:20] 	Evaluating Model stuff...
+[2026-07-19 21:14:20] 
+[2026-07-19 21:14:20] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN2_FDA 
+[2026-07-19 21:14:20] 
+[2026-07-19 21:14:20] 	Model scaling...
+[2026-07-19 21:14:21] 	Evaluating Model stuff...
+[2026-07-19 21:14:21] 
+[2026-07-19 21:14:21] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN3_ANN 
+[2026-07-19 21:14:21] 
+[2026-07-19 21:14:21] 	Model scaling...
+[2026-07-19 21:14:22] 	Evaluating Model stuff...
+[2026-07-19 21:14:22] 
+[2026-07-19 21:14:22] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN4_GBM 
+[2026-07-19 21:14:22] CV: 1 
+[2026-07-19 21:14:26] CV: 2 
+[2026-07-19 21:14:28] 
+[2026-07-19 21:14:29] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:14:29]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:14:29] 
+[2026-07-19 21:14:29] 
+[2026-07-19 21:14:29] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN2_GLM 
+[2026-07-19 21:14:29] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:14:29] 
+[2026-07-19 21:14:29] 	Evaluating Model stuff...
+[2026-07-19 21:14:29] 	Evaluating Model stuff...
+[2026-07-19 21:14:30] 	Evaluating Model stuff...
+[2026-07-19 21:14:30] 
+[2026-07-19 21:14:30] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN2_MAXNET 
+[2026-07-19 21:14:30] Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:14:30]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:14:30] 
+[2026-07-19 21:14:30] 
+[2026-07-19 21:14:30] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN3_GLM 
+[2026-07-19 21:14:30] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:14:30] 
+[2026-07-19 21:14:30] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:14:30]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:14:30] 
+[2026-07-19 21:14:30] 
+[2026-07-19 21:14:30] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN4_GLM 
+[2026-07-19 21:14:30] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:14:30] 
+[2026-07-19 21:14:31] 	Evaluating Model stuff...CV: 3 
+[2026-07-19 21:14:31] 
+[2026-07-19 21:14:31] 
+[2026-07-19 21:14:31] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN3_MAXNET 
+[2026-07-19 21:14:31] 
+[2026-07-19 21:14:31] 
+[2026-07-19 21:14:31] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN4_MAXNET 
+[2026-07-19 21:14:41] 
+[2026-07-19 21:14:42] 	Evaluating Model stuff...
+[2026-07-19 21:14:42] 
+[2026-07-19 21:14:42] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN3_FDA 
+[2026-07-19 21:14:42] 
+[2026-07-19 21:14:42] 	Model scaling...
+[2026-07-19 21:14:42] 	Evaluating Model stuff...
+[2026-07-19 21:14:42] 	Evaluating Model stuff...
+[2026-07-19 21:14:43] 	Evaluating Model stuff...
+[2026-07-19 21:14:43] 	Evaluating Model stuff...
+[2026-07-19 21:14:43] 
+[2026-07-19 21:14:43] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN4_ANN 
+[2026-07-19 21:14:43] 
+[2026-07-19 21:14:43] 	Model scaling...
+[2026-07-19 21:14:43] 	Evaluating Model stuff...
+[2026-07-19 21:14:43] 
+[2026-07-19 21:14:43] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN4_FDA 
+[2026-07-19 21:14:43] 
+[2026-07-19 21:14:43] 	Model scaling...
+[2026-07-19 21:14:43] 	Evaluating Model stuff...
+[2026-07-19 21:14:43] 
+[2026-07-19 21:14:43] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN5_FDA 
+[2026-07-19 21:14:43] 
+[2026-07-19 21:14:43] 	Model scaling...
+[2026-07-19 21:14:43] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:14:43]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:14:43] 
+[2026-07-19 21:14:43] 
+[2026-07-19 21:14:43] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN5_GLM 
+[2026-07-19 21:14:43] Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+[2026-07-19 21:14:43] 
+[2026-07-19 21:14:44] 	Evaluating Model stuff...
+[2026-07-19 21:14:44] 
+[2026-07-19 21:14:44] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN5_GBM 
+[2026-07-19 21:14:44] CV: 1 
+[2026-07-19 21:14:44] 
+[2026-07-19 21:14:44] 
+[2026-07-19 21:14:44] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN5_ANN 
+[2026-07-19 21:14:44] 
+[2026-07-19 21:14:44] 	Model scaling...
+[2026-07-19 21:14:44] 	Evaluating Model stuff...
+[2026-07-19 21:14:44] 
+[2026-07-19 21:14:44] -=-=-=--=-=-=- Achillea.atrata_PA5_RUN5_MAXNET 
+[2026-07-19 21:14:48] CV: 2 
+[2026-07-19 21:14:53] CV: 3 
+[2026-07-19 21:14:56] 
+[2026-07-19 21:14:56] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:14:56]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:15:04] 
+[2026-07-19 21:15:05] 	Evaluating Model stuff...Warning in max(calcStat, na.rm = TRUE) :
+[2026-07-19 21:15:05]   no non-missing arguments to max; returning -Inf
+[2026-07-19 21:15:08] 
+[2026-07-19 21:15:08] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:15:08] > end.time <- Sys.time()
+[2026-07-19 21:15:08] > time.modeling <- end.time - start.time
+[2026-07-19 21:15:08] > 
+[2026-07-19 21:15:08] > # Modeling leaves its global foreach backend registered. Select the intended
+[2026-07-19 21:15:08] > # backend explicitly before building the two ensemble algorithms.
+[2026-07-19 21:15:08] > doParallel::registerDoParallel(cores = ensemble_n_cpu)
+[2026-07-19 21:15:08] > 
+[2026-07-19 21:15:08] > start.time <- Sys.time()
+[2026-07-19 21:15:08] > # 4. Model ensemble models
+[2026-07-19 21:15:08] > myBiomodEM <- BIOMOD_EnsembleModeling(
+[2026-07-19 21:15:08] +   bm.mod = myBiomodModelOut,
+[2026-07-19 21:15:08] +   models.chosen = "all",
+[2026-07-19 21:15:08] +   em.by = "all",
+[2026-07-19 21:15:08] +   em.algo = c("EMmean", "EMcv"), # c(...) is for multiple options, chose these 2 algorithms because we do not need the median. it does the mean of all models and then does a standard deviation of them (covariance)
+[2026-07-19 21:15:08] +   metric.select = "AUCroc", # standard, most used, various articles say it's the best
+[2026-07-19 21:15:08] +   metric.select.thresh = 0.6, # threshold value for exclude the models that are not performing over a certain threshold, in this case 0.6
+[2026-07-19 21:15:08] +   metric.eval = c("TSS", "AUCroc", "KAPPA"), # 3 most used
+[2026-07-19 21:15:08] +   nb.cpu = ensemble_n_cpu
+[2026-07-19 21:15:08] + )
+[2026-07-19 21:15:08] 
+[2026-07-19 21:15:08] -=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Ensemble Models -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:15:08] 
+[2026-07-19 21:15:08]    ! all models available will be included in ensemble.modeling
+[2026-07-19 21:15:08]   ! Ensemble Models will be filtered and/or weighted using validation dataset (if possible). Please use `metric.select.dataset` for alternative options.
+[2026-07-19 21:15:08]    > Evaluation & Weighting methods summary :
+[2026-07-19 21:15:08]       AUCroc over 0.6
+[2026-07-19 21:15:10] 
+[2026-07-19 21:15:10] 
+[2026-07-19 21:15:14]   > mergedData_mergedRun_mergedAlgo ensemble modeling
+[2026-07-19 21:15:17]    ! Additional projection required for ensemble models merging several pseudo-absence dataset...
+[2026-07-19 21:15:17] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:15:17] 
+[2026-07-19 21:15:17] 	> Projecting Achillea.atrata_PA1_RUN1_GLM ...
+[2026-07-19 21:15:17] 	> Projecting Achillea.atrata_PA1_RUN1_GBM ...
+[2026-07-19 21:15:17] 	> Projecting Achillea.atrata_PA1_RUN1_ANN ...
+[2026-07-19 21:15:17] 	> Projecting Achillea.atrata_PA1_RUN1_MAXNET ...
+[2026-07-19 21:15:18] 	> Projecting Achillea.atrata_PA1_RUN2_GBM ...
+[2026-07-19 21:15:19] 	> Projecting Achillea.atrata_PA1_RUN1_FDA ...
+[2026-07-19 21:15:19] 	> Projecting Achillea.atrata_PA1_RUN2_GLM ...
+[2026-07-19 21:15:19] 	> Projecting Achillea.atrata_PA1_RUN2_ANN ...
+[2026-07-19 21:15:19] 	> Projecting Achillea.atrata_PA1_RUN2_MAXNET ...
+[2026-07-19 21:15:19] 	> Projecting Achillea.atrata_PA1_RUN2_FDA ...
+[2026-07-19 21:15:19] 	> Projecting Achillea.atrata_PA1_RUN3_GLM ...
+[2026-07-19 21:15:19] 	> Projecting Achillea.atrata_PA1_RUN3_GBM ...
+[2026-07-19 21:15:19] 	> Projecting Achillea.atrata_PA1_RUN3_ANN ...
+[2026-07-19 21:15:19] 	> Projecting Achillea.atrata_PA1_RUN3_MAXNET ...
+[2026-07-19 21:15:21] 	> Projecting Achillea.atrata_PA1_RUN4_GBM ...
+[2026-07-19 21:15:21] 	> Projecting Achillea.atrata_PA1_RUN3_FDA ...
+[2026-07-19 21:15:21] 	> Projecting Achillea.atrata_PA1_RUN4_GLM ...
+[2026-07-19 21:15:21] 	> Projecting Achillea.atrata_PA1_RUN4_ANN ...
+[2026-07-19 21:15:21] 	> Projecting Achillea.atrata_PA1_RUN4_FDA ...
+[2026-07-19 21:15:21] 	> Projecting Achillea.atrata_PA1_RUN4_MAXNET ...
+[2026-07-19 21:15:21] 	> Projecting Achillea.atrata_PA1_RUN5_GLM ...
+[2026-07-19 21:15:21] 	> Projecting Achillea.atrata_PA1_RUN5_GBM ...
+[2026-07-19 21:15:21] 	> Projecting Achillea.atrata_PA1_RUN5_ANN ...
+[2026-07-19 21:15:23] 	> Projecting Achillea.atrata_PA1_RUN5_MAXNET ...
+[2026-07-19 21:15:29] 	> Projecting Achillea.atrata_PA1_RUN5_FDA ...
+[2026-07-19 21:15:29] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:15:33] 
+[2026-07-19 21:15:33] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:15:33] 
+[2026-07-19 21:15:33] 	> Projecting Achillea.atrata_PA2_RUN1_GLM ...
+[2026-07-19 21:15:33] 	> Projecting Achillea.atrata_PA2_RUN1_GBM ...
+[2026-07-19 21:15:33] 	> Projecting Achillea.atrata_PA2_RUN1_ANN ...
+[2026-07-19 21:15:34] 	> Projecting Achillea.atrata_PA2_RUN1_MAXNET ...
+[2026-07-19 21:15:35] 	> Projecting Achillea.atrata_PA2_RUN2_GBM ...
+[2026-07-19 21:15:35] 	> Projecting Achillea.atrata_PA2_RUN1_FDA ...
+[2026-07-19 21:15:35] 	> Projecting Achillea.atrata_PA2_RUN2_GLM ...
+[2026-07-19 21:15:35] 	> Projecting Achillea.atrata_PA2_RUN2_ANN ...
+[2026-07-19 21:15:35] 	> Projecting Achillea.atrata_PA2_RUN2_MAXNET ...
+[2026-07-19 21:15:35] 	> Projecting Achillea.atrata_PA2_RUN2_FDA ...
+[2026-07-19 21:15:35] 	> Projecting Achillea.atrata_PA2_RUN3_GLM ...
+[2026-07-19 21:15:36] 	> Projecting Achillea.atrata_PA2_RUN3_GBM ...
+[2026-07-19 21:15:36] 	> Projecting Achillea.atrata_PA2_RUN3_ANN ...
+[2026-07-19 21:15:36] 	> Projecting Achillea.atrata_PA2_RUN3_MAXNET ...
+[2026-07-19 21:15:37] 	> Projecting Achillea.atrata_PA2_RUN4_GBM ...
+[2026-07-19 21:15:37] 	> Projecting Achillea.atrata_PA2_RUN3_FDA ...
+[2026-07-19 21:15:37] 	> Projecting Achillea.atrata_PA2_RUN4_GLM ...
+[2026-07-19 21:15:37] 	> Projecting Achillea.atrata_PA2_RUN4_ANN ...
+[2026-07-19 21:15:37] 	> Projecting Achillea.atrata_PA2_RUN4_MAXNET ...
+[2026-07-19 21:15:38] 	> Projecting Achillea.atrata_PA2_RUN4_FDA ...
+[2026-07-19 21:15:38] 	> Projecting Achillea.atrata_PA2_RUN5_GLM ...
+[2026-07-19 21:15:38] 	> Projecting Achillea.atrata_PA2_RUN5_GBM ...
+[2026-07-19 21:15:38] 	> Projecting Achillea.atrata_PA2_RUN5_ANN ...
+[2026-07-19 21:15:39] 	> Projecting Achillea.atrata_PA2_RUN5_MAXNET ...
+[2026-07-19 21:15:47] 	> Projecting Achillea.atrata_PA2_RUN5_FDA ...
+[2026-07-19 21:15:47] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:15:51] 
+[2026-07-19 21:15:51] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:15:51] 
+[2026-07-19 21:15:51] 	> Projecting Achillea.atrata_PA3_RUN1_GLM ...
+[2026-07-19 21:15:51] 	> Projecting Achillea.atrata_PA3_RUN1_GBM ...
+[2026-07-19 21:15:52] 	> Projecting Achillea.atrata_PA3_RUN1_ANN ...
+[2026-07-19 21:15:52] 	> Projecting Achillea.atrata_PA3_RUN1_MAXNET ...
+[2026-07-19 21:15:53] 	> Projecting Achillea.atrata_PA3_RUN2_GBM ...
+[2026-07-19 21:15:53] 	> Projecting Achillea.atrata_PA3_RUN1_FDA ...
+[2026-07-19 21:15:53] 	> Projecting Achillea.atrata_PA3_RUN2_GLM ...
+[2026-07-19 21:15:53] 	> Projecting Achillea.atrata_PA3_RUN2_ANN ...
+[2026-07-19 21:15:54] 	> Projecting Achillea.atrata_PA3_RUN2_MAXNET ...
+[2026-07-19 21:15:54] 	> Projecting Achillea.atrata_PA3_RUN2_FDA ...
+[2026-07-19 21:15:54] 	> Projecting Achillea.atrata_PA3_RUN3_GBM ...
+[2026-07-19 21:15:54] 	> Projecting Achillea.atrata_PA3_RUN3_GLM ...
+[2026-07-19 21:15:54] 	> Projecting Achillea.atrata_PA3_RUN3_ANN ...
+[2026-07-19 21:15:54] 	> Projecting Achillea.atrata_PA3_RUN3_MAXNET ...
+[2026-07-19 21:15:55] 	> Projecting Achillea.atrata_PA3_RUN4_GBM ...
+[2026-07-19 21:15:55] 	> Projecting Achillea.atrata_PA3_RUN3_FDA ...
+[2026-07-19 21:15:56] 	> Projecting Achillea.atrata_PA3_RUN4_GLM ...
+[2026-07-19 21:15:56] 	> Projecting Achillea.atrata_PA3_RUN4_ANN ...
+[2026-07-19 21:15:56] 	> Projecting Achillea.atrata_PA3_RUN4_MAXNET ...
+[2026-07-19 21:15:56] 	> Projecting Achillea.atrata_PA3_RUN4_FDA ...
+[2026-07-19 21:15:56] 	> Projecting Achillea.atrata_PA3_RUN5_GLM ...
+[2026-07-19 21:15:56] 	> Projecting Achillea.atrata_PA3_RUN5_GBM ...
+[2026-07-19 21:15:56] 	> Projecting Achillea.atrata_PA3_RUN5_ANN ...
+[2026-07-19 21:15:58] 	> Projecting Achillea.atrata_PA3_RUN5_MAXNET ...
+[2026-07-19 21:16:06] 	> Projecting Achillea.atrata_PA3_RUN5_FDA ...
+[2026-07-19 21:16:06] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:16:10] 
+[2026-07-19 21:16:10] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:16:10] 
+[2026-07-19 21:16:10] 	> Projecting Achillea.atrata_PA4_RUN1_GLM ...
+[2026-07-19 21:16:10] 	> Projecting Achillea.atrata_PA4_RUN1_GBM ...
+[2026-07-19 21:16:10] 	> Projecting Achillea.atrata_PA4_RUN1_ANN ...
+[2026-07-19 21:16:10] 	> Projecting Achillea.atrata_PA4_RUN1_MAXNET ...
+[2026-07-19 21:16:11] 	> Projecting Achillea.atrata_PA4_RUN2_GBM ...
+[2026-07-19 21:16:12] 	> Projecting Achillea.atrata_PA4_RUN1_FDA ...
+[2026-07-19 21:16:12] 	> Projecting Achillea.atrata_PA4_RUN2_GLM ...
+[2026-07-19 21:16:12] 	> Projecting Achillea.atrata_PA4_RUN2_ANN ...
+[2026-07-19 21:16:12] 	> Projecting Achillea.atrata_PA4_RUN2_FDA ...
+[2026-07-19 21:16:12] 	> Projecting Achillea.atrata_PA4_RUN2_MAXNET ...
+[2026-07-19 21:16:12] 	> Projecting Achillea.atrata_PA4_RUN3_GLM ...
+[2026-07-19 21:16:12] 	> Projecting Achillea.atrata_PA4_RUN3_GBM ...
+[2026-07-19 21:16:12] 	> Projecting Achillea.atrata_PA4_RUN3_ANN ...
+[2026-07-19 21:16:12] 	> Projecting Achillea.atrata_PA4_RUN3_MAXNET ...
+[2026-07-19 21:16:14] 	> Projecting Achillea.atrata_PA4_RUN4_GBM ...
+[2026-07-19 21:16:14] 	> Projecting Achillea.atrata_PA4_RUN3_FDA ...
+[2026-07-19 21:16:14] 	> Projecting Achillea.atrata_PA4_RUN4_GLM ...
+[2026-07-19 21:16:14] 	> Projecting Achillea.atrata_PA4_RUN4_ANN ...
+[2026-07-19 21:16:14] 	> Projecting Achillea.atrata_PA4_RUN4_FDA ...
+[2026-07-19 21:16:14] 	> Projecting Achillea.atrata_PA4_RUN4_MAXNET ...
+[2026-07-19 21:16:14] 	> Projecting Achillea.atrata_PA4_RUN5_GLM ...
+[2026-07-19 21:16:14] 	> Projecting Achillea.atrata_PA4_RUN5_GBM ...
+[2026-07-19 21:16:15] 	> Projecting Achillea.atrata_PA4_RUN5_ANN ...
+[2026-07-19 21:16:16] 	> Projecting Achillea.atrata_PA4_RUN5_MAXNET ...
+[2026-07-19 21:16:26] 	> Projecting Achillea.atrata_PA4_RUN5_FDA ...
+[2026-07-19 21:16:26] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:16:30] 
+[2026-07-19 21:16:30] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:16:30] 
+[2026-07-19 21:16:30] 	> Projecting Achillea.atrata_PA5_RUN1_GLM ...
+[2026-07-19 21:16:30] 	> Projecting Achillea.atrata_PA5_RUN1_GBM ...
+[2026-07-19 21:16:30] 	> Projecting Achillea.atrata_PA5_RUN1_ANN ...
+[2026-07-19 21:16:30] 	> Projecting Achillea.atrata_PA5_RUN1_MAXNET ...
+[2026-07-19 21:16:31] 	> Projecting Achillea.atrata_PA5_RUN2_GBM ...
+[2026-07-19 21:16:32] 	> Projecting Achillea.atrata_PA5_RUN1_FDA ...
+[2026-07-19 21:16:32] 	> Projecting Achillea.atrata_PA5_RUN2_GLM ...
+[2026-07-19 21:16:32] 	> Projecting Achillea.atrata_PA5_RUN2_ANN ...
+[2026-07-19 21:16:32] 	> Projecting Achillea.atrata_PA5_RUN2_MAXNET ...
+[2026-07-19 21:16:32] 	> Projecting Achillea.atrata_PA5_RUN2_FDA ...
+[2026-07-19 21:16:32] 	> Projecting Achillea.atrata_PA5_RUN3_GBM ...
+[2026-07-19 21:16:32] 	> Projecting Achillea.atrata_PA5_RUN3_GLM ...
+[2026-07-19 21:16:32] 	> Projecting Achillea.atrata_PA5_RUN3_ANN ...
+[2026-07-19 21:16:33] 	> Projecting Achillea.atrata_PA5_RUN3_MAXNET ...
+[2026-07-19 21:16:34] 	> Projecting Achillea.atrata_PA5_RUN4_GBM ...
+[2026-07-19 21:16:34] 	> Projecting Achillea.atrata_PA5_RUN3_FDA ...
+[2026-07-19 21:16:34] 	> Projecting Achillea.atrata_PA5_RUN4_GLM ...
+[2026-07-19 21:16:34] 	> Projecting Achillea.atrata_PA5_RUN4_ANN ...
+[2026-07-19 21:16:34] 	> Projecting Achillea.atrata_PA5_RUN4_MAXNET ...
+[2026-07-19 21:16:34] 	> Projecting Achillea.atrata_PA5_RUN4_FDA ...
+[2026-07-19 21:16:34] 	> Projecting Achillea.atrata_PA5_RUN5_GLM ...
+[2026-07-19 21:16:35] 	> Projecting Achillea.atrata_PA5_RUN5_GBM ...
+[2026-07-19 21:16:35] 	> Projecting Achillea.atrata_PA5_RUN5_ANN ...
+[2026-07-19 21:16:36] 	> Projecting Achillea.atrata_PA5_RUN5_MAXNET ...
+[2026-07-19 21:16:44] 	> Projecting Achillea.atrata_PA5_RUN5_FDA ...
+[2026-07-19 21:16:44] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:16:53] 
+[2026-07-19 21:16:53] 
+[2026-07-19 21:16:53] 
+[2026-07-19 21:16:53]    > Mean of probabilities by AUCroc ...
+[2026-07-19 21:16:53] 
+[2026-07-19 21:17:21]    > Coef of variation of probabilities by AUCroc ...
+[2026-07-19 21:17:24] 			Evaluating Model stuff...Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] Warning in forecast_0 * observed_0 : NAs produced by integer overflow
+[2026-07-19 21:17:24] 
+[2026-07-19 21:17:24] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:17:24] > end.time <- Sys.time()
+[2026-07-19 21:17:24] > time.modeling_EM <- end.time - start.time
+[2026-07-19 21:17:24] > 
+[2026-07-19 21:17:24] > ### Models evaluations
+[2026-07-19 21:17:24] > myBiomodModelEval <- get_evaluations(myBiomodModelOut)
+[2026-07-19 21:17:24] > myBiomodModelEval_ensamble <- get_evaluations(myBiomodEM)
+[2026-07-19 21:17:24] > 
+[2026-07-19 21:17:24] > # TODO change output to csv
+[2026-07-19 21:17:24] > nome <- paste0("Eval_", species_name, ".txt", sep = "")
+[2026-07-19 21:17:24] > write.table(myBiomodModelEval, file = nome, sep = "\t")
+[2026-07-19 21:17:24] > 
+[2026-07-19 21:17:24] > nome1 <- paste0("Eval_EM_", species_name, ".txt", sep = "")
+[2026-07-19 21:17:24] > write.table(myBiomodModelEval_ensamble, file = nome1, sep = "\t")
+[2026-07-19 21:17:24] > 
+[2026-07-19 21:17:24] > ###########################################################################
+[2026-07-19 21:17:24] > ######################      PROJECTION ON ALPS        #####################
+[2026-07-19 21:17:24] > ###########################################################################
+[2026-07-19 21:17:24] > 
+[2026-07-19 21:17:24] > ###########################################################################
+[2026-07-19 21:17:24] > ###########################           CURRENT   ###########################
+[2026-07-19 21:17:24] > ###########################################################################
+[2026-07-19 21:17:24] > 
+[2026-07-19 21:17:24] > # 5. Individual models projections on current environmental conditions
+[2026-07-19 21:17:24] > start.time <- Sys.time()
+[2026-07-19 21:17:24] > myBiomodProj <- BIOMOD_Projection(
+[2026-07-19 21:17:24] +   bm.mod = myBiomodModelOut,
+[2026-07-19 21:17:24] +   proj.name = "current",
+[2026-07-19 21:17:24] +   new.env = cur_proj,
+[2026-07-19 21:17:24] +   models.chosen = "all",
+[2026-07-19 21:17:24] +   build.clamping.mask = T, # opzione per avere un'idea delle località in cui la predizione è incerta, dove non è sicuro di quello che sta predicendo, predizione potrebbe essere incerta, perchè i dati ambientali potrebbero non essere così fedeli alle variabili attinenti alla presenza vera delal specie (un modo per capire l'incertezza della predizione per ogni cella (km quadrato))
+[2026-07-19 21:17:24] +   keep.in.memory = FALSE,
+[2026-07-19 21:17:24] +   do.stack = TRUE,
+[2026-07-19 21:17:24] +   nb.cpu = n_cpu
+[2026-07-19 21:17:24] + )
+[2026-07-19 21:17:24] 
+[2026-07-19 21:17:24] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 21:17:48] 
+[2026-07-19 21:17:48] 	> Building clamping mask
+[2026-07-19 21:18:53] 
+[2026-07-19 21:18:53] 	> Projecting Achillea.atrata_PA1_RUN1_GLM ...
+[2026-07-19 21:18:53] 	> Projecting Achillea.atrata_PA1_RUN1_GBM ...
+[2026-07-19 21:18:53] 	> Projecting Achillea.atrata_PA1_RUN1_ANN ...
+[2026-07-19 21:19:36] 	> Projecting Achillea.atrata_PA1_RUN1_FDA ...
+[2026-07-19 21:19:55] 	> Projecting Achillea.atrata_PA1_RUN1_MAXNET ...
+[2026-07-19 21:20:07] 	> Projecting Achillea.atrata_PA1_RUN2_ANN ...
+[2026-07-19 21:20:26] 	> Projecting Achillea.atrata_PA1_RUN2_GBM ...
+[2026-07-19 21:21:04] 	> Projecting Achillea.atrata_PA1_RUN2_FDA ...
+[2026-07-19 21:21:14] 	> Projecting Achillea.atrata_PA1_RUN3_GBM ...
+[2026-07-19 21:22:11] 	> Projecting Achillea.atrata_PA1_RUN3_ANN ...
+[2026-07-19 21:33:13] 	> Projecting Achillea.atrata_PA1_RUN4_GBM ...
+[2026-07-19 21:33:55] 	> Projecting Achillea.atrata_PA1_RUN2_GLM ...
+[2026-07-19 21:34:11] 	> Projecting Achillea.atrata_PA1_RUN2_MAXNET ...
+[2026-07-19 21:34:42] 	> Projecting Achillea.atrata_PA1_RUN3_GLM ...
+[2026-07-19 21:34:50] 	> Projecting Achillea.atrata_PA1_RUN3_FDA ...
+[2026-07-19 21:35:06] 	> Projecting Achillea.atrata_PA1_RUN3_MAXNET ...
+[2026-07-19 21:35:29] 	> Projecting Achillea.atrata_PA1_RUN4_GLM ...
+[2026-07-19 21:35:39] 	> Projecting Achillea.atrata_PA1_RUN4_ANN ...
+[2026-07-19 21:35:42] 	> Projecting Achillea.atrata_PA1_RUN4_FDA ...
+[2026-07-19 21:36:26] 	> Projecting Achillea.atrata_PA1_RUN4_MAXNET ...
+[2026-07-19 21:36:30] 	> Projecting Achillea.atrata_PA1_RUN5_GLM ...
+[2026-07-19 21:36:33] 	> Projecting Achillea.atrata_PA1_RUN5_FDA ...
+[2026-07-19 21:36:34] 	> Projecting Achillea.atrata_PA1_RUN5_ANN ...
+[2026-07-19 21:36:58] 	> Projecting Achillea.atrata_PA1_RUN5_GBM ...
+[2026-07-19 21:37:19] 	> Projecting Achillea.atrata_PA1_RUN5_MAXNET ...
+[2026-07-19 21:37:33] 	> Projecting Achillea.atrata_PA2_RUN1_ANN ...
+[2026-07-19 21:37:45] 	> Projecting Achillea.atrata_PA2_RUN1_GBM ...
+[2026-07-19 21:38:08] 	> Projecting Achillea.atrata_PA2_RUN1_FDA ...
+[2026-07-19 21:38:39] 	> Projecting Achillea.atrata_PA2_RUN2_GBM ...
+[2026-07-19 21:39:37] 	> Projecting Achillea.atrata_PA2_RUN2_ANN ...
+[2026-07-19 21:50:32] 	> Projecting Achillea.atrata_PA2_RUN3_GBM ...
+[2026-07-19 21:51:07] 	> Projecting Achillea.atrata_PA2_RUN1_GLM ...
+[2026-07-19 21:51:28] 	> Projecting Achillea.atrata_PA2_RUN1_MAXNET ...
+[2026-07-19 21:51:49] 	> Projecting Achillea.atrata_PA2_RUN2_GLM ...
+[2026-07-19 21:52:06] 	> Projecting Achillea.atrata_PA2_RUN2_FDA ...
+[2026-07-19 21:52:10] 	> Projecting Achillea.atrata_PA2_RUN2_MAXNET ...
+[2026-07-19 21:52:35] 	> Projecting Achillea.atrata_PA2_RUN3_GLM ...
+[2026-07-19 21:52:43] 	> Projecting Achillea.atrata_PA2_RUN3_ANN ...
+[2026-07-19 21:52:51] 	> Projecting Achillea.atrata_PA2_RUN3_MAXNET ...
+[2026-07-19 21:53:24] 	> Projecting Achillea.atrata_PA2_RUN3_FDA ...
+[2026-07-19 21:53:29] 	> Projecting Achillea.atrata_PA2_RUN4_FDA ...
+[2026-07-19 21:53:40] 	> Projecting Achillea.atrata_PA2_RUN4_GBM ...
+[2026-07-19 21:53:43] 	> Projecting Achillea.atrata_PA2_RUN4_ANN ...
+[2026-07-19 21:54:06] 	> Projecting Achillea.atrata_PA2_RUN4_GLM ...
+[2026-07-19 21:54:18] 	> Projecting Achillea.atrata_PA2_RUN5_ANN ...
+[2026-07-19 21:54:30] 	> Projecting Achillea.atrata_PA2_RUN4_MAXNET ...
+[2026-07-19 21:54:57] 	> Projecting Achillea.atrata_PA2_RUN5_GBM ...
+[2026-07-19 21:55:03] 	> Projecting Achillea.atrata_PA3_RUN1_GBM ...
+[2026-07-19 21:55:51] 	> Projecting Achillea.atrata_PA2_RUN5_FDA ...
+[2026-07-19 21:56:47] 	> Projecting Achillea.atrata_PA3_RUN1_ANN ...
+[2026-07-19 22:07:27] 	> Projecting Achillea.atrata_PA3_RUN2_GBM ...
+[2026-07-19 22:08:00] 	> Projecting Achillea.atrata_PA2_RUN5_GLM ...
+[2026-07-19 22:08:29] 	> Projecting Achillea.atrata_PA2_RUN5_MAXNET ...
+[2026-07-19 22:08:37] 	> Projecting Achillea.atrata_PA3_RUN1_GLM ...
+[2026-07-19 22:08:38] 	> Projecting Achillea.atrata_PA3_RUN1_FDA ...
+[2026-07-19 22:09:05] 	> Projecting Achillea.atrata_PA3_RUN2_GLM ...
+[2026-07-19 22:09:07] 	> Projecting Achillea.atrata_PA3_RUN1_MAXNET ...
+[2026-07-19 22:09:27] 	> Projecting Achillea.atrata_PA3_RUN2_MAXNET ...
+[2026-07-19 22:09:45] 	> Projecting Achillea.atrata_PA3_RUN2_ANN ...
+[2026-07-19 22:09:51] 	> Projecting Achillea.atrata_PA3_RUN3_FDA ...
+[2026-07-19 22:10:18] 	> Projecting Achillea.atrata_PA3_RUN2_FDA ...
+[2026-07-19 22:10:32] 	> Projecting Achillea.atrata_PA3_RUN3_GBM ...
+[2026-07-19 22:10:38] 	> Projecting Achillea.atrata_PA3_RUN4_ANN ...
+[2026-07-19 22:10:51] 	> Projecting Achillea.atrata_PA3_RUN3_ANN ...
+[2026-07-19 22:11:21] 	> Projecting Achillea.atrata_PA3_RUN3_GLM ...
+[2026-07-19 22:11:25] 	> Projecting Achillea.atrata_PA3_RUN5_GBM ...
+[2026-07-19 22:11:26] 	> Projecting Achillea.atrata_PA3_RUN4_GBM ...
+[2026-07-19 22:12:11] 	> Projecting Achillea.atrata_PA3_RUN3_MAXNET ...
+[2026-07-19 22:13:03] 	> Projecting Achillea.atrata_PA3_RUN4_FDA ...
+[2026-07-19 22:14:04] 	> Projecting Achillea.atrata_PA3_RUN5_ANN ...
+[2026-07-19 22:24:13] 	> Projecting Achillea.atrata_PA4_RUN1_GBM ...
+[2026-07-19 22:24:42] 	> Projecting Achillea.atrata_PA3_RUN4_GLM ...
+[2026-07-19 22:25:09] 	> Projecting Achillea.atrata_PA3_RUN4_MAXNET ...
+[2026-07-19 22:25:24] 	> Projecting Achillea.atrata_PA3_RUN5_GLM ...
+[2026-07-19 22:25:25] 	> Projecting Achillea.atrata_PA4_RUN1_GLM ...
+[2026-07-19 22:25:44] 	> Projecting Achillea.atrata_PA3_RUN5_FDA ...
+[2026-07-19 22:26:04] 	> Projecting Achillea.atrata_PA3_RUN5_MAXNET ...
+[2026-07-19 22:26:12] 	> Projecting Achillea.atrata_PA4_RUN1_MAXNET ...
+[2026-07-19 22:26:24] 	> Projecting Achillea.atrata_PA4_RUN1_ANN ...
+[2026-07-19 22:26:44] 	> Projecting Achillea.atrata_PA4_RUN1_FDA ...
+[2026-07-19 22:27:04] 	> Projecting Achillea.atrata_PA4_RUN2_FDA ...
+[2026-07-19 22:27:11] 	> Projecting Achillea.atrata_PA4_RUN2_ANN ...
+[2026-07-19 22:27:29] 	> Projecting Achillea.atrata_PA4_RUN2_GBM ...
+[2026-07-19 22:27:51] 	> Projecting Achillea.atrata_PA4_RUN3_ANN ...
+[2026-07-19 22:28:22] 	> Projecting Achillea.atrata_PA4_RUN3_GBM ...
+[2026-07-19 22:28:37] 	> Projecting Achillea.atrata_PA4_RUN4_GBM ...
+[2026-07-19 22:29:09] 	> Projecting Achillea.atrata_PA4_RUN2_GLM ...
+[2026-07-19 22:29:55] 	> Projecting Achillea.atrata_PA4_RUN2_MAXNET ...
+[2026-07-19 22:30:47] 	> Projecting Achillea.atrata_PA4_RUN3_FDA ...
+[2026-07-19 22:31:42] 	> Projecting Achillea.atrata_PA4_RUN4_ANN ...
+[2026-07-19 22:41:20] 	> Projecting Achillea.atrata_PA4_RUN5_GBM ...
+[2026-07-19 22:41:47] 	> Projecting Achillea.atrata_PA4_RUN3_GLM ...
+[2026-07-19 22:42:26] 	> Projecting Achillea.atrata_PA4_RUN3_MAXNET ...
+[2026-07-19 22:42:29] 	> Projecting Achillea.atrata_PA4_RUN4_GLM ...
+[2026-07-19 22:42:32] 	> Projecting Achillea.atrata_PA4_RUN5_GLM ...
+[2026-07-19 22:42:58] 	> Projecting Achillea.atrata_PA4_RUN4_FDA ...
+[2026-07-19 22:43:01] 	> Projecting Achillea.atrata_PA4_RUN4_MAXNET ...
+[2026-07-19 22:43:19] 	> Projecting Achillea.atrata_PA4_RUN5_MAXNET ...
+[2026-07-19 22:43:36] 	> Projecting Achillea.atrata_PA4_RUN5_ANN ...
+[2026-07-19 22:43:38] 	> Projecting Achillea.atrata_PA4_RUN5_FDA ...
+[2026-07-19 22:44:12] 	> Projecting Achillea.atrata_PA5_RUN1_FDA ...
+[2026-07-19 22:44:18] 	> Projecting Achillea.atrata_PA5_RUN1_GBM ...
+[2026-07-19 22:44:25] 	> Projecting Achillea.atrata_PA5_RUN1_ANN ...
+[2026-07-19 22:45:18] 	> Projecting Achillea.atrata_PA5_RUN2_ANN ...
+[2026-07-19 22:45:19] 	> Projecting Achillea.atrata_PA5_RUN3_GBM ...
+[2026-07-19 22:45:34] 	> Projecting Achillea.atrata_PA5_RUN2_GBM ...
+[2026-07-19 22:46:06] 	> Projecting Achillea.atrata_PA5_RUN1_GLM ...
+[2026-07-19 22:46:58] 	> Projecting Achillea.atrata_PA5_RUN1_MAXNET ...
+[2026-07-19 22:47:44] 	> Projecting Achillea.atrata_PA5_RUN2_FDA ...
+[2026-07-19 22:48:34] 	> Projecting Achillea.atrata_PA5_RUN3_ANN ...
+[2026-07-19 22:58:14] 	> Projecting Achillea.atrata_PA5_RUN4_GBM ...
+[2026-07-19 22:58:55] 	> Projecting Achillea.atrata_PA5_RUN2_GLM ...
+[2026-07-19 22:59:25] 	> Projecting Achillea.atrata_PA5_RUN2_MAXNET ...
+[2026-07-19 22:59:29] 	> Projecting Achillea.atrata_PA5_RUN4_GLM ...
+[2026-07-19 22:59:40] 	> Projecting Achillea.atrata_PA5_RUN3_GLM ...
+[2026-07-19 22:59:59] 	> Projecting Achillea.atrata_PA5_RUN3_FDA ...
+[2026-07-19 23:00:05] 	> Projecting Achillea.atrata_PA5_RUN4_MAXNET ...
+[2026-07-19 23:00:25] 	> Projecting Achillea.atrata_PA5_RUN3_MAXNET ...
+[2026-07-19 23:00:48] 	> Projecting Achillea.atrata_PA5_RUN4_ANN ...
+[2026-07-19 23:00:50] 	> Projecting Achillea.atrata_PA5_RUN5_FDA ...
+[2026-07-19 23:01:28] 	> Projecting Achillea.atrata_PA5_RUN4_FDA ...
+[2026-07-19 23:01:38] 	> Projecting Achillea.atrata_PA5_RUN5_GBM ...
+[2026-07-19 23:02:50] 	> Projecting Achillea.atrata_PA5_RUN5_ANN ...
+[2026-07-19 23:03:24] 	> Projecting Achillea.atrata_PA5_RUN5_GLM ...
+[2026-07-19 23:26:35] 	> Projecting Achillea.atrata_PA5_RUN5_MAXNET ...|---------|---------|---------|---------|=========================================                                          
+[2026-07-19 23:26:35] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 23:26:35] > end.time <- Sys.time()
+[2026-07-19 23:26:35] > time.cur_proj <- end.time - start.time
+[2026-07-19 23:26:35] > 
+[2026-07-19 23:26:35] > # BIOMOD_Projection leaves its global foreach backend registered. Ensemble
+[2026-07-19 23:26:35] > # forecasting receives bm.proj, so select its two-worker backend explicitly.
+[2026-07-19 23:26:35] > doParallel::registerDoParallel(cores = ensemble_n_cpu)
+[2026-07-19 23:26:35] > 
+[2026-07-19 23:26:35] > # 6. Project ensemble models (reuse bm.proj to avoid internal re-projection)
+[2026-07-19 23:26:35] > start.time <- Sys.time()
+[2026-07-19 23:26:35] > myBiomodEMProj <- BIOMOD_EnsembleForecasting(
+[2026-07-19 23:26:35] +   # """nuovo raster con altri dati ambientali""" (proiezione della proiezione)
+[2026-07-19 23:26:35] +   bm.em = myBiomodEM,
+[2026-07-19 23:26:35] +   bm.proj = myBiomodProj, # reuse computed projection; biomod2 wants XOR(bm.proj, new.env)
+[2026-07-19 23:26:35] +   proj.name = "CurrentEM",
+[2026-07-19 23:26:35] +   models.chosen = "all",
+[2026-07-19 23:26:35] +   metric.binary = "all",
+[2026-07-19 23:26:35] +   metric.filter = "all",
+[2026-07-19 23:26:35] +   nb.cpu = ensemble_n_cpu
+[2026-07-19 23:26:35] + )
+[2026-07-19 23:26:35] 
+[2026-07-19 23:26:35] -=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 23:26:35] 
+[2026-07-19 23:26:35] Creating suitable Workdir...
+[2026-07-19 23:26:37] 
+[2026-07-19 23:26:39] 	> Projecting Achillea.atrata_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...|---------|---------|---------|---------|
+[2026-07-19 23:50:15] 	> Projecting Achillea.atrata_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...|---------|---------|---------|---------|===========================================================                                          =======================                                          
+[2026-07-19 23:50:15] 
+[2026-07-19 23:50:15] ! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+[2026-07-19 23:50:22] 	> Building TSS binaries / filtered
+[2026-07-19 23:50:30] 	> Building AUCroc binaries / filtered
+[2026-07-19 23:50:37] 	> Building KAPPA binaries / filtered
+[2026-07-19 23:50:37] 
+[2026-07-19 23:50:37] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 23:50:37] > end.time <- Sys.time()
+[2026-07-19 23:50:37] > time.cur_proj_EM <- end.time - start.time
+[2026-07-19 23:50:37] > 
+[2026-07-19 23:50:37] > ###########################################################################
+[2026-07-19 23:50:37] > #######################################   FUTURE     ######################
+[2026-07-19 23:50:37] > ###########################################################################
+[2026-07-19 23:50:37] > 
+[2026-07-19 23:50:37] > ## Number of future projections
+[2026-07-19 23:50:37] > # 5 global circulation models (GCM), variazione di gas serra, metano, etc, nell'atmosfera nel futuro, e all'interno di ognuno ci sono due scenari (ottimista SSP370 e pessimista SSP585), TODO check acronyms
+[2026-07-19 23:50:37] > # 10 future projections (5 GCM x 2 SSP) -> 10 proiezioni future per ogni specie
+[2026-07-19 23:50:37] > # calibrazione solo su current (presente), per avere una base di partenza, e la proiezione serve due volte
+[2026-07-19 23:50:37] > # proiezione sul futuro viene fatta partendo dai dati del primo (e unico) biomod modelling e sulle var ambientali future, per vedere come cambiano le predizioni
+[2026-07-19 23:50:37] > 
+[2026-07-19 23:50:37] > nf <- length(lf)
+[2026-07-19 23:50:37] > future_timings <- data.frame(
+[2026-07-19 23:50:37] +   scenario = character(),
+[2026-07-19 23:50:37] +   projection_secs = numeric(),
+[2026-07-19 23:50:37] +   ensemble_secs = numeric(),
+[2026-07-19 23:50:37] +   total_secs = numeric()
+[2026-07-19 23:50:37] + )
+[2026-07-19 23:50:37] > 
+[2026-07-19 23:50:37] > start.time <- Sys.time()
+[2026-07-19 23:50:37] > for (k in 1:nf) {
+[2026-07-19 23:50:37] +   scenario_start <- Sys.time()
+[2026-07-19 23:50:37] +   name <- lf[k]
+[2026-07-19 23:50:37] +   cat("\n\nDEBUG: Processing future scenario", k, "of", nf, ":", name, "\n")
+[2026-07-19 23:50:37] + 
+[2026-07-19 23:50:37] +   fut_files <- dir(lf[k], full.names = T)
+[2026-07-19 23:50:37] +   fut1 <- rast(fut_files)
+[2026-07-19 23:50:37] +   cat("DEBUG: Raster loaded, ncell =", ncell(fut1), ", hasValues =", hasValues(fut1), "\n")
+[2026-07-19 23:50:37] + 
+[2026-07-19 23:50:37] +   fut_proj <- c(fut1[[1]], fut1[[2]], tri_proj, soil_proj[[1]], soil_proj[[2]])
+[2026-07-19 23:50:37] +   names(fut_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+[2026-07-19 23:50:37] + 
+[2026-07-19 23:50:37] +   # path-depth independent: <gcm>/<ssp> are the last two path components
+[2026-07-19 23:50:37] +   nm1 <- strsplit(name, "/")[[1]]
+[2026-07-19 23:50:37] +   nm <- paste0(nm1[length(nm1) - 1], "_", nm1[length(nm1)])
+[2026-07-19 23:50:37] +   nm2 <- paste0("futureEM_", nm1[length(nm1) - 1], "_", nm1[length(nm1)])
+[2026-07-19 23:50:37] + 
+[2026-07-19 23:50:37] +   # 5. Individual models projections on future environmental conditions
+[2026-07-19 23:50:37] +   projection_start <- Sys.time()
+[2026-07-19 23:50:37] +   myBiomodProj_fut <- BIOMOD_Projection(
+[2026-07-19 23:50:37] +     bm.mod = myBiomodModelOut,
+[2026-07-19 23:50:37] +     proj.name = nm,
+[2026-07-19 23:50:37] +     new.env = fut_proj,
+[2026-07-19 23:50:37] +     models.chosen = "all",
+[2026-07-19 23:50:37] +     build.clamping.mask = T,
+[2026-07-19 23:50:37] +     keep.in.memory = FALSE,
+[2026-07-19 23:50:37] +     do.stack = TRUE,
+[2026-07-19 23:50:37] +     nb.cpu = n_cpu
+[2026-07-19 23:50:37] +   )
+[2026-07-19 23:50:37] +   projection_end <- Sys.time()
+[2026-07-19 23:50:37] + 
+[2026-07-19 23:50:37] +   doParallel::registerDoParallel(cores = ensemble_n_cpu)
+[2026-07-19 23:50:37] +   ensemble_start <- Sys.time()
+[2026-07-19 23:50:37] +   myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
+[2026-07-19 23:50:37] +     bm.em = myBiomodEM,
+[2026-07-19 23:50:37] +     bm.proj = myBiomodProj_fut, # reuse computed projection; biomod2 wants XOR(bm.proj, new.env)
+[2026-07-19 23:50:37] +     proj.name = nm2,
+[2026-07-19 23:50:37] +     models.chosen = "all",
+[2026-07-19 23:50:37] +     metric.binary = "all",
+[2026-07-19 23:50:37] +     metric.filter = "all",
+[2026-07-19 23:50:37] +     nb.cpu = ensemble_n_cpu
+[2026-07-19 23:50:37] +   )
+[2026-07-19 23:50:37] +   ensemble_end <- Sys.time()
+[2026-07-19 23:50:37] + 
+[2026-07-19 23:50:37] +   future_timings <- rbind(
+[2026-07-19 23:50:37] +     future_timings,
+[2026-07-19 23:50:37] +     data.frame(
+[2026-07-19 23:50:37] +       scenario = nm,
+[2026-07-19 23:50:37] +       projection_secs = as.numeric(projection_end - projection_start, units = "secs"),
+[2026-07-19 23:50:37] +       ensemble_secs = as.numeric(ensemble_end - ensemble_start, units = "secs"),
+[2026-07-19 23:50:37] +       total_secs = as.numeric(ensemble_end - scenario_start, units = "secs")
+[2026-07-19 23:50:37] +     )
+[2026-07-19 23:50:37] +   )
+[2026-07-19 23:50:37] + 
+[2026-07-19 23:50:37] +   rm(fut1, fut_proj, myBiomodProj_fut, myBiomodEMProj_fut)
+[2026-07-19 23:50:37] +   gc(verbose = FALSE)
+[2026-07-19 23:50:37] + }
+[2026-07-19 23:50:37] 
+[2026-07-19 23:50:37] 
+[2026-07-19 23:50:37] DEBUG: Processing future scenario 1 of 8 : /work/data/input/climate_vars/future/gfdl.esm4/ssp370 
+[2026-07-19 23:50:37] DEBUG: Raster loaded, ncell = 63951097 , hasValues = TRUE 
+[2026-07-19 23:50:37] 
+[2026-07-19 23:50:37] -=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+[2026-07-19 23:51:04] 
+[2026-07-19 23:51:04] 	> Building clamping mask
+[2026-07-19 23:52:19] Error in mcfork() : 
+[2026-07-19 23:52:19]   unable to fork, possible reason: Cannot allocate memory
+[2026-07-19 23:52:19] Calls: BIOMOD_Projection ... %dopar% -> <Anonymous> -> mclapply -> lapply -> FUN -> mcfork
+[2026-07-19 23:52:19] Execution halted
+Finished: 2026-07-19T23:52:30+02:00
+Elapsed: 0d 3h 57m 22s

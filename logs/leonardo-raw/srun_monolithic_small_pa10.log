@@ -1,0 +1,526 @@
+> options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
+> 
+> env_int <- function(name, default) {
++   value <- Sys.getenv(name, "")
++   if (!nzchar(value)) {
++     return(as.integer(default))
++   }
++   as.integer(value)
++ }
+> 
+> env_num <- function(name, default) {
++   value <- Sys.getenv(name, "")
++   if (!nzchar(value)) {
++     return(as.numeric(default))
++   }
++   as.numeric(value)
++ }
+> 
+> library(biomod2)
+biomod2 4.3-4-5 loaded.
+ /!\ Welcome to augmented biomod2 with abundance modeling available! (*o*)
+ Take a look at the HOME and NEWS section on the website to see all the features!
+
+Loading required package: nnet
+Loading required package: rpart
+Loading required package: cito
+Warning in library(package, lib.loc = lib.loc, character.only = TRUE, logical.return = TRUE,  :
+  there is no package called ‘cito’
+Loading required package: mda
+Loading required package: class
+Loaded mda 0.5-5
+
+Loading required package: gam
+Loading required package: splines
+Loading required package: foreach
+Loaded gam 1.22-7
+
+Loading required package: mgcv
+Loading required package: nlme
+This is mgcv 1.9-4. For overview type '?mgcv'.
+
+Attaching package: ‘mgcv’
+
+The following objects are masked from ‘package:gam’:
+
+    gam, gam.control, gam.fit, s
+
+The following object is masked from ‘package:nnet’:
+
+    multinom
+
+Loading required package: gbm
+Loaded gbm 2.2.3
+This version of gbm is no longer under development. Consider transitioning to gbm3, https://github.com/gbm-developers/gbm3
+Loading required package: earth
+Loading required package: Formula
+Loading required package: plotmo
+Loading required package: plotrix
+Loading required package: maxnet
+Loading required package: randomForest
+randomForest 4.7-1.2
+Type rfNews() to see new features/changes/bug fixes.
+Loading required package: xgboost
+> library(terra)
+terra 1.9.11
+
+Attaching package: ‘terra’
+
+The following object is masked from ‘package:plotrix’:
+
+    rescale
+
+> library(gbm)
+> library(mda)
+> library(randomForest)
+> 
+> # NOTE: makeCluster/registerDoParallel removed - hangs inside Singularity container.
+> # TODO: check if without makeCluster nb.cpu=x is ignored and if actually runs in parallel
+> # cl <- makeCluster(10)
+> # registerDoParallel(cl)
+> 
+> root <- normalizePath(".")
+> in_dir <- file.path(root, "data/input")
+> output_dir_override <- Sys.getenv("OUTPUT_DIR", "")
+> out_dir <- if (nzchar(output_dir_override)) {
++   normalizePath(output_dir_override, mustWork = FALSE)
++ } else {
++   file.path(root, "data/output")
++ }
+> dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+> 
+> input_csv <- Sys.getenv("INPUT_CSV", "full_1km_EUNIS.csv")
+> pa_nb_rep <- env_int("PA_NB_REP", 10L)
+> pa_nb_absences <- env_int("PA_NB_ABSENCES", 10000L)
+> cv_nb_rep <- env_int("CV_NB_REP", 5L)
+> future_limit_value <- Sys.getenv("FUTURE_LIMIT", "")
+> future_limit <- if (nzchar(future_limit_value)) as.integer(future_limit_value) else NA_integer_
+> final_sleep_seconds <- env_num("FINAL_SLEEP_SECONDS", 10)
+> 
+> cat(
++   "DEBUG: input_csv =", input_csv,
++   "| PA.nb.rep =", pa_nb_rep,
++   "| PA.nb.absences =", pa_nb_absences,
++   "| CV.nb.rep =", cv_nb_rep,
++   "| out_dir =", out_dir, "\n"
++ )
+DEBUG: input_csv = small_1km_EUNIS.csv | PA.nb.rep = 1 | PA.nb.absences = 10 | CV.nb.rep = 1 | out_dir = /work/data/output_monolithic_leo_pa10 
+> 
+> ####################################
+> # loading species occurrences data
+> ####################################
+> spocc <- read.csv(file.path(in_dir, input_csv), head = TRUE)
+> spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
+> spocc$sp_name <- sub(" ", ".", spocc$sp_name)
+> sp.names <- levels(factor(spocc[, 1]))
+> num_sp <- length(sp.names)
+> cat("DEBUG: num_sp =", num_sp, "| total rows =", nrow(spocc), "\n")
+DEBUG: num_sp = 1 | total rows = 9 
+> 
+> #####################################
+> # CALIBRATION environmental data
+> #####################################
+> cat("DEBUG: loading calibration rasters...\n")
+DEBUG: loading calibration rasters...
+> clim_cal <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+> tri_cal <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+> soil_cal <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+> cur_cal <- c(clim_cal, tri_cal, soil_cal)
+> names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+> cat("DEBUG: raster dim =", dim(cur_cal)[1], "x", dim(cur_cal)[2], "| ncell =", ncell(cur_cal), "\n")
+DEBUG: raster dim = 5873 x 10889 | ncell = 63951097 
+> 
+> #####################################
+> # PROJECTION environmental data
+> #####################################
+> clim_proj <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+> tri_proj <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+> soil_proj <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+> cur_proj <- c(clim_proj, tri_proj, soil_proj)
+> names(cur_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+> 
+> #####################################
+> # loading FUTURE list (leaf dirs containing tif)
+> #####################################
+> lf <- list.dirs(file.path(in_dir, "climate_vars/future"), full.names = T, recursive = T)[-1]
+> lf <- lf[sapply(lf, function(d) length(list.files(d, pattern = "\\.tif$")) > 0)]
+> if (!is.na(future_limit)) {
++   lf <- head(lf, future_limit)
++ }
+> cat("DEBUG: testing with", length(lf), "future scenarios\n")
+DEBUG: testing with 0 future scenarios
+> 
+> # outputs (biomod2 writes species folders into the working dir)
+> setwd(out_dir)
+> 
+> pb <- txtProgressBar(min = 0, max = num_sp, style = 3, width = 50, char = "=")
+  |                                                          |                                                  |   0%> 
+> selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
+> 
+> # SLURM array task -> one species (array id = index into full sorted species list)
+> k <- env_int("SPECIES_INDEX", Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
+> i <- k
+> spocc1 <- subset(spocc, spocc[, 1] == sp.names[i])
+> cat("DEBUG: array task", k, "-> species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
+DEBUG: array task 1 -> species = Achillea.atrata | occurrences = 9 
+> 
+> # TODO: study if quicker to run for loop inside r or submit slurm arrays of jobs
+> # TODO maybe do both
+> # TODO check if it's possible to run multicore with a sinle ram copy, instead of a copy for each core
+> 
+> # parallel fork count for Modeling + Projection only. EnsembleForecasting stays nb.cpu=1.
+> # Small datasets (<50k occ) trigger mclapply SIGPIPE race conditions at n_cpu>1 (job 47510573_2/_3).
+> # Use n_cpu=1 for small species to avoid the forking bug.
+> n_cpu <- if (nrow(spocc1) >= 50000) 4L else 1L
+> cat("DEBUG: n_cpu =", n_cpu, "(threshold 50k)\n")
+DEBUG: n_cpu = 1 (threshold 50k)
+> 
+> # per-species output wipe (array-safe: only this task's species dir, not sibling tasks')
+> unlink(file.path(out_dir, sp.names[i]), recursive = TRUE)
+> 
+> ###########################################################################
+> ######################     CALIBRATION ON EUROPE      #####################
+> ###########################################################################
+> 
+> start.time <- Sys.time()
+> myRespName <- paste(sp.names[i], sep = ".")
+> myRespXY <- spocc1[, 2:3] # coordinates of points
+> myResp <- rep(1, nrow(spocc1)) # species occurences
+> 
+> cat("DEBUG: starting BIOMOD_FormatingData at", format(Sys.time(), "%H:%M:%S"), "\n")
+DEBUG: starting BIOMOD_FormatingData at 20:37:26 
+> flush.console()
+> 
+> # 1. Formatting Data (10 set of pseudo-absences, 10000 absences each, random strategy)
+> # resp è la distribuzione della specie
+> # expl sono le variabili che vanno a spiegare la distribuzione della specie (spiegano la resp) (caldo, freddo, neve, etc)
+> 
+> myBiomodData <- BIOMOD_FormatingData(
++   resp.var = myResp, # response variable
++   expl.var = cur_cal, # explenatory variable
++   resp.xy = myRespXY, # longitude and latitude of species occurrences
++   resp.name = myRespName,
++   PA.nb.rep = pa_nb_rep, # production value, set of replicas
++   PA.nb.absences = pa_nb_absences, # production value (was toy 10); grows modeling only, projection unchanged
++   PA.strategy = "random",
++   na.rm = TRUE,
++   filter.raster = F # se la response var deve essere filtrata (se troppi punti vanno nella stessa cella), se true si rischia di andare a sovrastimare (overfitting)
++ )
+
+-=-=-=-=-=-=-=-=-=-=-=-= Achillea.atrata Data Formating -=-=-=-=-=-=-=-=-=-=-=-=
+
+
+Checking Pseudo-absence selection arguments...
+
+   > random pseudo absences selection
+   > Pseudo absences are selected in explanatory variables
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> 
+> cat("DEBUG: BIOMOD_FormatingData done at", format(Sys.time(), "%H:%M:%S"), "\n")
+DEBUG: BIOMOD_FormatingData done at 20:37:59 
+> end.time <- Sys.time()
+> time.formating <- end.time - start.time
+> 
+> start.time <- Sys.time()
+> # 2. Defining Models Options (bigboss preset)
+> opt.b <- bm_ModelingOptions(
++   data.type = "binary",
++   models = selModels,
++   strategy = "bigboss", # statistic method, parametri definiti dal team di biomod2, strategia già definita, parametri ottimali, ps: non sono quelli di default, sono quelli ottimali
++   bm.format = myBiomodData
++ )
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Modeling Options -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+	>  GLM options ( datatype: binary , package: stats , function: glm )...
+	>  GBM options ( datatype: binary , package: gbm , function: gbm )...
+	>  ANN options ( datatype: binary , package: nnet , function: nnet )...
+	>  FDA options ( datatype: binary , package: mda , function: fda )...
+	>  MAXNET options ( datatype: binary , package: maxnet , function: maxnet )...
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> 
+> # 3. Computing the models
+> myBiomodModelOut <- BIOMOD_Modeling(
++   myBiomodData,
++   models = selModels,
++   CV.strategy = "random",
++   CV.nb.rep = cv_nb_rep, # number of repetitions for cross validation, in order to validate the performance of the single model/algorithm
++   CV.perc = 0.7, # valuta sul 70% dei dati e anche per calibrarsi (training) e testa querllo che ha imparato sul 30% dei dati, e va a fare un cross validation per vedere quanto è stato performante il modello rispetto al testing
++   OPT.strategy = "bigboss",
++   metric.eval = c("TSS", "AUCroc", "KAPPA", "POD", "FAR"),
++   scale.models = FALSE, # default, chiede se tutte le proiezioni debbano essere scalate in binomiale (TODO check if we can delete this param, as it is default false)
++   CV.do.full.models = FALSE, # default a false, chiede se venga fatta calibrazione e valutazione anche sulle pseudo-assenze
++   nb.cpu = n_cpu,
++   do.progress = T
++ )
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Single Models -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+Checking Models arguments...
+
+	> Automatic weights creation to rise a 0.5 prevalence
+Creating suitable Workdir...
+
+
+Checking Cross-Validation arguments...
+
+   > Random cross-validation selection
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Modeling Options -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+	>  GLM options ( datatype: binary , package: stats , function: glm )...
+	>  GBM options ( datatype: binary , package: gbm , function: gbm )...
+	>  ANN options ( datatype: binary , package: nnet , function: nnet )...
+	>  FDA options ( datatype: binary , package: mda , function: fda )...
+	>  MAXNET options ( datatype: binary , package: maxnet , function: maxnet )...
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+
+-=-=-=-=-=-=-=-=-=-=-=-= Achillea.atrata Modeling Summary -=-=-=-=-=-=-=-=-=-=-=-=
+
+> 5 environmental variables ( PC1_clim PC2_clim tri PC1_soil PC2_soil )
+
+> Number of PA datasets : 1
+
+> Number of calibration/validation splits : 1
+
+> Algorithms selected : GLM GBM ANN FDA MAXNET
+ 1 models for each algorithm
+
+Total number of model runs: 5 
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Warning: executing %dopar% sequentially: no parallel backend registered
+
+
+-=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_GLM 
+
+	Evaluating Model stuff...
+
+-=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_GBM 
+CV: 1 
+Error in gbm.fit(x = x, y = y, offset = offset, distribution = distribution,  : 
+  The data set is too small or the subsampling rate is too large: `nTrain * bag.fraction <= 2 * n.minobsinnode + 1`
+
+*** Error in  GBM , calibration failed
+*** inherits(g.pred,'try-error')
+   ! Note :  Achillea.atrata_PA1_RUN1_GBM failed!
+
+
+-=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_ANN 
+
+	Model scaling...Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+
+	Evaluating Model stuff...
+
+-=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_FDA 
+
+	Model scaling...
+	Evaluating Model stuff...
+
+-=-=-=--=-=-=- Achillea.atrata_PA1_RUN1_MAXNET 
+Warning in lognet(x, is.sparse, y, weights, offset, alpha, nobs, nvars,  :
+  one multinomial or binomial class has fewer than 8  observations; dangerous ground
+
+	Evaluating Model stuff...
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> end.time <- Sys.time()
+> time.modeling <- end.time - start.time
+> 
+> start.time <- Sys.time()
+> # 4. Model ensemble models
+> myBiomodEM <- BIOMOD_EnsembleModeling(
++   bm.mod = myBiomodModelOut,
++   models.chosen = "all",
++   em.by = "all",
++   em.algo = c("EMmean", "EMcv"), # c(...) is for multiple options, chose these 2 algorithms because we do not need the median. it does the mean of all models and then does a standard deviation of them (covariance)
++   metric.select = "AUCroc", # standard, most used, various articles say it's the best
++   metric.select.thresh = 0.6, # threshold value for exclude the models that are not performing over a certain threshold, in this case 0.6
++   metric.eval = c("TSS", "AUCroc", "KAPPA"), # 3 most used
++   nb.cpu = 1 # TODO add cores
++ )
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-= Build Ensemble Models -=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+   ! all models available will be included in ensemble.modeling
+  ! Ensemble Models will be filtered and/or weighted using validation dataset (if possible). Please use `metric.select.dataset` for alternative options.
+   > Evaluation & Weighting methods summary :
+      AUCroc over 0.6
+
+
+  > mergedData_mergedRun_mergedAlgo ensemble modeling
+
+   > Mean of probabilities by AUCroc ...
+			Evaluating Model stuff...
+
+   > Coef of variation of probabilities by AUCroc ...
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> end.time <- Sys.time()
+> time.modeling_EM <- end.time - start.time
+> 
+> ### Models evaluations
+> myBiomodModelEval <- get_evaluations(myBiomodModelOut)
+> myBiomodModelEval_ensamble <- get_evaluations(myBiomodEM)
+> 
+> # TODO change output to csv
+> nome <- paste0("Eval_", sp.names[i], ".txt", sep = "")
+> write.table(myBiomodModelEval, file = nome, sep = "\t")
+> 
+> nome1 <- paste0("Eval_EM_", sp.names[i], ".txt", sep = "")
+> write.table(myBiomodModelEval_ensamble, file = nome1, sep = "\t")
+> 
+> ###########################################################################
+> ######################      PROJECTION ON ALPS        #####################
+> ###########################################################################
+> 
+> ###########################################################################
+> ###########################           CURRENT   ###########################
+> ###########################################################################
+> 
+> # 5. Individual models projections on current environmental conditions
+> start.time <- Sys.time()
+> myBiomodProj <- BIOMOD_Projection(
++   bm.mod = myBiomodModelOut,
++   proj.name = "current",
++   new.env = cur_proj,
++   models.chosen = "all",
++   build.clamping.mask = T, # opzione per avere un'idea delle località in cui la predizione è incerta, dove non è sicuro di quello che sta predicendo, predizione potrebbe essere incerta, perchè i dati ambientali potrebbero non essere così fedeli alle variabili attinenti alla presenza vera delal specie (un modo per capire l'incertezza della predizione per ogni cella (km quadrato))
++   keep.in.memory = FALSE, # OOM fix: free per-model rasters from RAM after write
++   do.stack = FALSE, # OOM fix: write per-model .tif to disk instead of stacking all layers in memory
++   nb.cpu = n_cpu
++ )
+
+-=-=-=-=-=-=-=-=-=-=-=-=-= Do Single Models Projection -=-=-=-=-=-=-=-=-=-=-=-=-=
+
+		! 'overwrite' arg is set as FALSE. Projections that have already been saved will not be redone. 
+        Please be carfeul if you have changed the models in the meantime. 
+	> Building clamping mask
+
+	> Projecting Achillea.atrata_PA1_RUN1_GLM ...
+		Writing projection on hard drive...
+		 /work/data/output_monolithic_leo_pa10/Achillea.atrata/proj_current/individual_projections/proj_current_Achillea.atrata_PA1_RUN1_GLM.tif
+	> Projecting Achillea.atrata_PA1_RUN1_ANN ...
+		Writing projection on hard drive...
+		 /work/data/output_monolithic_leo_pa10/Achillea.atrata/proj_current/individual_projections/proj_current_Achillea.atrata_PA1_RUN1_ANN.tif
+	> Projecting Achillea.atrata_PA1_RUN1_FDA ...
+		Writing projection on hard drive...
+		 /work/data/output_monolithic_leo_pa10/Achillea.atrata/proj_current/individual_projections/proj_current_Achillea.atrata_PA1_RUN1_FDA.tif
+	> Projecting Achillea.atrata_PA1_RUN1_MAXNET ...
+		Writing projection on hard drive...
+		 /work/data/output_monolithic_leo_pa10/Achillea.atrata/proj_current/individual_projections/proj_current_Achillea.atrata_PA1_RUN1_MAXNET.tif
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> end.time <- Sys.time()
+> time.cur_proj <- end.time - start.time
+> 
+> # 6. Project ensemble models (reuse bm.proj to avoid internal re-projection)
+> start.time <- Sys.time()
+> myBiomodEMProj <- BIOMOD_EnsembleForecasting(
++   # """nuovo raster con altri dati ambientali""" (proiezione della proiezione)
++   bm.em = myBiomodEM,
++   bm.proj = myBiomodProj, # reuse computed projection; biomod2 wants XOR(bm.proj, new.env)
++   proj.name = "CurrentEM",
++   models.chosen = "all",
++   metric.binary = "all",
++   metric.filter = "all",
++   nb.cpu = 1 # TODO add cores
++ )
+
+-=-=-=-=-=-=-=-=-=-=-=-= Do Ensemble Models Projection -=-=-=-=-=-=-=-=-=-=-=-=
+
+Creating suitable Workdir...
+
+	> Projecting Achillea.atrata_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo ...
+		Writing projection on hard drive...
+	> Projecting Achillea.atrata_EMcvByAUCroc_mergedData_mergedRun_mergedAlgo ...
+		Writing projection on hard drive...
+
+! Binary/Filtered transformation automatically desactivated for ensemble models with coefficient of variation or confidence intervals
+	> Building TSS binaries / filtered
+	> Building AUCroc binaries / filtered
+	> Building KAPPA binaries / filtered
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= Done -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+> end.time <- Sys.time()
+> time.cur_proj_EM <- end.time - start.time
+> 
+> ###########################################################################
+> #######################################   FUTURE     ######################
+> ###########################################################################
+> 
+> ## Number of future projections
+> # 5 global circulation models (GCM), variazione di gas serra, metano, etc, nell'atmosfera nel futuro, e all'interno di ognuno ci sono due scenari (ottimista SSP370 e pessimista SSP585), TODO check acronyms
+> # 10 future projections (5 GCM x 2 SSP) -> 10 proiezioni future per ogni specie
+> # calibrazione solo su current (presente), per avere una base di partenza, e la proiezione serve due volte
+> # proiezione sul futuro viene fatta partendo dai dati del primo (e unico) biomod modelling e sulle var ambientali future, per vedere come cambiano le predizioni
+> 
+> nf <- length(lf)
+> 
+> start.time <- Sys.time()
+> if (nf > 0) {
++   for (k in seq_len(nf)) {
++     name <- lf[k]
++     cat("\n\nDEBUG: Processing future scenario", k, "of", nf, ":", name, "\n")
++ 
++     fut_files <- dir(lf[k], full.names = T)
++     fut1 <- rast(fut_files)
++     cat("DEBUG: Raster loaded, ncell =", ncell(fut1), ", hasValues =", hasValues(fut1), "\n")
++ 
++     fut <- fut1
++     fut_proj <- c(fut[[1]], fut[[2]], tri_proj, soil_proj[[1]], soil_proj[[2]])
++     names(fut_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
++ 
++     # path-depth independent: <gcm>/<ssp> are the last two path components
++     nm1 <- strsplit(name, "/")[[1]]
++     nm <- paste0(nm1[length(nm1) - 1], "_", nm1[length(nm1)])
++     nm2 <- paste0("futureEM_", nm1[length(nm1) - 1], "_", nm1[length(nm1)])
++ 
++     # 5. Individual models projections on future environmental conditions
++     myBiomodProj_fut <- BIOMOD_Projection(
++       bm.mod = myBiomodModelOut,
++       proj.name = nm,
++       new.env = fut_proj,
++       models.chosen = "all",
++       build.clamping.mask = T,
++       keep.in.memory = FALSE, # OOM fix: free per-model rasters from RAM after write
++       do.stack = FALSE, # OOM fix: write per-model .tif to disk instead of stacking all layers in memory
++       nb.cpu = n_cpu
++     )
++ 
++     myBiomodEMProj_fut <- BIOMOD_EnsembleForecasting(
++       bm.em = myBiomodEM,
++       bm.proj = myBiomodProj_fut, # reuse computed projection; biomod2 wants XOR(bm.proj, new.env)
++       proj.name = nm2,
++       models.chosen = "all",
++       metric.binary = "all",
++       metric.filter = "all",
++       nb.cpu = 1
++     )
++   }
++ }
+> setTxtProgressBar(pb, i)
+  |                                                          |==================================================| 100%> Sys.sleep(final_sleep_seconds)
+> end.time <- Sys.time()
+> time.fut_proj <- end.time - start.time
+> close(pb)
+
+> 
+> # force seconds: write.table strips difftime units and R auto-picks a unit per value,
+> # so columns aren't comparable. as.numeric(., units="secs") makes them uniform.
+> time <- data.frame(
++   formating = as.numeric(time.formating, units = "secs"),
++   modeling = as.numeric(time.modeling, units = "secs"),
++   modeling_EM = as.numeric(time.modeling_EM, units = "secs"),
++   cur_projection = as.numeric(time.cur_proj, units = "secs"),
++   cur_projection_EM = as.numeric(time.cur_proj_EM, units = "secs"),
++   fut_projection = as.numeric(time.fut_proj, units = "secs")
++ )
+> write.table(time, paste0("time_", sp.names[i], ".txt"), sep = "\t")
+> 
+> . / .. / tests / test_output.R
+Error: object '.' not found
+Execution halted

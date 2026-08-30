@@ -1,0 +1,166 @@
+[12:40:14] > options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
+[12:40:14] > 
+[12:40:14] > library(biomod2)
+[12:40:18] biomod2 4.3-4-5 loaded.
+[12:40:18]  /!\ Welcome to augmented biomod2 with abundance modeling available! (*o*)
+[12:40:18]  Take a look at the HOME and NEWS section on the website to see all the features!
+[12:40:18] 
+[12:40:18] Loading required package: nnet
+[12:40:18] Loading required package: rpart
+[12:40:18] Loading required package: cito
+[12:40:18] Warning in library(package, lib.loc = lib.loc, character.only = TRUE, logical.return = TRUE,  :
+[12:40:18]   there is no package called ‘cito’
+[12:40:18] Loading required package: mda
+[12:40:18] Loading required package: class
+[12:40:19] Loaded mda 0.5-5
+[12:40:19] 
+[12:40:19] Loading required package: gam
+[12:40:19] Loading required package: splines
+[12:40:19] Loading required package: foreach
+[12:40:19] Loaded gam 1.22-7
+[12:40:19] 
+[12:40:19] Loading required package: mgcv
+[12:40:19] Loading required package: nlme
+[12:40:19] This is mgcv 1.9-4. For overview type '?mgcv'.
+[12:40:19] 
+[12:40:19] Attaching package: ‘mgcv’
+[12:40:19] 
+[12:40:19] The following objects are masked from ‘package:gam’:
+[12:40:19] 
+[12:40:19]     gam, gam.control, gam.fit, s
+[12:40:19] 
+[12:40:19] The following object is masked from ‘package:nnet’:
+[12:40:19] 
+[12:40:19]     multinom
+[12:40:19] 
+[12:40:19] Loading required package: gbm
+[12:40:19] Loaded gbm 2.2.3
+[12:40:19] This version of gbm is no longer under development. Consider transitioning to gbm3, https://github.com/gbm-developers/gbm3
+[12:40:19] Loading required package: earth
+[12:40:19] Loading required package: Formula
+[12:40:19] Loading required package: plotmo
+[12:40:19] Loading required package: plotrix
+[12:40:19] Loading required package: maxnet
+[12:40:19] Loading required package: randomForest
+[12:40:19] randomForest 4.7-1.2
+[12:40:19] Type rfNews() to see new features/changes/bug fixes.
+[12:40:19] Loading required package: xgboost
+[12:40:19] > library(terra)
+[12:40:19] terra 1.9.11
+[12:40:19] 
+[12:40:19] Attaching package: ‘terra’
+[12:40:19] 
+[12:40:19] The following object is masked from ‘package:plotrix’:
+[12:40:19] 
+[12:40:19]     rescale
+[12:40:19] 
+[12:40:19] > library(gbm)
+[12:40:19] > library(mda)
+[12:40:19] > library(randomForest)
+[12:40:19] > 
+[12:40:19] > # NOTE: makeCluster/registerDoParallel removed - hangs inside Singularity container.
+[12:40:19] > 
+[12:40:19] > root <- normalizePath(".")
+[12:40:19] > in_dir <- file.path(root, "data/input")
+[12:40:19] > out_dir <- file.path(root, "data/output")
+[12:40:19] > dir.create(out_dir, showWarnings = FALSE)
+[12:40:19] > 
+[12:40:19] > ####################################
+[12:40:19] > # loading species occurrences data
+[12:40:19] > ####################################
+[12:40:19] > spocc <- read.csv(file.path(in_dir, "full_1km_EUNIS.csv"), head = TRUE)
+[12:40:26] > spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
+[12:40:26] > spocc$sp_name <- sub(" ", ".", spocc$sp_name)
+[12:40:27] > sp.names <- levels(factor(spocc[, 1]))
+[12:40:27] > num_sp <- length(sp.names)
+[12:40:27] > cat("DEBUG: num_sp =", num_sp, "| total rows =", nrow(spocc), "\n")
+[12:40:27] DEBUG: num_sp = 167 | total rows = 2583359 
+[12:40:27] > 
+[12:40:27] > #####################################
+[12:40:27] > # CALIBRATION environmental data
+[12:40:27] > #####################################
+[12:40:27] > cat("DEBUG: loading calibration rasters...\n")
+[12:40:27] DEBUG: loading calibration rasters...
+[12:40:27] > clim_cal <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+[12:40:27] > tri_cal <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+[12:40:27] > soil_cal <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+[12:40:27] > cur_cal <- c(clim_cal, tri_cal, soil_cal)
+[12:40:27] > names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+[12:40:27] > cat("DEBUG: raster dim =", dim(cur_cal)[1], "x", dim(cur_cal)[2], "| ncell =", ncell(cur_cal), "\n")
+[12:40:27] DEBUG: raster dim = 5873 x 10889 | ncell = 63951097 
+[12:40:27] > 
+[12:40:27] > #####################################
+[12:40:27] > # PROJECTION environmental data
+[12:40:27] > #####################################
+[12:40:27] > clim_proj <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
+[12:40:27] > tri_proj <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
+[12:40:27] > soil_proj <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+[12:40:27] > cur_proj <- c(clim_proj, tri_proj, soil_proj)
+[12:40:27] > names(cur_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+[12:40:27] > 
+[12:40:27] > #####################################
+[12:40:27] > # loading FUTURE list (leaf dirs containing tif)
+[12:40:27] > #####################################
+[12:40:27] > lf <- list.dirs(file.path(in_dir, "climate_vars/future"), full.names = T, recursive = T)[-1]
+[12:40:28] > lf <- lf[sapply(lf, function(d) length(list.files(d, pattern = "\\.tif$")) > 0)]
+[12:40:28] > cat("DEBUG: testing with", length(lf), "future scenarios\n")
+[12:40:28] DEBUG: testing with 8 future scenarios
+[12:40:28] > 
+[12:40:28] > # outputs (biomod2 writes species folders into the working dir)
+[12:40:28] > setwd(out_dir)
+[12:40:28] > 
+[12:40:28] > pb <- txtProgressBar(min = 0, max = num_sp, style = 3, width = 50, char = "=")
+[12:40:28]   |                                                          |                                                  |   0%> 
+[12:40:28] > selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
+[12:40:28] > 
+[12:40:28] > # SLURM array task -> one species from the test set (size-spread: large/median/small)
+[12:40:28] > test_species <- c("Potentilla.erecta", "Galium.anisophyllon", "Festuca.glauca")
+[12:40:28] > k <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
+[12:40:28] > i <- match(test_species[k], sp.names)
+[12:40:28] > spocc1 <- subset(spocc, spocc[, 1] == sp.names[i])
+[12:40:28] > cat("DEBUG: array task", k, "-> species =", sp.names[i], "| occurrences =", nrow(spocc1), "\n")
+[12:40:28] DEBUG: array task 2 -> species = Galium.anisophyllon | occurrences = 5936 
+[12:40:28] > 
+[12:40:28] > # parallel fork count for Modeling + Projection only. EnsembleForecasting stays nb.cpu=1.
+[12:40:28] > # Small datasets (<50k occ) trigger mclapply SIGPIPE race conditions at n_cpu>1 (job 47510573_2/_3).
+[12:40:28] > # Use n_cpu=1 for small species to avoid the forking bug.
+[12:40:28] > n_cpu <- if (nrow(spocc1) >= 50000) 4L else 1L
+[12:40:28] > cat("DEBUG: n_cpu =", n_cpu, "(threshold 50k)\n")
+[12:40:28] DEBUG: n_cpu = 1 (threshold 50k)
+[12:40:28] > 
+[12:40:28] > # per-species output wipe (array-safe: only this task's species dir, not sibling tasks')
+[12:40:28] > unlink(file.path(out_dir, sp.names[i]), recursive = TRUE)
+[12:40:28] > 
+[12:40:28] > ###########################################################################
+[12:40:28] > ######################     CALIBRATION ON EUROPE      #####################
+[12:40:28] > ###########################################################################
+[12:40:28] > 
+[12:40:28] > start.time <- Sys.time()
+[12:40:28] > myRespName <- paste(sp.names[i], sep = ".")
+[12:40:28] > myRespXY <- spocc1[, 2:3] # coordinates of points
+[12:40:28] > myResp <- rep(1, nrow(spocc1)) # species occurences
+[12:40:28] > 
+[12:40:28] > cat("DEBUG: starting BIOMOD_FormatingData at", format(Sys.time(), "%H:%M:%S"), "\n")
+[12:40:28] DEBUG: starting BIOMOD_FormatingData at 12:40:28 
+[12:40:28] > flush.console()
+[12:40:28] > 
+[12:40:28] > # 1. Formatting Data
+[12:40:28] > myBiomodData <- BIOMOD_FormatingData(
+[12:40:28] +   resp.var = myResp,
+[12:40:28] +   expl.var = cur_cal,
+[12:40:28] +   resp.xy = myRespXY,
+[12:40:28] +   resp.name = myRespName,
+[12:40:28] +   PA.nb.rep = 3,
+[12:40:28] +   PA.nb.absences = 10000, # production value (was toy 10); grows modeling only, projection unchanged
+[12:40:28] +   PA.strategy = "random",
+[12:40:28] +   na.rm = TRUE,
+[12:40:28] +   filter.raster = F
+[12:40:28] + )
+[12:40:28] 
+[12:40:28] -=-=-=-=-=-=-=-=-=-=-= Galium.anisophyllon Data Formating -=-=-=-=-=-=-=-=-=-=-=
+[12:40:28] 
+[12:40:28] 
+[12:40:28] Checking Pseudo-absence selection arguments...
+[12:40:28] 
+[12:40:28]    > random pseudo absences selection
+slurmstepd: error: *** JOB 47593185 ON lrdn3902 CANCELLED AT 2026-06-22T12:41:14 ***
