@@ -12,6 +12,10 @@ git lfs pull
 
 ---
 
+## File workflow
+
+GitHub tracks code and documentation; generated outputs stay outside Git/LFS. Leonardo runs the jobs, Serviicola relays transfers, and completed output is copied as `data/output/*` into `F:\HPC_Leonardo\*` on Spartaco. Verify counts, sizes, and `_SUCCESS` before deleting remote output.
+
 ## notes
 
 project work dir -> /leonardo_work/IscrC_SPECC
@@ -244,3 +248,40 @@ in our case, we chose to download some climate and soil data from <https://www.c
 - [Access to the Systems](https://docs.hpc.cineca.it/general/access.html#access-to-the-systems)
 - [Manage your HPC credentials](https://docs.hpc.cineca.it/general/users_account.html#manage-your-hpc-credentials)
 - [How to manage authentication certificates](https://docs.hpc.cineca.it/general/access.html#how-to-mnage-authtentication-certificates)
+
+
+## Starting your Master Thesis and working at it: important dates and process
+
+Aggregazione dei criteri
+Calendar days are computed starting from the first date of the session. For example, if one session is foreseen on the 27th and 28th of July, calendar days are computed from the 27th. Deadlines at -20 days mean the 7th of July; deadlines at -15 days mean the 12th. 
+
+
+When the candidate has earned at least 75 CFU (credits), they can start looking for a thesis topic. Topics proposed by faculty members are listed here<https://piazzastudenti.aulaweb.unige.it/mod/page/view.php?id=7717>. Each candidate can start interacting with faculty members whenever they are ready: there is no longer a bidding process, and there is no longer a single thesis start date for all candidates.
+
+When the supervisor agrees with the candidate to start the thesis, the supervisor enters the preliminary thesis data into a spreadsheet visible to faculty members only. We advise candidates to remind this step to their supervisors, as the date when preliminary data are inserted represents the official starting date of the thesis. Candidates should ask for a copy of the inserted data, and check for their correctness.
+
+After 3 months from the starting date the supervisor enters the final data on the thesis (definitive title, difficulty, etc), including the names of the proposed examiner and of the two committee members for the technical exam.
+
+-30 calendar days from the graduation date the candidate sends the current version of their thesis to the examiner, keeping the supervisor in copy. The thesis must be nearly final at this point.
+
+-30 calendar days from the graduation date (possibly, before) the candidate, with the supervisor's help, completes the degree application and fills out the AlmaLaurea form. Errors in filling them out must be solved by the candidate with the support of the supervisor and may cause the graduation date to be postponed to the next session. It is essential that the candidate, if in doubt, seeks help from the supervisor.
+
+-20 calendar days from the graduation date the supervisor approves/rejects the application.
+
+-15 calendar days from the graduation date (possibly, before) the candidate must have all marks registered.
+
+-15 calendar days from the graduation date (possibly, before) the candidate uploads the final version of the thesis through the official service made available to students.
+
+-14 calendar days from the graduation date the supervisor approves/rejects the document uploaded by the candidate.
+
+-14 calendar days from the graduation date the supervisor shares their evaluation of the thesis work with the examiner and the Master Thesis Working Group by filling a form. In case of more supervisors, they must agree on a shared evaluation: only one evaluation must be inserted via the form by one of the supervisors. 
+
+-14 calendar days from the graduation date the examiner, who chairs the examination committee, communicates the date and place of the technical exam to the candidate, the supervisor and to the technical committee members.
+
+Between -14 days and -2 days from the first date of the session: the technical exam takes place. The technical exam is required only to students enrolled from 2023/2024 onwards. Students enrolled before that academic year will prepare a longer presentation for the Thesis Committee, and will face no technical exam:
+
+the candidate defends their work: the expected duration of the exam is 20-25 minutes of presentation followed by questions and defense;
+once the exam has taken place, the examiner communicates the mark to the candidate and to the Master Thesis Working Group by filling a form.
+The evening before the discussion in front of the graduation committee, the candidate uploads the .pdf of their presentation via this link. <https://piazzastudenti.aulaweb.unige.it/mod/assign/view.php?id=7713>
+
+The day of the presentation the candidate will present their work. The amount of time granted to the presentation depends on your cohort. Students enrolled up to the 2022/2023 academic year will have 20 minutes for the technical presentation followed by 10 minutes for questions. Students enrolled from 2023/2024 academic year onward will have 10 minutes for presentation plus questions. 
