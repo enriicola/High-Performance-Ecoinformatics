@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Transfer Leonardo output contents to Spartaco through SFTP remotes.
 # rclone runs on Serviicola as a relay and does not store the data locally.
+# scp -3 is used as a fallback if rclone fails.
 set -Eeuo pipefail
 
 readonly LEO_HOST="${LEO_HOST:-REDACTED_USERNAME@login.leonardo.cineca.it}"
@@ -17,7 +18,7 @@ if (($# == 0)); then
   if ! rclone copyto \
     "$LEO_REMOTE:$LEO_OUTPUT" \
     "$SPARTACO_REMOTE:$SPARTACO_OUTPUT" \
-    --stats 30s --stats-one-line; then
+    --progress --stats 30s --stats-one-line; then
     echo "rclone failed; falling back to scp -3 ..."
     scp -3 -r -o ConnectTimeout=20 \
       "$LEO_HOST:$LEO_OUTPUT/." \
@@ -37,7 +38,7 @@ for path in "$@"; do
   if ! rclone copyto \
     "$LEO_REMOTE:$LEO_OUTPUT/$path" \
     "$SPARTACO_REMOTE:$SPARTACO_OUTPUT/$path" \
-    --stats 30s --stats-one-line; then
+    --progress --stats 30s --stats-one-line; then
     echo "rclone failed; falling back to scp -3 ..."
     scp -3 -r -o ConnectTimeout=20 \
       "$LEO_HOST:$LEO_OUTPUT/$path" \
