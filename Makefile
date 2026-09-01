@@ -1,7 +1,10 @@
-.PHONY: thesis leogin sbatch sync txt2csv
+.PHONY: thesis container leogin sbatch sync txt2csv
 
 thesis:
 	./scripts/compile-thesis.sh
+
+container:
+	singularity build container/geospatial.sif container/geospatial.def
 
 leogin:
 	./scripts/leogin.sh $(ARGS)
