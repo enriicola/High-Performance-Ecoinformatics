@@ -1,6 +1,6 @@
 # Campaign script snapshot
 
-`R/base_sequential_analysis_campaign_49cfdb0.R` is a frozen copy of the R script used by the production campaign.
+`R/base/base_sequential_analysis_campaign_49cfdb0.R` is a frozen copy of the R script used by the production campaign.
 
 It is not a special Git snapshot, worktree, or clone. The filename records the source commit (`49cfdb0`); the file is a materialized artifact whose SHA-256 was verified as:
 

@@ -6,40 +6,11 @@
 #   - removed dplyr dependency (base R sub() for the species name)
 #   - fixed syntax error `OPT.strategy = 'bigboss',,`
 #   - future-name parsing made path-depth independent (length-based indexing)
-# Kept her two key fixes vs our new.ensamble_modelling.R:
+# Kept her two key fixes from the original algorithm:
 #   - BIOMOD_EnsembleForecasting(bm.proj = ...) reuses the computed projection
 #     -> no internal mclapply re-projection -> avoids the step-6 OOM
 #   - CV.do.full.models = FALSE -> no allRun/allData model bloat
-options(echo = TRUE) # stampa ogni statement prima di eseguirlo
-options(warn = 1) # stampa i warning quando accadono (non in blocco a fine run)
-
-env_true <- function(name, default) {
-  tolower(Sys.getenv(name, default)) %in% c("1", "true", "yes", "y")
-}
-
-# Global worker count for BIOMOD_Modeling and BIOMOD_Projection. By default it
-# follows the CPUs allocated by Slurm; BIOMOD_NCPU can override it for tests.
-n_cpu <- suppressWarnings(as.integer(Sys.getenv(
-  "BIOMOD_NCPU",
-  Sys.getenv("SLURM_CPUS_PER_TASK", "5")
-)))
-if (is.na(n_cpu) || n_cpu < 1L) {
-  stop("BIOMOD_NCPU must be a positive integer")
-}
-allocated_cpus <- suppressWarnings(as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "")))
-if (!is.na(allocated_cpus) && n_cpu > allocated_cpus) {
-  stop("BIOMOD_NCPU cannot exceed SLURM_CPUS_PER_TASK (", allocated_cpus, ")")
-}
-ensemble_n_cpu <- min(n_cpu, 2L)
-projection_keep_in_memory <- env_true("PROJ_KEEP_IN_MEMORY", "false")
-projection_do_stack <- env_true("PROJ_DO_STACK", "false")
-cat(
-  "DEBUG: BIOMOD workers =", n_cpu,
-  "| ensemble workers =", ensemble_n_cpu,
-  "| Slurm CPUs =", ifelse(is.na(allocated_cpus), "unknown", allocated_cpus), "\n",
-  "DEBUG: projection keep.in.memory =", projection_keep_in_memory,
-  "| do.stack =", projection_do_stack, "\n"
-)
+source("R/base/config.R")
 
 library(biomod2)
 library(terra)
@@ -50,15 +21,12 @@ library(randomForest)
 # biomod2 registers its own doParallel backend from nb.cpu; an external cluster
 # is unnecessary and previously hung inside the Singularity container.
 
-root <- normalizePath(".")
-in_dir <- file.path(root, "data/input")
-out_dir <- Sys.getenv("BIOMOD_OUTPUT_DIR", file.path(root, "data/output"))
 dir.create(out_dir, showWarnings = FALSE)
 
 ####################################
 # loading species occurrences data
 ####################################
-spocc <- read.csv(file.path(in_dir, "full_1km_EUNIS.csv"), head = TRUE)
+spocc <- read.csv(occurrences_file, head = TRUE)
 spocc <- spocc[, -1] # drop id -> cols: sp_name, x, y, pseudo-absences
 spocc$sp_name <- sub(" ", ".", spocc$sp_name)
 sp.names <- levels(factor(spocc[, 1]))
@@ -69,11 +37,11 @@ cat("DEBUG: num_sp =", num_sp, "| total rows =", nrow(spocc), "\n")
 # CALIBRATION environmental data
 #####################################
 cat("DEBUG: loading calibration rasters...\n")
-clim_cal <- rast(dir(file.path(in_dir, "climate_vars/baseline"), full.names = T))
-tri_cal <- rast(dir(file.path(in_dir, "TRI_vars"), full.names = T))
-soil_cal <- rast(dir(file.path(in_dir, "soil_vars"), full.names = T))
+clim_cal <- rast(dir(climate_baseline_dir, full.names = T))
+tri_cal <- rast(dir(tri_dir, full.names = T))
+soil_cal <- rast(dir(soil_dir, full.names = T))
 cur_cal <- c(clim_cal, tri_cal, soil_cal)
-names(cur_cal) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+names(cur_cal) <- raster_names
 cat("DEBUG: raster dim =", dim(cur_cal)[1], "x", dim(cur_cal)[2], "| ncell =", ncell(cur_cal), "\n")
 
 #####################################
@@ -88,14 +56,12 @@ soil_proj <- soil_cal
 #####################################
 # loading FUTURE list (leaf dirs containing tif)
 #####################################
-lf <- list.dirs(file.path(in_dir, "climate_vars/future"), full.names = T, recursive = T)[-1]
+lf <- list.dirs(future_dir, full.names = T, recursive = T)[-1]
 lf <- lf[sapply(lf, function(d) length(list.files(d, pattern = "\\.tif$")) > 0)]
 cat("DEBUG: testing with", length(lf), "future scenarios\n")
 
 # outputs (biomod2 writes species folders into the working dir)
 setwd(out_dir)
-
-selModels <- c("GLM", "GBM", "ANN", "FDA", "MAXNET")
 
 # One Slurm array task processes exactly one species.
 task_id <- suppressWarnings(as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1")))
@@ -130,7 +96,7 @@ myResp <- rep(1, nrow(spocc1)) # species occurences
 cat("DEBUG: starting BIOMOD_FormatingData at", format(Sys.time(), "%H:%M:%S"), "\n")
 flush.console()
 
-# 1. Formatting Data (5 sets of pseudo-absences, 10000 absences each, random strategy)
+# 1. Formatting Data
 # resp è la distribuzione della specie
 # expl sono le variabili che vanno a spiegare la distribuzione della specie (spiegano la resp) (caldo, freddo, neve, etc)
 
@@ -139,11 +105,11 @@ myBiomodData <- BIOMOD_FormatingData(
   expl.var = cur_cal, # explenatory variable
   resp.xy = myRespXY, # longitude and latitude of species occurrences
   resp.name = myRespName,
-  PA.nb.rep = 10, # production value confirmed by the domain supervisor
-  PA.nb.absences = 10000, # production value (was toy 10); grows modeling only, projection unchanged
-  PA.strategy = "random",
+  PA.nb.rep = pa_nb_rep,
+  PA.nb.absences = pa_nb_absences,
+  PA.strategy = pa_strategy,
   na.rm = TRUE,
-  filter.raster = F # se la response var deve essere filtrata (se troppi punti vanno nella stessa cella), se true si rischia di andare a sovrastimare (overfitting)
+  filter.raster = filter_raster
 )
 
 cat("DEBUG: BIOMOD_FormatingData done at", format(Sys.time(), "%H:%M:%S"), "\n")
@@ -153,9 +119,9 @@ time.formating <- end.time - start.time
 start.time <- Sys.time()
 # 2. Defining Models Options (bigboss preset)
 opt.b <- bm_ModelingOptions(
-  data.type = "binary",
+  data.type = model_data_type,
   models = selModels,
-  strategy = "bigboss", # statistic method, parametri definiti dal team di biomod2, strategia già definita, parametri ottimali, ps: non sono quelli di default, sono quelli ottimali
+  strategy = model_options_strategy,
   bm.format = myBiomodData
 )
 
@@ -163,15 +129,15 @@ opt.b <- bm_ModelingOptions(
 myBiomodModelOut <- BIOMOD_Modeling(
   myBiomodData,
   models = selModels,
-  CV.strategy = "random",
-  CV.nb.rep = 5, # number of repetitions for cross validation, in order to validate the performance of the single model/algorithm
-  CV.perc = 0.7, # valuta sul 70% dei dati e anche per calibrarsi (training) e testa querllo che ha imparato sul 30% dei dati, e va a fare un cross validation per vedere quanto è stato performante il modello rispetto al testing
-  OPT.strategy = "bigboss",
-  metric.eval = c("TSS", "AUCroc", "KAPPA", "POD", "FAR"),
-  scale.models = FALSE, # default, chiede se tutte le proiezioni debbano essere scalate in binomiale (TODO check if we can delete this param, as it is default false)
-  CV.do.full.models = FALSE, # default a false, chiede se venga fatta calibrazione e valutazione anche sulle pseudo-assenze
+  CV.strategy = cv_strategy,
+  CV.nb.rep = cv_nb_rep,
+  CV.perc = cv_perc,
+  OPT.strategy = model_options_strategy,
+  metric.eval = model_metric_eval,
+  scale.models = scale_models,
+  CV.do.full.models = cv_do_full_models,
   nb.cpu = n_cpu,
-  do.progress = T
+  do.progress = do_progress
 )
 end.time <- Sys.time()
 time.modeling <- end.time - start.time
@@ -186,10 +152,10 @@ myBiomodEM <- BIOMOD_EnsembleModeling(
   bm.mod = myBiomodModelOut,
   models.chosen = "all",
   em.by = "all",
-  em.algo = c("EMmean", "EMcv"), # c(...) is for multiple options, chose these 2 algorithms because we do not need the median. it does the mean of all models and then does a standard deviation of them (covariance)
-  metric.select = "AUCroc", # standard, most used, various articles say it's the best
-  metric.select.thresh = 0.6, # threshold value for exclude the models that are not performing over a certain threshold, in this case 0.6
-  metric.eval = c("TSS", "AUCroc", "KAPPA"), # 3 most used
+  em.algo = ensemble_algorithms,
+  metric.select = ensemble_metric_select,
+  metric.select.thresh = ensemble_metric_select_thresh,
+  metric.eval = ensemble_metric_eval,
   nb.cpu = ensemble_n_cpu
 )
 end.time <- Sys.time()
@@ -221,7 +187,7 @@ myBiomodProj <- BIOMOD_Projection(
   proj.name = "current",
   new.env = cur_proj,
   models.chosen = "all",
-  build.clamping.mask = T, # opzione per avere un'idea delle località in cui la predizione è incerta, dove non è sicuro di quello che sta predicendo, predizione potrebbe essere incerta, perchè i dati ambientali potrebbero non essere così fedeli alle variabili attinenti alla presenza vera delal specie (un modo per capire l'incertezza della predizione per ogni cella (km quadrato))
+  build.clamping.mask = projection_build_clamping_mask,
   keep.in.memory = projection_keep_in_memory,
   do.stack = projection_do_stack,
   nb.cpu = n_cpu
@@ -277,7 +243,7 @@ for (k in 1:nf) {
   cat("DEBUG: Raster loaded, ncell =", ncell(fut1), ", hasValues =", hasValues(fut1), "\n")
 
   fut_proj <- c(fut1[[1]], fut1[[2]], tri_proj, soil_proj[[1]], soil_proj[[2]])
-  names(fut_proj) <- c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil")
+  names(fut_proj) <- raster_names
 
   # path-depth independent: <gcm>/<ssp> are the last two path components
   nm1 <- strsplit(name, "/")[[1]]
@@ -291,7 +257,7 @@ for (k in 1:nf) {
     proj.name = nm,
     new.env = fut_proj,
     models.chosen = "all",
-    build.clamping.mask = T,
+    build.clamping.mask = projection_build_clamping_mask,
     keep.in.memory = projection_keep_in_memory,
     do.stack = projection_do_stack,
     nb.cpu = n_cpu
