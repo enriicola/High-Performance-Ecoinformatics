@@ -7,7 +7,7 @@ set -Eeuo pipefail
 readonly LEO_HOST="${LEO_HOST:-REDACTED_USERNAME@login.leonardo.cineca.it}"
 readonly LEO_DATA="${LEO_DATA:-/leonardo_work/IscrC_SPECC/data}"
 readonly SPARTACO_HOST="${SPARTACO_HOST:-user@100.102.164.39}"
-readonly SPARTACO_DATA="${SPARTACO_DATA:-F:/HPC_Leonardo}"
+readonly SPARTACO_DATA="${SPARTACO_DATA:-F:/HPC_Leonardo/data}"
 readonly LEO_REMOTE="${LEO_REMOTE:-leo}"
 readonly SPARTACO_REMOTE="${SPARTACO_REMOTE:-spartaco}"
 readonly SSH_AUTH_SOCK="${SSH_AUTH_SOCK:-$HOME/.ssh/cineca-agent.sock}"

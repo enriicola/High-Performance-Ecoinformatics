@@ -63,7 +63,9 @@ rsconnect/
 
 .vscode/sessions/
 
-data/input/
+data/input/*
+!data/input/agrostis_1km_EUNIS.csv
+!data/input/small_1km_EUNIS.csv
 data/output/*
 !data/output/*.txt
 data/output_campaign_pa10/
