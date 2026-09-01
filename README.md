@@ -2,19 +2,24 @@
 
 ## Setup for Collaborators
 
-This repository uses Git LFS for large files (`.tif`, `.pdf`, `.csv`). After cloning:
+This repository tracks code and documentation only. Generated outputs and input data stay outside Git.
 
 ```bash
 git config core.hookspath .githooks
-git lfs install
-git lfs pull
 ```
 
 ---
 
 ## File workflow
 
-GitHub tracks code and documentation; generated outputs stay outside Git/LFS. Leonardo runs the jobs, Serviicola relays transfers, and completed output is copied as `data/output/*` into `F:\HPC_Leonardo\*` on Spartaco. Verify counts, sizes, and `_SUCCESS` before deleting remote output.
+GitHub tracks code and documentation; generated outputs stay outside Git. Leonardo runs the jobs, Serviicola relays transfers, and completed output is copied as `data/output/*` into `F:\HPC_Leonardo\*` on Spartaco. Verify counts, sizes, and `_SUCCESS` before deleting remote output.
+
+## Leonardo / Slurm (temporary)
+
+- Partition: `dcgp_usr_prod` (DCGP user production)
+- QoS: `dcgp_qos_lprod` (low production)
+- Partition limit: 16 nodes
+- Current per-user QoS limit: 3 nodes
 
 ## notes
 
