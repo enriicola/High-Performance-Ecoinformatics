@@ -60,6 +60,6 @@ rsconnect/
 # container 
 *.sif
 
-data/input/*
-data/output/*
-!data/output/README.md
+data/input/
+data/output/
+data/output_campaign_pa10/
