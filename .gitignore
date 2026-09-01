@@ -60,5 +60,6 @@ rsconnect/
 # container 
 *.sif
 
+data/input/*
 data/output/*
 !data/output/README.md
