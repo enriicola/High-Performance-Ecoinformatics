@@ -43,7 +43,6 @@ Le attività sono raggruppate per area. Le voci non marcate restano aperte; una 
 
 ## Infrastruttura e collaborazione
 
-- [ ] Decidere con Lucia come gestire Git LFS: Forgejo, rsync o altra destinazione condivisa.
 - [ ] Completare e verificare il workflow rsync tra computer locale, Serviicola e Leonardo.
 - [ ] Verificare i codici progetto CINECA con Lucia: `IsCd6_SPECC` e `IscrC_SPECC`.
 - [ ] Configurare formatter e LSP per R, eventualmente con pre-commit.
