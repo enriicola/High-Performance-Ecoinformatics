@@ -1,0 +1,4 @@
+"full.name"	"merged.by.PA"	"merged.by.run"	"merged.by.algo"	"filtered.by"	"algo"	"metric.eval"	"cutoff"	"sensitivity"	"specificity"	"calibration"	"validation"	"evaluation"
+"1"	"Galium.anisophyllon_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo"	"mergedData"	"mergedRun"	"mergedAlgo"	"AUCroc"	"EMmean"	"TSS"	478	98.099	96.745	0.948	NA	NA
+"2"	"Galium.anisophyllon_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo"	"mergedData"	"mergedRun"	"mergedAlgo"	"AUCroc"	"EMmean"	"AUCroc"	538.5	97.81	96.962	0.992	NA	NA
+"3"	"Galium.anisophyllon_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo"	"mergedData"	"mergedRun"	"mergedAlgo"	"AUCroc"	"EMmean"	"KAPPA"	763	95.366	97.876	0.91	NA	NA

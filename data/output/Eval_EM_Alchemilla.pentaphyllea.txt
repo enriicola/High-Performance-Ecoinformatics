@@ -1,0 +1,4 @@
+"full.name"	"merged.by.PA"	"merged.by.run"	"merged.by.algo"	"filtered.by"	"algo"	"metric.eval"	"cutoff"	"sensitivity"	"specificity"	"calibration"	"validation"	"evaluation"
+"1"	"Alchemilla.pentaphyllea_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo"	"mergedData"	"mergedRun"	"mergedAlgo"	"AUCroc"	"EMmean"	"TSS"	467	99.574	98.742	0.983	NA	NA
+"2"	"Alchemilla.pentaphyllea_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo"	"mergedData"	"mergedRun"	"mergedAlgo"	"AUCroc"	"EMmean"	"AUCroc"	467.5	99.574	98.742	0.997	NA	NA
+"3"	"Alchemilla.pentaphyllea_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo"	"mergedData"	"mergedRun"	"mergedAlgo"	"AUCroc"	"EMmean"	"KAPPA"	19	100	81.898	0	NA	NA

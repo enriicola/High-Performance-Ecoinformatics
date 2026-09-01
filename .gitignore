@@ -64,5 +64,6 @@ rsconnect/
 .vscode/sessions/
 
 data/input/
-data/output/
+data/output/*
+!data/output/*.txt
 data/output_campaign_pa10/

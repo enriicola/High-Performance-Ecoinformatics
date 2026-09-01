@@ -1,0 +1,4 @@
+"full.name"	"merged.by.PA"	"merged.by.run"	"merged.by.algo"	"filtered.by"	"algo"	"metric.eval"	"cutoff"	"sensitivity"	"specificity"	"calibration"	"validation"	"evaluation"
+"1"	"Festuca.versicolor_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo"	"mergedData"	"mergedRun"	"mergedAlgo"	"AUCroc"	"EMmean"	"TSS"	432	98.864	98.897	0.978	NA	NA
+"2"	"Festuca.versicolor_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo"	"mergedData"	"mergedRun"	"mergedAlgo"	"AUCroc"	"EMmean"	"AUCroc"	435.5	98.864	98.909	0.998	NA	NA
+"3"	"Festuca.versicolor_EMmeanByAUCroc_mergedData_mergedRun_mergedAlgo"	"mergedData"	"mergedRun"	"mergedAlgo"	"AUCroc"	"EMmean"	"KAPPA"	29	100	11.723	0	NA	NA

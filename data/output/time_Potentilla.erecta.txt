@@ -1,0 +1,2 @@
+"formating"	"modeling"	"modeling_EM"	"cur_projection"	"cur_projection_EM"	"fut_projection"
+"1"	2712.60996818542	3008.90182924271	84.4675755500793	2843.7586171627	1082.20030379295	31816.5785148144
