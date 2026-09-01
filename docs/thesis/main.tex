@@ -1,7 +1,12 @@
 \documentclass[openright]{masterthesis}
 \usepackage{FiraMono}
 
+% enriicola's and pi's addings
+\usepackage{array}
+\usepackage{longtable}
+
 \usepackage{graphicx}
+\graphicspath{{assets/branding/}{assets/img/}}
 \usepackage[font=scriptsize]{caption}
 \usepackage{mwe}
 
@@ -24,6 +29,8 @@
 \definecolor{pastelRed}{HTML}{E88E8E}
 \definecolor{pastelGray}{HTML}{EDE4E0}
 
+\newcommand{\comment}[1]{\textcolor{red}{#1}}
+
 \lstset{basicstyle=\ttfamily\footnotesize, tabsize=3, breaklines=true, showspaces=false, showstringspaces=false, captionpos=b}
 
 % macros
@@ -31,32 +38,39 @@
 \newcommand*\nodejs{Node.js}
 
 \begin{document}
-\title{TITLE}
-\author{CANDIDATE}
-\advisor{Prof. ADVISOR1\\Prof. ADVISOR2}
-\examiner{Prof. EXAMINER}
+\title{High Performance Ecoinformatics}
+\author{Enrico Pezzano}
+\advisor{Prof. Daniele D'Agostino\\Prof. Gabriele Casazza (DISTAV)}
+\examiner{Prof. Matteo Dell'Amico}
 \maketitle
 ~\newpage
 \dedication{\textit{DEDICATION}}
 ~\newpage
-\textbf{Abstract}
+\textbf{Abstract} Ecoinformatics is a modern method of doing science that enables scientists to generate new knowledge through innovative tools and approaches. Ecology is increasingly becoming a data-intensive science, involving the acquisition, preservation, and analysis of vast amounts of data from a variety of sources, including satellite and airborne remote sensing, instruments, sensors, and human observations. Ecologists are increasingly addressing larger-scale questions of both scientific and societal relevance, such as climate change and its consequences for ecosystems and related ecosystem services in the future. The topic of this thesis project stems from a research study conducted by the Department of Earth, Environmental, and Life Sciences (DISTAV, University of Genoa) that analyzes the shift in the distribution of natural habitats in the Alps due to future climate change to support decision-making processes regarding conservation planning and prioritization. The analysis is conducted using Species Distribution Models (SDMs), a dataset of approximately 3 million data points, and future climate change scenarios based on General Circulation Models (climate models). The statistical software R (https://www.r-project.org/) is used to generate future predictions of habitat distribution changes and biodiversity loss. The thesis candidate will work on improving the script and algorithmic functions, written in R, to streamline model analysis based on their knowledge and computer science background. This thesis project leverages interdisciplinary collaboration between DIBRIS and DISTAV to achieve better scientific results.   Depending on the candidate's interest and quality of results, the thesis can be upgraded with asterisk. 
 
 
 ~\newpage~\newpage
 
 \tableofcontents
 
-\input{Chapters/IntroductionAndMotivation} % Your work
-\input{Chapters/Background}        % Work done by others!
-\input{Chapters/RelatedWork} % Work done by others!
-\input{Chapters/RequirementsAnalysis} % Your work
-\input{Chapters/Design} % Your work
-\input{Chapters/Implementation} % Your work
-\input{Chapters/Experiments} % Your work
-\input{Chapters/Discussion} % Your work
-\input{Chapters/ConclusionsAndFutureWork}  % Your work
-\input{Chapters/SelectedCodeFragments} % Your work
- 
+% \input{Chapters/notes}
+\input{Chapters/1_Introduction}
+% \input{Chapters/IntroductionAndMotivation} % Your work
+\input{Chapters/2_Background}
+% \input{Chapters/Background}        % Work done by others!
+% \input{Chapters/RelatedWork} % Work done by others!
+\input{Chapters/3_CodeAsIs}
+% \input{Chapters/RequirementsAnalysis} % Your work
+\input{Chapters/4_Improvements}
+% \input{Chapters/Design} % Your work
+% \input{Chapters/Implementation} % Your work
+\input{Chapters/5_ExperimentalResults}
+% \input{Chapters/Experiments} % Your work
+% \input{Chapters/Discussion} % Your work
+\input{Chapters/6_Conclusions}
+% \input{Chapters/ConclusionsAndFutureWork}  % Your work
+\input{Chapters/7_Appendix}
+% \input{Chapters/SelectedCodeFragments} % Your work
 \bibliographystyle{alphaurl}
 \bibliography{references}
 \end{document}

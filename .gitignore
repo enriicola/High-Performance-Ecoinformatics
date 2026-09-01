@@ -59,6 +59,9 @@ rsconnect/
 
 # container 
 *.sif
+/docs/thesis/assets/branding/*-eps-converted-to.pdf
+
+.vscode/sessions/
 
 data/input/
 data/output/
