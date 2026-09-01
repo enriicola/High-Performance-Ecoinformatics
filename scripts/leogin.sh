@@ -8,12 +8,12 @@ HOST="login.leonardo.cineca.it"
 USER_EMAIL=$1
 NICK=$2
 
-#check if running with source or dot
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo "Error: This script must be sourced, not executed."
-    echo "Run with: source $0 or . $0"
-    exit 1
-fi
+# #check if running with source or dot
+# if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+#     echo "Error: This script must be sourced, not executed."
+#     echo "Run with: source $0 or . $0"
+#     exit 1
+# fi
 
 # Check step-cli installed
 if ! command -v step &> /dev/null; then
