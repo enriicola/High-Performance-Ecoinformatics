@@ -8,7 +8,7 @@ My work focuses on making this workflow executable and measurable on the CINECA 
 
 Input rasters and generated model output are not stored in Git because they occupy several gigabytes. They are kept on Leonardo and backed up on Spartaco. The repository is cloned on all three computers, while heavy files under `data/` and `container/geospatial.sif` are synchronized between Leonardo and Spartaco through Serviicola with `make 3sync`.
 
-The output is split between small textual files (`*.txt`), which are tracked by Git, and large raster/model files, which are transferred with `make 3sync` through `scripts/3sync.sh`.
+The output is split between small textual files (`*.txt`), which are tracked by Git, and large raster/model files, which are transferred with `make sync` through `scripts/3sync.sh`.
 
 ## Usage
 
@@ -53,7 +53,6 @@ tail -f logs/job_<job-id>_<task-id>.log
 - [ ] Add a LaTeX command for writing comments and notes in red within the thesis.
 - [ ] Choose the slide format and template, then prepare separate technical and short presentations.
 - [ ] 1 hour long technical slides
-- [ ] 15 minutes long non-technical slides
 
 ### Scientific validation
 

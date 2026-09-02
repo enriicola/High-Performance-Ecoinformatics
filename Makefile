@@ -3,10 +3,13 @@ ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 $(ARGS):
 	@:
 
-.PHONY: thesis container leogin sbatch 3sync txt2csv biomod2sync
+.PHONY: thesis slides container leogin sbatch 3sync txt2csv biomod2sync
 
 thesis:
 	./scripts/compile-thesis.sh
+
+slides:
+	./scripts/compile-slides.sh
 
 container:
 	singularity build container/geospatial.sif container/geospatial.def
