@@ -9,7 +9,7 @@ Use this file when resuming work on the BIOMOD2 campaign or the three-host workf
 - Leonardo uses `/leonardo_work/IscrC_SPECC`; replace its old Git metadata with a fresh clone only after maintenance.
 - Spartaco uses `F:\HPC_Leonardo` as a clone, with heavy files under `data\` and `container\geospatial.sif`.
 - Git tracks two small input CSV files and root-level `data/output/*.txt`. Raster/model output and the SIF stay outside Git.
-- `make sync` copies `data/` and `container/geospatial.sif` from Leonardo to Spartaco without deleting destination files. Use `make sync ARGS="<relative-path>"` for one path.
+- `make 3sync` copies `data/` and `container/geospatial.sif` from Leonardo to Spartaco without deleting destination files. Use `make 3sync ARGS="<relative-path>"` for one path.
 - Git LFS is not used.
 
 ## Campaign state

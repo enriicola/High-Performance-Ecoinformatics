@@ -6,9 +6,9 @@ The working dataset contains 2,583,359 species-presence records for 167 species 
 
 My work focuses on making this workflow executable and measurable on the CINECA Leonardo supercomputer. In particular, my goal is to make the complete analysis much faster: it currently takes X days, and I am working to reduce its execution time to X hours without compromising the correctness or reproducibility of the results.
 
-Input rasters and generated model output are not stored in Git because they occupy several gigabytes. They are kept on Leonardo and backed up on Spartaco. The repository is cloned on all three computers, while heavy files under `data/` and `container/geospatial.sif` are synchronized between Leonardo and Spartaco through Serviicola with `make sync`.
+Input rasters and generated model output are not stored in Git because they occupy several gigabytes. They are kept on Leonardo and backed up on Spartaco. The repository is cloned on all three computers, while heavy files under `data/` and `container/geospatial.sif` are synchronized between Leonardo and Spartaco through Serviicola with `make 3sync`.
 
-The output is split between small textual files (`*.txt`), which are tracked by Git, and large raster/model files, which are transferred with `make sync` through `scripts/3sync.sh`.
+The output is split between small textual files (`*.txt`), which are tracked by Git, and large raster/model files, which are transferred with `make 3sync` through `scripts/3sync.sh`.
 
 ## Usage
 
@@ -52,6 +52,8 @@ tail -f logs/job_<job-id>_<task-id>.log
 - [ ] Consider automatic LaTeX compilation once the document structure is stable.
 - [ ] Add a LaTeX command for writing comments and notes in red within the thesis.
 - [ ] Choose the slide format and template, then prepare separate technical and short presentations.
+- [ ] 1 hour long technical slides
+- [ ] 15 minutes long non-technical slides
 
 ### Scientific validation
 
