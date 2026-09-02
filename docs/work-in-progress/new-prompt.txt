@@ -1,0 +1,18 @@
+potrebbe aver senso uno dei tre nodi utilizzarlo per la campagna da uno a 167 e come andrà andrà chi se ne frega e poi gli altri due nodi per fare quello che sta già facendo dall'altra parte?
+
+https://spin.atomicobject.com/rebuilding-development-workstation/?utm_source=tldrnewsletter 
+
+'''
+The implementation is specific to my preferences, but the larger idea is more important than the script itself:
+
+branch
+  └── Git worktree
+        └── tmux session
+              ├── shell
+              └── agent
+This small amount of orchestration removes enough friction that creating a fresh workspace becomes the default. There is little incentive to let unrelated work share a branch, directory, or terminal context.
+'''
+
+https://docs.hpc.cineca.it/hpc/leonardo.html
+
+1:leo  2:01a00bf8-1198-7cb9-b45e-aeb25163cebd  3:01a03831-9d4c-7366-8a2b-fa1f748f70c1

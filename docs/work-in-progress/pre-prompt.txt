@@ -1,0 +1,17 @@
+ Leggi prima questi file, senza modificarli:
+
+   - prompt.md
+   - docs/thesis/Chapters/notes.tex
+   - README.md
+   - notes.md
+
+   Ricostruisci in modo conciso:
+
+   1. lo stato della campagna BIOMOD2 su Leonardo, RAM, CPU,
+      storage TRUE/FALSE e risultati dei test worker;
+   2. l’esperimento MAXNET blockwise, cosa è stato verificato
+      e cosa manca ancora;
+   3. i prossimi passi già documentati.
+
+   Considera prompt.md il handoff principale.
+   Non lanciare job, non modificare file e non fare cleanup del worktree.
