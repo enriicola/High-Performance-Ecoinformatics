@@ -11,7 +11,7 @@ log_file="/tmp/tesi-compile.log"
 
 cd "$main_tex_dir"
 
-if ! latexmk -pdf "$main_tex" >"$log_file" 2>&1; then
+if ! latexmk -pdf -interaction=nonstopmode -halt-on-error "$main_tex" >"$log_file" 2>&1; then
   tail -n 80 "$log_file" >&2
   echo "Error: Failed to compile thesis. Full log: $log_file" >&2
   exit 1
