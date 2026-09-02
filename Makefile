@@ -1,3 +1,8 @@
+ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+.PHONY: $(ARGS)
+$(ARGS):
+	@:
+
 .PHONY: thesis container leogin sbatch 3sync txt2csv biomod2sync
 
 thesis:
