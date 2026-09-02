@@ -1,1 +1,0 @@
-TODO to choose il latex or typst slide, and which template (uni or mine). plus TODO 2 files, one for the techical 1h long presentation, and one for the 15min short one.

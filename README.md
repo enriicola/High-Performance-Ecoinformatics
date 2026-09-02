@@ -44,6 +44,7 @@ tail -f logs/job_<job-id>_<task-id>.log
 ### Thesis
 
 - [ ] Write and revise the chapters using verified results.
+- [ ] NB: keep in mind and remmber to use the professor suggestions inside docs/thesis/main.tex after the end of the document
 - [ ] Confirm the title, structure, abstract and scientific content with the supervisors.
 - [ ] Replace supervisor, co-supervisor, examiner and dedication placeholders.
 - [ ] Decide whether the abstract belongs in the main file or in `Chapters/abstract.tex`.
@@ -53,6 +54,7 @@ tail -f logs/job_<job-id>_<task-id>.log
 - [ ] Add a LaTeX command for writing comments and notes in red within the thesis.
 - [ ] Choose the slide format and template, then prepare separate technical and short presentations.
 - [ ] 1 hour long technical slides
+- [ ] 15 minutes long non-technical slides
 
 ### Scientific validation
 
