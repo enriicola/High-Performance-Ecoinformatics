@@ -6,15 +6,16 @@ Large files under `data/input/` and generated files under `data/output/` are int
 - Spartaco repository: `F:\HPC_Leonardo\`, with heavy data under `data\`
 - Serviicola: Git checkout and transfer relay, without heavy data
 
-`scripts/3sync.sh` copies paths relative to Leonardo's `data/` into `F:\HPC_Leonardo\data\` on Spartaco:
+`scripts/3sync.sh` copies heavy files relative to the repository root on Leonardo into the same paths below `F:\HPC_Leonardo\` on Spartaco:
 
 ```bash
-./scripts/3sync.sh input
-./scripts/3sync.sh output
-./scripts/3sync.sh output_campaign_pa10
+./scripts/3sync.sh data/input
+./scripts/3sync.sh data/output
+./scripts/3sync.sh data/output_campaign_pa10
+./scripts/3sync.sh container/geospatial.sif
 ```
 
-Running it without arguments synchronizes all of `data/`. The script copies files but does not delete destination files.
+Running it without arguments synchronizes `data/` and `container/geospatial.sif`. The script copies files but does not delete destination files.
 
 ## Directory layout
 

@@ -5,8 +5,11 @@
 CA_URL="https://sshproxy.hpc.cineca.it"
 CA_FINGERPRINT="2ae1543202304d3f434bdc1a2c92eff2cd2b02110206ef06317e70c1c1735ecd"
 HOST="login.leonardo.cineca.it"
-USER_EMAIL=$1
-NICK=$2
+USER_EMAIL="${1:-}"
+NICK="${2:-}"
+
+[[ -n "$USER_EMAIL" ]] || read -r -p "CINECA email: " USER_EMAIL
+[[ -n "$NICK" ]] || read -r -p "CINECA username: " NICK
 
 # #check if running with source or dot
 # if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
