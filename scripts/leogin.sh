@@ -1,6 +1,5 @@
 #!/bin/bash
 # https://docs.hpc.cineca.it/general/access.html
-# IMPORTANT: run it with ". ./cineca-setup.sh" or "source ./cineca-setup.sh"
 
 CA_URL="https://sshproxy.hpc.cineca.it"
 CA_FINGERPRINT="2ae1543202304d3f434bdc1a2c92eff2cd2b02110206ef06317e70c1c1735ecd"
@@ -10,13 +9,6 @@ NICK="${2:-}"
 
 [[ -n "$USER_EMAIL" ]] || read -r -p "CINECA email: " USER_EMAIL
 [[ -n "$NICK" ]] || read -r -p "CINECA username: " NICK
-
-# #check if running with source or dot
-# if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-#     echo "Error: This script must be sourced, not executed."
-#     echo "Run with: source $0 or . $0"
-#     exit 1
-# fi
 
 # Check step-cli installed
 if ! command -v step &> /dev/null; then
@@ -44,4 +36,4 @@ fi
 # Get SSH certificate (opens browser for 2FA)
 step ssh login "$USER_EMAIL" --provisioner cineca-hpc
 
-ssh $NICK@$HOST
+ssh "$NICK@$HOST"
