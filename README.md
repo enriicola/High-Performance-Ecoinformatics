@@ -6,9 +6,9 @@ The working dataset contains 2,583,359 species-presence records for 167 species 
 
 My work focuses on making this workflow executable and measurable on the CINECA Leonardo supercomputer. In particular, my goal is to make the complete analysis much faster: it currently takes X days, and I am working to reduce its execution time to X hours without compromising the correctness or reproducibility of the results.
 
-Input rasters and generated model output are not stored in Git because they occupy several gigabytes. They are kept on Leonardo and backed up on Spartaco. The repository is cloned on all three computers, while heavy files under `data/` and `container/geospatial.sif` are synchronized between Leonardo and Spartaco through Serviicola with `make 3sync`.
+The Git repository and `container/geospatial.sif` are kept on Serviicola, Leonardo and Spartaco. The container image is ignored by Git. Large inputs and generated model output under `data/` are also ignored; they are stored on Leonardo and copied to Spartaco with `make 3sync`. The same command copies the container from Leonardo to Spartaco through Serviicola.
 
-The output is split between small textual files (`*.txt`), which are tracked by Git, and large raster/model files, which are transferred with `make sync` through `scripts/3sync.sh`.
+Git tracks the two small input CSV files and the textual summaries written directly under `data/output/`. `scripts/3sync.sh` transfers the remaining data without deleting files from the destination.
 
 ## Usage
 
@@ -18,11 +18,12 @@ Enable the repository hooks after cloning:
 git config core.hookspath .githooks
 ```
 
-Build the container or compile thesis locally:
+Build the container, compile the thesis locally, or compile the slides:
 
 ```bash
 make container
 make thesis
+make slides
 ```
 
 Connect to Leonardo and submit a species task:
@@ -40,6 +41,34 @@ tail -f logs/job_<job-id>_<task-id>.log
 ```
 
 ## TODOs
+
+### relator prof todos
+
+- [ ] tempistiche tabelle con tutti gli step e tutte le variabili
+- [ ] scrivere nella bozza della tesi una belle descrizione della tesi, perchè etc, presentare i risultati
+- [ ] capitolo container e worflow, risultati e difficoltà su leonardo
+- [ ] domande sul codice
+- [ ] serviranno 3 versioni del codice R: 
+    1. I/O sequenziale e modelli sequenziale
+    2. I/O sequenziale e modelli parallelo
+    3. I/O paralleli e modelli parallelo
+
+### orphaned todos
+
+- [ ] research if possible to run the analysis on serviicola with some memory guardrail or similar, since my server has only 32gb of ram, but i'd still like to use it
+- [ ] same thing for spartaco, we could try this insane idea to distribute the analysis between 3 servers, but idk, could be too much overhead
+
+- [x] aggiungere i criteri di minimalismo e indicazioni di scarse dipendenze
+- [ ] Commentare come si deve e per bene sia il codice R e anche il resto
+- [ ] Controllare se alcuni problemi per cui non riesco a fare i test Run su Leonardo sono dovuti al container rocker e non alla ram
+- [ ] dopo una baseline solidissima, Aggiungere delle specifiche con cui tracciare dei precisissimi progressi al codice e alle sue performance, hotspot, i/o, and whatnot
+- [ ] valutare se aggiungere all'agent.md di dire a pi di usare Chrome per fare degli screenshot per controllarsi da solo (e anche farsi controllare da me)
+- [ ] Riassumere questo video e prenderne degli appunti della trascrizione di buone pratiche di programmazione con i coding agent da aggiungere alla tesi: <https://www.youtube.com/watch?v=TJ6ruN-o0PA>
+
+### wip
+
+- [ ] 01a00bf8-1198-7cb9-b45e-aeb25163cebd: researching and solving the OOM errors + blockwise-override trial run (old session)
+- [ ] 01a03831-9d4c-7366-8a2b-fa1f748f70c1: declutter: + finish Leonardo stuff and runs after maintenance (4 september 0800)
 
 ### Thesis
 
@@ -80,7 +109,9 @@ tail -f logs/job_<job-id>_<task-id>.log
 
 ### Workflow optimization
 
-- [ ] Complete the blockwise MAXNET comparison on the full raster.
+- [ ] Complete the full-raster comparison in `tests/test_maxnet_blockwise.R`, including runtime, MaxRSS and output equality.
+- [ ] Update `tests/expected_output_foreach_species.txt` only when the output contract intentionally changes.
+- [ ] write a test suite for the src code at `R/`, using (if reviewed as good or useful) `tests/test_output.R`.
 - [ ] Verify whether splitting the script changes memory, parallelism or reproducibility.
 - [ ] Measure I/O contention with multiple workers.
 - [ ] Reduce recalculation and copying only when measurements justify it.

@@ -2,11 +2,13 @@
 
 Large files under `data/input/` and generated files under `data/output/` are intentionally excluded from Git. Input data totals several gigabytes and most source rasters exceed GitHub's 100 MB file limit; BIOMOD2 output is substantially larger. Git keeps the two small input CSV files and summary files matching `data/output/*.txt`.
 
-- Leonardo repository: `/leonardo_work/IscrC_SPECC/`, with heavy data under `data/`
-- Spartaco repository: `F:\HPC_Leonardo\`, with heavy data under `data\`
-- Serviicola: Git checkout and transfer relay, without heavy data
+The Git repository and `container/geospatial.sif` are kept on all three computers. The container is ignored by Git.
 
-`scripts/3sync.sh` copies heavy files relative to the repository root on Leonardo into the same paths below `F:\HPC_Leonardo\` on Spartaco:
+- Leonardo: `/leonardo_work/IscrC_SPECC/`, with the container and heavy data under `data/`
+- Spartaco: `F:\HPC_Leonardo\`, with the container and a copy of the heavy data under `data\`
+- Serviicola: `/home/ubuntu/tesi/`, with the container but without a copy of the heavy data
+
+`scripts/3sync.sh` copies heavy data and `container/geospatial.sif` from Leonardo to the same relative paths on Spartaco, using Serviicola as the transfer relay:
 
 ```bash
 ./scripts/3sync.sh data/input
@@ -15,11 +17,11 @@ Large files under `data/input/` and generated files under `data/output/` are int
 ./scripts/3sync.sh container/geospatial.sif
 ```
 
-Running it without arguments synchronizes `data/` and `container/geospatial.sif`. The script copies files but does not delete destination files.
+Running it without arguments copies `data/` and `container/geospatial.sif` from Leonardo to Spartaco. Serviicola keeps its own copy of the container but does not retain an intermediate copy of the transferred data. The script does not delete destination files.
 
 ## Directory layout
 
-Large production inputs are kept on Leonardo/Spartaco and are not kept in this checkout. The expected input layout is:
+Large production inputs are kept on Leonardo and Spartaco, not on Serviicola. The expected input layout is:
 
 ```text
 data/input

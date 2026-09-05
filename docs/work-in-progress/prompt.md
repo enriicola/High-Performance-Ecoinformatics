@@ -5,11 +5,10 @@ Use this file when resuming work on the BIOMOD2 campaign or the three-host workf
 ## Repository and hosts
 
 - GitHub has one branch: `main`.
-- Serviicola (`/home/ubuntu/tesi`) is the working clone and transfer relay.
-- Leonardo uses `/leonardo_work/IscrC_SPECC`; replace its old Git metadata with a fresh clone only after maintenance.
-- Spartaco uses `F:\HPC_Leonardo` as a clone, with heavy files under `data\` and `container\geospatial.sif`.
-- Git tracks two small input CSV files and root-level `data/output/*.txt`. Raster/model output and the SIF stay outside Git.
-- `make 3sync` copies `data/` and `container/geospatial.sif` from Leonardo to Spartaco without deleting destination files. Use `make 3sync ARGS="<relative-path>"` for one path.
+- Serviicola (`/home/ubuntu/tesi`), Leonardo (`/leonardo_work/IscrC_SPECC`) and Spartaco (`F:\HPC_Leonardo`) each keep a Git clone and `container/geospatial.sif`.
+- Git ignores the container image. It tracks two small input CSV files and root-level `data/output/*.txt`.
+- Heavy inputs and raster/model output under `data/` are ignored by Git and stored on Leonardo and Spartaco, not on Serviicola.
+- `make 3sync` copies `data/` and the container from Leonardo to Spartaco through Serviicola without deleting destination files. Serviicola keeps its own copy of the container but not the heavy data. Use `make 3sync ARGS="<relative-path>"` for one path.
 - Git LFS is not used.
 
 ## Campaign state
