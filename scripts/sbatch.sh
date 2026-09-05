@@ -21,7 +21,7 @@ set -Eeuo pipefail
 
 readonly REPO_ROOT="${SLURM_SUBMIT_DIR:-$PWD}"
 readonly IMAGE="$REPO_ROOT/container/geospatial.sif"
-readonly RSCRIPT_PATH="${RSCRIPT_PATH:-/work/R/base/base_sequential_analysis.R}"
+readonly RSCRIPT_PATH="/work/R/base/baseline.R"
 readonly JOB_LABEL="${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID:-local}}_${SLURM_ARRAY_TASK_ID:-0}"
 readonly RESOURCE_LOG="$REPO_ROOT/logs/resources_${JOB_LABEL}.txt"
 

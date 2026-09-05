@@ -5,13 +5,13 @@
 # With no path, data and container/geospatial.sif are synchronized.
 set -Eeuo pipefail
 
-readonly LEO_HOST="${LEO_HOST:-REDACTED_USERNAME@login.leonardo.cineca.it}"
-readonly LEO_ROOT="${LEO_ROOT:-/leonardo_work/IscrC_SPECC}"
-readonly SPARTACO_HOST="${SPARTACO_HOST:-user@100.102.164.39}"
-readonly SPARTACO_ROOT="${SPARTACO_ROOT:-F:/HPC_Leonardo}"
-readonly LEO_REMOTE="${LEO_REMOTE:-leo}"
-readonly SPARTACO_REMOTE="${SPARTACO_REMOTE:-spartaco}"
-readonly SSH_AUTH_SOCK="${SSH_AUTH_SOCK:-$HOME/.ssh/cineca-agent.sock}"
+readonly LEO_HOST="REDACTED_USERNAME@login.leonardo.cineca.it"
+readonly LEO_ROOT="/leonardo_work/IscrC_SPECC"
+readonly SPARTACO_HOST="user@100.102.164.39"
+readonly SPARTACO_ROOT="F:/HPC_Leonardo"
+readonly LEO_REMOTE="leo"
+readonly SPARTACO_REMOTE="spartaco"
+readonly SSH_AUTH_SOCK="$HOME/.ssh/cineca-agent.sock"
 export SSH_AUTH_SOCK
 
 if (($# == 0)); then
