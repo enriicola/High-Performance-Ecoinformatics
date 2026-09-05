@@ -3,6 +3,11 @@ set -Eeuo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 git -C docs/biomod2 switch master
+# If this fails with "Cannot fast-forward to multiple branches", another process
+# (for example VS Code autofetch) may be updating FETCH_HEAD concurrently.
+# Retry this script after a few minutes. Alternatively, run:
+# git -C docs/biomod2 fetch --no-write-fetch-head origin master
+# git -C docs/biomod2 merge --ff-only origin/master
 git -C docs/biomod2 pull --ff-only origin master
 git add docs/biomod2
 
