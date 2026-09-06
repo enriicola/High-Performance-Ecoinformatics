@@ -1,65 +1,425 @@
-# Local R log metadata
+# Run evidence appendix
 
-This table indexes the metadata written directly in the local `logs/job_*.log` files. It does not infer missing values from filenames or related runs. See [`runtime-and-resource-summary.md`](runtime-and-resource-summary.md) for statuses, errors, resource measurements and historical evidence from the project notes.
+Questa è l'appendice della [tabella breve per la riunione](runtime-and-resource-summary.md). Contiene il dettaglio da consultare solo quando serve verificare una run.
 
-| Log | Array key | Slurm job ID | Node | Started | Finished | Wrapper elapsed | Species | Occurrences | Workers | Storage |
-|---|---|---:|---|---|---|---:|---|---:|---:|---|
-| `job_47510573_1.log` | `47510573_1` | NA | `NA` | NA | NA | NA | *Potentilla.erecta* | 167345 | NA | NA |
-| `job_47510573_2.log` | `47510573_2` | NA | `lrdn4731` | NA | NA | NA | *Galium.anisophyllon* | 5936 | NA | NA |
-| `job_47510573_3.log` | `47510573_3` | NA | `lrdn3458` | NA | NA | NA | *Festuca.glauca* | 332 | NA | NA |
-| `job_47574797_2.log` | `47574797_2` | NA | `NA` | NA | NA | NA | *Galium.anisophyllon* | 5936 | 1 | NA |
-| `job_47574797_3.log` | `47574797_3` | NA | `NA` | NA | NA | NA | *Festuca.glauca* | 332 | 1 | NA |
-| `job_47593184_2.log` | `47593184_2` | NA | `lrdn3902` | NA | NA | NA | *Galium.anisophyllon* | 5936 | 1 | NA |
-| `job_48075655_1.log` | `48075655_1` | NA | `NA` | NA | NA | NA | *Achillea.atrata* | 1475 | 1 | NA |
-| `job_48075655_2.log` | `48075655_2` | NA | `NA` | NA | NA | NA | *Achillea.clusiana* | 174 | 1 | NA |
-| `job_48075655_3.log` | `48075655_3` | NA | `NA` | NA | NA | NA | *Agrostis.capillaris* | 170701 | 4 | NA |
-| `job_48075655_4.log` | `48075655_4` | NA | `NA` | NA | NA | NA | *Agrostis.rupestris* | 4464 | 1 | NA |
-| `job_48075655_5.log` | `48075655_5` | NA | `NA` | NA | NA | NA | *Alchemilla.fissa* | 1428 | 1 | NA |
-| `job_48075655_6.log` | `48075655_6` | NA | `lrdn3914` | NA | NA | NA | *Alchemilla.pentaphyllea* | 1190 | 1 | NA |
-| `job_48075655_7.log` | `48075655_7` | NA | `lrdn4932` | NA | NA | NA | *Allium.senescens* | 260 | 1 | NA |
-| `job_48075655_8.log` | `48075655_8` | NA | `lrdn3602` | NA | NA | NA | *Alyssum.alyssoides* | 12396 | 1 | NA |
-| `job_48236130_1.log` | `48236130_1` | NA | `lrdn3554` | NA | NA | NA | *Achillea.atrata* | 1475 | 1 | NA |
-| `job_48238919_3.log` | `48238919_3` | NA | `lrdn3602` | NA | NA | NA | *Agrostis.capillaris* | 170701 | 4 | NA |
-| `job_48325677_3.log` | `48325677_3` | NA | `NA` | NA | NA | NA | *Agrostis.capillaris* | 170701 | 4 | F/F |
-| `job_48325677_4.log` | `48325677_4` | NA | `lrdn3583` | NA | NA | NA | *Agrostis.rupestris* | 4464 | 1 | F/F |
-| `job_48325677_5.log` | `48325677_5` | NA | `lrdn3659` | NA | NA | NA | *Alchemilla.fissa* | 1428 | 1 | F/F |
-| `job_48418427_3.log` | `48418427_3` | NA | `NA` | NA | NA | 0d 8h 36m 58s | *Agrostis.capillaris* | 170701 | 4 | F/F |
-| `job_48418427_4.log` | `48418427_4` | NA | `NA` | NA | NA | 0d 4h 29m 28s | *Agrostis.rupestris* | 4464 | 1 | F/F |
-| `job_48418427_5.log` | `48418427_5` | NA | `NA` | NA | NA | 0d 4h 5m 4s | *Alchemilla.fissa* | 1428 | 1 | F/F |
-| `job_48606158_1.log` | `48606158_1` | NA | `lrdn3980` | NA | NA | NA | *Festuca.varia* | 43 | 1 | F/F |
-| `job_48606158_2.log` | `48606158_2` | NA | `lrdn3700` | NA | NA | NA | *Festuca.versicolor* | 88 | 1 | F/F |
-| `job_48606158_3.log` | `48606158_3` | NA | `lrdn3991` | NA | NA | NA | *Achillea.clusiana* | 174 | 1 | F/F |
-| `job_48607206_1.log` | `48607206_1` | NA | `lrdn4383` | NA | NA | NA | *Festuca.varia* | 43 | 1 | F/F |
-| `job_48607206_2.log` | `48607206_2` | NA | `lrdn4617` | NA | NA | NA | *Festuca.versicolor* | 88 | 1 | F/F |
-| `job_48607206_3.log` | `48607206_3` | NA | `lrdn4690` | NA | NA | NA | *Achillea.clusiana* | 174 | 1 | F/F |
-| `job_48607860_1.log` | `48607860_1` | NA | `NA` | NA | NA | 0d 17h 14m 15s | *Festuca.varia* | 43 | 1 | F/F |
-| `job_48607860_2.log` | `48607860_2` | NA | `NA` | NA | NA | 0d 16h 31m 3s | *Festuca.versicolor* | 88 | 1 | F/F |
-| `job_48607860_3.log` | `48607860_3` | NA | `NA` | NA | NA | 0d 14h 33m 40s | *Achillea.clusiana* | 174 | 1 | F/F |
-| `job_48607860_4.log` | `48607860_4` | NA | `NA` | NA | NA | 0d 18h 52m 22s | *Seseli.osseum* | 206 | 1 | F/F |
-| `job_48607860_5.log` | `48607860_5` | NA | `NA` | NA | NA | 0d 21h 32m 42s | *Allium.senescens* | 260 | 1 | F/F |
-| `job_48873007_1.log` | `48873007_1` | NA | `NA` | NA | NA | 0d 13h 24m 22s | *Festuca.varia* | 43 | 1 | F/F |
-| `job_48873007_2.log` | `48873007_2` | NA | `lrdn3504` | NA | NA | NA | *Festuca.versicolor* | 88 | 1 | F/F |
-| `job_48873007_3.log` | `48873007_3` | NA | `NA` | NA | NA | 0d 15h 16m 13s | *Achillea.clusiana* | 174 | 1 | F/F |
-| `job_48873007_4.log` | `48873007_4` | NA | `lrdn4369` | NA | NA | NA | *Seseli.osseum* | 206 | 1 | F/F |
-| `job_48873007_5.log` | `48873007_5` | NA | `lrdn3607` | NA | NA | NA | *Allium.senescens* | 260 | 1 | F/F |
-| `job_49507005_1.log` | `49507005_1` | 49507007 | `lrdn4610` | 2026-07-16T02:29:12+02:00 | NA | NA | *Achillea.atrata* | 1475 | 5 | NA |
-| `job_49507005_2.log` | `49507005_2` | 49507008 | `lrdn4005` | 2026-07-16T02:29:12+02:00 | NA | NA | *Achillea.clusiana* | 174 | 5 | NA |
-| `job_49507005_3.log` | `49507005_3` | 49507005 | `lrdn4305` | 2026-07-16T02:29:12+02:00 | NA | NA | *Agrostis.capillaris* | 170701 | 5 | NA |
-| `job_49628609_1.log` | `49628609_1` | 49628609 | `lrdn4030` | 2026-07-17T16:55:46+02:00 | NA | NA | *Achillea.atrata* | 1475 | 2 | NA |
-| `job_49629886_4294967294.log` | `49629886_4294967294` | 49629886 | `lrdn4582` | 2026-07-17T17:20:58+02:00 | 2026-07-17T22:46:14+02:00 | 0d 5h 25m 10s | *Achillea.atrata* | 1475 | 2 | NA |
-| `job_49630695_2.log` | `49630695_2` | 49630695 | `lrdn4386` | 2026-07-17T17:42:02+02:00 | 2026-07-17T19:17:34+02:00 | 0d 1h 35m 32s | *Achillea.clusiana* | 174 | 112 | NA |
-| `job_49842976_1.log` | `49842976_1` | 49842976 | `lrdn4717` | 2026-07-19T19:43:32+02:00 | 2026-07-20T01:27:26+02:00 | 0d 5h 43m 54s | *Achillea.atrata* | 1475 | 2 | NA |
-| `job_49843592_1.log` | `49843592_1` | 49843592 | `lrdn4682` | 2026-07-19T19:55:08+02:00 | 2026-07-19T23:52:30+02:00 | 0d 3h 57m 22s | *Achillea.atrata* | 1475 | 4 | NA |
-| `job_49844162_1.log` | `49844162_1` | 49844162 | `lrdn4376` | 2026-07-19T20:03:38+02:00 | 2026-07-20T18:37:24+02:00 | 0d 22h 33m 45s | *Achillea.atrata* | 1475 | 4 | F/F |
-| `job_51485472_1.log` | `51485472_1` | 51485472 | `lrdn4939` | 2026-08-01T16:49:59+02:00 | 2026-08-02T15:11:31+02:00 | 0d 22h 21m 32s | *Achillea.atrata* | 1475 | 4 | T/F |
-| `job_51485581_1.log` | `51485581_1` | 51485581 | `lrdn4946` | 2026-08-01T16:49:59+02:00 | 2026-08-02T07:55:29+02:00 | 0d 15h 5m 30s | *Achillea.atrata* | 1475 | 8 | F/F |
-| `job_51494635_1.log` | `51494635_1` | 51494635 | `lrdn4454` | 2026-08-01T16:55:01+02:00 | 2026-08-02T10:45:54+02:00 | 0d 17h 50m 53s | *Achillea.atrata* | 1475 | 6 | F/F |
-| `job_51738981_1.log` | `51738981_1` | 51738981 | `lrdn4795` | 2026-08-02T17:34:40+02:00 | 2026-08-03T03:56:03+02:00 | 0d 10h 21m 23s | *Achillea.atrata* | 1475 | 16 | F/F |
-| `job_51739004_1.log` | `51739004_1` | 51739004 | `lrdn3936` | 2026-08-02T17:34:40+02:00 | 2026-08-02T20:31:52+02:00 | 0d 2h 57m 12s | *Achillea.atrata* | 1475 | 16 | T/F |
-| `job_51739048_1.log` | `51739048_1` | 51739048 | `lrdn3756` | 2026-08-02T17:35:10+02:00 | 2026-08-02T19:15:04+02:00 | 0d 1h 39m 54s | *Achillea.atrata* | 1475 | 32 | F/F |
-| `job_51756264_1.log` | `51756264_1` | 51756264 | `lrdn4863` | 2026-08-02T22:20:02+02:00 | NA | NA | *Achillea.atrata* | 1475 | 12 | F/F |
-| `job_51756286_1.log` | `51756286_1` | 51756286 | `lrdn4866` | 2026-08-02T22:20:32+02:00 | NA | NA | *Achillea.atrata* | 1475 | 12 | T/F |
-| `job_55020903_1.log` | `55020903_1` | 55020940 | `lrdn4946` | 2026-08-29T15:16:26+02:00 | 2026-08-30T16:53:03+02:00 | 1d 1h 36m 36s | *Achillea.atrata* | 1475 | 8 | F/F |
-| `job_55020903_2.log` | `55020903_2` | 55300210 | `lrdn3956` | 2026-08-30T18:51:31+02:00 | NA | NA | *Achillea.clusiana* | 174 | 8 | F/F |
-| `job_agrostis_pa10000_ok.log` | `agrostis_pa10000_ok` | NA | `NA` | NA | NA | NA | *Agrostis.capillaris* | 170701 | NA | NA |
-| `job_agrostis_pa10_ok.log` | `agrostis_pa10_ok` | NA | `NA` | NA | NA | NA | *Agrostis.capillaris* | 170701 | NA | NA |
+`NA` significa che il valore non è presente nelle fonti citate per quella tabella o riga. Non è stato stimato. Fonti abbreviate: **L** = file `logs/<Run>.log`; **A** = `docs/work-in-progress/appunti.md`; **R** = `logs/resources_<run>.txt`; **S** = `logs/sacct_r_runs_2026-09-06.tsv`.
+
+## Configurazioni
+
+I parametri ripetuti sono normalizzati in profili, così ogni run rimane leggibile senza perdere la configurazione.
+
+| Profilo | Input | PA rep × assenze | PA strategy | CV rep / train | Algoritmi | Modelli max | Futuri | Seed | Provenienza |
+|---|---|---:|---|---|---|---:|---:|---:|---|
+| `toy9` | 9 righe *A. atrata* | 3 × NA | random | 2 / NA | GLM, GBM, ANN, FDA, MAXNET | 30 | 8 | NA | L, A |
+| `toy1k` | 1.000 righe Agrostis | 3 × 10 | random | 2 / 70% | GLM, GBM, ANN, FDA, MAXNET | 30 circa | 8 | NA | L, A |
+| `T3-10` | `agrostis_1km_EUNIS.csv` | 3 × 10 | random | 2 / 70% | GLM, GBM, ANN, FDA, MAXNET | 30 | 8 | NA | L |
+| `H3` | `full_1km_EUNIS.csv` | 3 × 10.000 | random | 2 / 70% | GLM, GBM, ANN, FDA, MAXNET | 30 | 8 | NA | L |
+| `H3-partial` | `full_1km_EUNIS.csv` | 3 × 10.000 | random | NA | GLM, GBM, ANN, FDA, MAXNET | NA | 8 | NA | L troncato |
+| `P10` | `full_1km_EUNIS.csv` | 10 × 10.000 | random | 5 / 70% | GLM, GBM, ANN, FDA, MAXNET | 250 | 8 | NA | L, A |
+| `D10` | `full_1km_EUNIS.csv` | 10 × 10.000 | random | 5 / 70% | GLM, GBM, ANN, FDA, MAXNET | 250 | 8 | NA | A; ref iniziale `6c36715` |
+| `D10-seed42` | `full_1km_EUNIS.csv` | 10 × 10.000 | random | 5 / 70% | GLM, GBM, ANN, FDA, MAXNET | 250 | 8 | 42 | L, A |
+| `E5` | `full_1km_EUNIS.csv` | 5 × 10.000 | random | 5 / 70% | GLM, GBM, ANN, FDA, MAXNET | 125 | 8 | NA | L |
+| `P10-snapshot` | `full_1km_EUNIS.csv` | 10 × 10.000 | random | 5 / 70% | GLM, GBM, ANN, FDA, MAXNET | 250 | 8 | NA | L; snapshot `49cfdb0` |
+| `B1` | `small_1km_EUNIS.csv` | 1 × 10 | random | 1 / 70% | GLM, GBM, ANN, FDA, MAXNET | 5 | 0 | 42 | benchmark `49303754` |
+
+Impostazioni registrate nei profili `H3`, `P10`, `D10`, `E5` e `P10-snapshot`:
+
+| Gruppo | Valore |
+|---|---|
+| Metriche dei modelli | `TSS`, `AUCroc`, `KAPPA`, `POD`, `FAR` |
+| Ensemble | `EMmean`, `EMcv` |
+| Selezione ensemble | `AUCroc >= 0.6` |
+| Metriche ensemble | `TSS`, `AUCroc`, `KAPPA` |
+| Trasformazioni di proiezione | `metric.binary="all"`, `metric.filter="all"` |
+| Altre opzioni | `filter.raster=FALSE`, `scale.models=FALSE`, `CV.do.full.models=FALSE` |
+| Sovrascrittura | `overwrite=FALSE` quando la proiezione viene raggiunta; `NA` se il log termina prima |
+| Worker ensemble | `min(worker BIOMOD2, 2)` nelle run `E5` e `P10-snapshot`; 1 nelle run storiche che lo registrano |
+| Raster | 63.951.097 celle, 5 variabili |
+| Scenari | 4 GCM (`gfdl.esm4`, `ipsl.cm6a.lr`, `mpi.esm1.2.hr`, `mri.esm2.0`) × 2 SSP (`ssp370`, `ssp585`) |
+| Software osservato nei log | BIOMOD2 4.3-4-5; Terra 1.9.11 |
+
+## Inventario delle run R locali
+
+La colonna “worker/storage” registra i worker BIOMOD2 e `keep.in.memory/do.stack`. `default T/T` indica che entrambe le opzioni erano omesse. Wall time e MaxRSS di questa vista vengono dai log, dai resource file o dalle note; l'accounting Slurm completo ed esatto è nella tabella successiva. I valori GNU `time` sono in una tabella separata.
+
+| Run | Specie (occorrenze) | Profilo | Worker/storage | Stato | Wall time | Slurm MaxRSS (GiB) | Ultimo risultato | Fonti |
+|---|---|---|---|---|---:|---:|---|---|
+| `job9rows_ok` | *Achillea.atrata* (9) | `toy9` | 1/NA | Completata | 00:07:01 | NA | 24 modelli sopravvissuti | L+A |
+| `job1krows_ok` | Agrostis (1.000) | `toy1k` | 1/default T/T | Completata | 17,2 h | NA | Circa 30 modelli; 8 futuri | L+A |
+| `job_agrostis_pa10_ok` | *Agrostis.capillaris* (170.701) | `T3-10` | 4/default T/T | Completata | 04:23 | circa 326 | 24 modelli; alias `47333938` | L+A |
+| `job_agrostis_pa10000_ok` | *Agrostis.capillaris* (170.701) | `H3` | 4/default T/T | Completata | 11:50 | circa 359 | 30 modelli; alias `47467973` | L+A |
+| `job_47510573_1` | *Potentilla.erecta* (167.345) | `H3` | 4/default T/T | Completata | 11:32:51 | circa 360 | 8 futuri; timing scritto | L+A |
+| `job_47510573_2` | *Galium.anisophyllon* (5.936) | `H3` | 4/default T/T | Cancellata | circa 18 h | NA | Retry SIGPIPE; OOM registrato | L+A |
+| `job_47510573_3` | *Festuca.glauca* (332) | `H3` | 4/default T/T | Cancellata | circa 18 h | NA | Retry SIGPIPE; OOM registrato | L+A |
+| `job_47574797_2` | *Galium.anisophyllon* (5.936) | `H3` | 1/default T/T | Fallita | 03:12 | NA | Path `writeRaster` assente | L+A |
+| `job_47574797_3` | *Festuca.glauca* (332) | `H3` | 1/default T/T | Completata | 22:59:26 | NA | Rerun sequenziale completa | L+A |
+| `job_47593184_2` | *Galium.anisophyllon* (5.936) | `H3-partial` | 1/NA | Cancellata | NA | NA | Stato array misto; segnale 9 | L+A |
+| `job_48075655_1` | *Achillea.atrata* (1.475) | `P10` | 1/default T/T | OOM | 13–17 h | NA | Proiezione futura | L+A |
+| `job_48075655_2` | *Achillea.clusiana* (174) | `P10` | 1/default T/T | OOM | 13–17 h | NA | Proiezione futura | L+A |
+| `job_48075655_3` | *Agrostis.capillaris* (170.701) | `P10` | 4/default T/T | OOM | 13–17 h | NA | Proiezione futura | L+A |
+| `job_48075655_4` | *Agrostis.rupestris* (4.464) | `P10` | 1/default T/T | OOM | 13–17 h | NA | Proiezione futura | L+A |
+| `job_48075655_5` | *Alchemilla.fissa* (1.428) | `P10` | 1/default T/T | OOM | 13–17 h | NA | Proiezione futura | L+A |
+| `job_48075655_6` | *Alchemilla.pentaphyllea* (1.190) | `P10` | 1/default T/T | Cancellata | NA | NA | Campagna fermata dopo 5 OOM | L+A |
+| `job_48075655_7` | *Allium.senescens* (260) | `P10` | 1/default T/T | Cancellata | NA | NA | Campagna fermata dopo 5 OOM | L+A |
+| `job_48075655_8` | *Alyssum.alyssoides* (12.396) | `P10` | 1/default T/T | Cancellata | NA | NA | Campagna fermata dopo 5 OOM | L+A |
+| `job_48236130_1` | *Achillea.atrata* (1.475) | `P10` | 1/F/F | Interrotta | NA | NA | Fermata prima della proiezione | L+A |
+| `job_48238919_3` | *Agrostis.capillaris* (170.701) | `P10` | 4/F/F | Interrotta | circa 22 h | NA | Scenario futuro 2/8; nessun OOM | L+A |
+| `job_48325677_3` | *Agrostis.capillaris* (170.701) | `D10` | 4/F/F | Fallita | 08:27 circa | NA | Collisione di file parallela | L+A |
+| `job_48325677_4` | *Agrostis.rupestris* (4.464) | `D10` | 1/F/F | Cancellata | 42:47:42 | 206,69 | Secondo futuro, `gfdl.esm4_ssp585` | L+A+S |
+| `job_48325677_5` | *Alchemilla.fissa* (1.428) | `D10` | 1/F/F | Cancellata | 42:47:42 | 206,48 | Secondo futuro, `gfdl.esm4_ssp585` | L+A+S |
+| `job_48418427_3` | *Agrostis.capillaris* (170.701) | `D10-seed42` | 4/F/F | Fallita | 08:36:58 | NA | File di output già esistente | L |
+| `job_48418427_4` | *Agrostis.rupestris* (4.464) | `D10-seed42` | 1/F/F | Fallita | 04:29:28 | NA | File di output già esistente | L |
+| `job_48418427_5` | *Alchemilla.fissa* (1.428) | `D10-seed42` | 1/F/F | Fallita | 04:05:04 | NA | File di output già esistente | L |
+| `job_48606158_1` | *Festuca.varia* (43) | `D10-seed42` | 1/F/F | Cancellata | NA | NA | Motivo non registrato | L+A |
+| `job_48606158_2` | *Festuca.versicolor* (88) | `D10-seed42` | 1/F/F | Cancellata | NA | NA | Motivo non registrato | L+A |
+| `job_48606158_3` | *Achillea.clusiana* (174) | `D10-seed42` | 1/F/F | Cancellata | NA | NA | Motivo non registrato | L+A |
+| `job_48607206_1` | *Festuca.varia* (43) | `D10-seed42` | 1/F/F | Cancellata | NA | NA | Motivo non registrato | L+A |
+| `job_48607206_2` | *Festuca.versicolor* (88) | `D10-seed42` | 1/F/F | Cancellata | NA | NA | Motivo non registrato | L+A |
+| `job_48607206_3` | *Achillea.clusiana* (174) | `D10-seed42` | 1/F/F | Cancellata | NA | NA | Motivo non registrato | L+A |
+| `job_48607860_1` | *Festuca.varia* (43) | `D10-seed42` | 1/F/F | OOM | 17:14:15 | NA | Processo ucciso | L |
+| `job_48607860_2` | *Festuca.versicolor* (88) | `D10-seed42` | 1/F/F | OOM | 16:31:03 | NA | Processo ucciso | L |
+| `job_48607860_3` | *Achillea.clusiana* (174) | `D10-seed42` | 1/F/F | OOM | 14:33:40 | NA | Processo ucciso | L |
+| `job_48607860_4` | *Seseli.osseum* (206) | `D10-seed42` | 1/F/F | OOM | 18:52:22 | NA | Processo ucciso | L |
+| `job_48607860_5` | *Allium.senescens* (260) | `D10-seed42` | 1/F/F | OOM | 21:32:42 | NA | Processo ucciso | L |
+| `job_48873007_1` | *Festuca.varia* (43) | `D10-seed42` | 1/F/F | Fallita | 13:24:22 | NA | Scrittura raster corrente fallita | L |
+| `job_48873007_2` | *Festuca.versicolor* (88) | `D10-seed42` | 1/F/F | Time limit | NA | NA | Proiezione futura | L+A |
+| `job_48873007_3` | *Achillea.clusiana* (174) | `D10-seed42` | 1/F/F | Fallita | 15:16:13 | NA | Filename futuro vuoto | L |
+| `job_48873007_4` | *Seseli.osseum* (206) | `D10-seed42` | 1/F/F | Time limit | NA | NA | Proiezione futura | L+A |
+| `job_48873007_5` | *Allium.senescens* (260) | `D10-seed42` | 1/F/F | Time limit | NA | NA | Proiezione futura | L+A |
+| `job_49507005_1` | *Achillea.atrata* (1.475) | `E5` | 5/F/F | Cancellata | 38:12:21 | 261–316 live | Prima onda; nessun completamento | L+A |
+| `job_49507005_2` | *Achillea.clusiana* (174) | `E5` | 5/F/F | Cancellata | 38:12:37 | 261–316 live | Prima onda; nessun completamento | L+A |
+| `job_49507005_3` | *Agrostis.capillaris* (170.701) | `E5` | 5/F/F | Cancellata | 38:12:41 | 261–316 live | Prima onda; nessun completamento | L+A |
+| `job_49628609_1` | *Achillea.atrata* (1.475) | `E5` | 2/NA | Cancellata | circa 00:14 | NA | Fermata prima del risultato | L+A |
+| `job_49629886_4294967294` | *Achillea.atrata* (1.475) | `E5` | 2/T/T | OOM | 05:25:10 | circa 478 | Nessun `_SUCCESS` o timing finale | L+R+A |
+| `job_49630695_2` | *Achillea.clusiana* (174) | `E5` | 112/T/T | OOM | 01:35:32 | circa 481 | 66 OOM kill; 79/125 elementi non `SpatRaster` | L+R+A |
+| `job_49842976_1` | *Achillea.atrata* (1.475) | `E5` | 2/F/T | Fallita | 05:43:54 | 413,22 | Fork senza memoria, futuro 1 | L+R+A |
+| `job_49843592_1` | *Achillea.atrata* (1.475) | `E5` | 4/F/T | Fallita | 03:57:22 | 413,80 | Fork senza memoria, futuro 1 | L+R+A |
+| `job_49844162_1` | *Achillea.atrata* (1.475) | `E5` | 4/F/F | Completata | 22:33:45 | 260,94 | 1.364 file specie + 4 riepiloghi; `_SUCCESS` | L+R+A |
+| `job_51485472_1` | *Achillea.atrata* (1.475) | `E5` | 4/T/F | Completata | 22:21:32 | 264,69 | 1.364 file specie + 4 riepiloghi; `_SUCCESS` | L+R+A |
+| `job_51494635_1` | *Achillea.atrata* (1.475) | `E5` | 6/F/F | Completata | 17:50:53 | 258,95 | 1.364 file specie + 4 riepiloghi; `_SUCCESS` | L+R+A |
+| `job_51485581_1` | *Achillea.atrata* (1.475) | `E5` | 8/F/F | Completata | 15:05:30 | 278,67 | 1.364 file specie + 4 riepiloghi; `_SUCCESS` | L+R+A |
+| `job_51738981_1` | *Achillea.atrata* (1.475) | `E5` | 16/F/F | Completata | 10:21:23 | 464,77 | 1.364 file specie + 4 riepiloghi; `_SUCCESS`; timing presenti | L+R+A+S |
+| `job_51739004_1` | *Achillea.atrata* (1.475) | `E5` | 16/T/F | OOM | 02:57:12 | 472,57 | Futuro 1; un OOM kill | L+R+A |
+| `job_51739048_1` | *Achillea.atrata* (1.475) | `E5` | 32/F/F | OOM | 01:39:54 | 481,16 | Corrente; 12 OOM kill | L+R+A |
+| `job_51756264_1` | *Achillea.atrata* (1.475) | `E5` | 12/F/F | Time limit | 09:40:18 | 364,37 | Incompleta | L+A+S |
+| `job_51756286_1` | *Achillea.atrata* (1.475) | `E5` | 12/T/F | Time limit | 09:40:18 | 351,85 | Incompleta | L+A+S |
+| `job_55020903_1` | *Achillea.atrata* (1.475) | `P10-snapshot` | 8/F/F | Completata | 25:36:36 | 316,16 | 2.614 file specie + 4 riepiloghi; `_SUCCESS` | L+R+A+S |
+| `job_55020903_2` | *Achillea.clusiana* (174) | `P10-snapshot` | 8/F/F | Completata | 21:26:42 | 315,78 | 2.614 file specie + 4 riepiloghi; `_SUCCESS` | L+R+A+S |
+| `job_55020903_3` | *Agrostis.capillaris* (170.701) | `P10-snapshot` | 8/F/F | Completata | 33:58:34 | 291,42 | 2.614 file specie + 4 riepiloghi; `_SUCCESS` | L+R+A+S |
+
+## Accounting Slurm
+
+L'export `sacct` del 6 settembre 2026 conserva lo stato del job e del batch step. Una differenza tra i due stati può indicare un errore R mascherato dalla pipeline o un batch OOM seguito dalla cancellazione del job. “CPU allocate” non indica i worker BIOMOD2.
+
+| Run o gruppo | Memoria richiesta nell'export |
+|---|---:|
+| `48607860_[1-5]` | `--mem=100G` (`104857600K`) |
+| `48873007_[1-5]` | `--mem=250G` (`262144000K`) |
+| Altre righe con `AllocTRES` valorizzato | 494.000 MB (`505856000K`) |
+| `47593184_3`, `48075655_[9-167]`, `48606158_[4-5]`, `48607206_[4-5]` | NA |
+
+| Run | Stato Slurm job / batch | Inizio | Fine | Elapsed job | CPU allocate | TotalCPU | MaxRSS batch (GiB) |
+|---|---|---|---|---:|---:|---:|---:|
+| `47510573_1` | COMPLETED | 2026-06-21T14:56:09 | 2026-06-22T02:29:02 | 11:32:53 | 56 | 1-04:45:58 | 360,17 |
+| `47510573_2` | CANCELLED / OUT_OF_MEMORY | 2026-06-21T14:56:09 | 2026-06-22T09:19:55 | 18:23:46 | 56 | 20:27:37 | 470,48 |
+| `47510573_3` | CANCELLED / OUT_OF_MEMORY | 2026-06-21T14:56:09 | 2026-06-22T09:19:55 | 18:23:46 | 56 | 21:42:42 | 465,21 |
+| `47574797_2` | COMPLETED | 2026-06-22T09:43:11 | 2026-06-22T12:54:44 | 03:11:33 | 56 | 03:24:58 | 156,94 |
+| `47574797_3` | COMPLETED | 2026-06-22T09:43:11 | 2026-06-23T08:42:37 | 22:59:26 | 56 | 23:55:28 | 271,63 |
+| `47593184_2` | CANCELLED | 2026-06-22T12:40:10 | 2026-06-22T12:41:14 | 00:01:04 | 56 | 01:05.016 | 6,66 |
+| `48075655_1` | OUT_OF_MEMORY | 2026-06-30T15:33:34 | 2026-07-01T09:18:25 | 17:44:51 | 56 | 19:35:50 | 481,27 |
+| `48075655_2` | OUT_OF_MEMORY | 2026-06-30T15:33:34 | 2026-07-01T05:26:56 | 13:53:22 | 56 | 15:42:58 | 478,27 |
+| `48075655_3` | OUT_OF_MEMORY | 2026-06-30T15:33:34 | 2026-07-01T05:01:48 | 13:28:14 | 56 | 1-21:37:17 | 477,58 |
+| `48075655_4` | OUT_OF_MEMORY | 2026-07-01T05:01:51 | 2026-07-01T22:46:52 | 17:45:01 | 56 | 19:43:06 | 480,37 |
+| `48075655_5` | OUT_OF_MEMORY | 2026-07-01T05:26:58 | 2026-07-01T22:37:26 | 17:10:28 | 56 | 19:01:25 | 472,14 |
+| `48075655_6` | CANCELLED | 2026-07-01T09:45:11 | 2026-07-02T00:21:41 | 14:36:30 | 56 | 16:16:38 | 134,30 |
+| `48075655_7` | CANCELLED | 2026-07-01T22:37:53 | 2026-07-02T00:21:41 | 01:43:48 | 56 | 01:42:53 | 6,90 |
+| `48075655_8` | CANCELLED | 2026-07-01T22:46:55 | 2026-07-02T00:21:41 | 01:34:46 | 56 | 01:34:27 | 6,07 |
+| `48236130_1` | CANCELLED | 2026-07-02T00:23:29 | 2026-07-02T01:02:12 | 00:38:43 | 56 | 38:38.013 | 6,75 |
+| `48238919_3` | CANCELLED | 2026-07-02T01:02:15 | 2026-07-02T23:42:55 | 22:40:40 | 56 | 3-08:45:33 | 285,56 |
+| `48325677_3` | COMPLETED | 2026-07-02T23:42:58 | 2026-07-03T08:10:51 | 08:27:53 | 56 | 1-02:41:50 | 236,80 |
+| `48325677_4` | CANCELLED | 2026-07-02T23:42:58 | 2026-07-04T18:30:40 | 1-18:47:42 | 56 | 1-22:04:44 | 206,69 |
+| `48325677_5` | CANCELLED | 2026-07-02T23:42:58 | 2026-07-04T18:30:40 | 1-18:47:42 | 56 | 1-21:57:45 | 206,48 |
+| `48418427_3` | FAILED | 2026-07-04T18:31:17 | 2026-07-05T03:08:19 | 08:37:02 | 112 | 1-03:22:35 | 264,81 |
+| `48418427_4` | FAILED | 2026-07-04T18:31:17 | 2026-07-04T23:00:49 | 04:29:32 | 112 | 06:05:05 | 77,51 |
+| `48418427_5` | FAILED | 2026-07-04T18:31:17 | 2026-07-04T22:36:25 | 04:05:08 | 112 | 05:32:02 | 77,97 |
+| `48606158_1` | CANCELLED | 2026-07-05T11:09:27 | 2026-07-05T11:11:50 | 00:02:23 | 112 | 02:23.012 | 6,71 |
+| `48606158_2` | CANCELLED | 2026-07-05T11:09:27 | 2026-07-05T11:11:50 | 00:02:23 | 112 | 02:23.012 | 6,71 |
+| `48606158_3` | CANCELLED | 2026-07-05T11:09:27 | 2026-07-05T11:11:50 | 00:02:23 | 112 | 02:23.012 | 6,71 |
+| `48607206_1` | CANCELLED | 2026-07-05T11:20:19 | 2026-07-05T11:26:15 | 00:05:56 | 4 | 05:48.011 | 6,23 |
+| `48607206_2` | CANCELLED | 2026-07-05T11:20:19 | 2026-07-05T11:26:15 | 00:05:56 | 4 | 05:48.011 | 6,23 |
+| `48607206_3` | CANCELLED | 2026-07-05T11:20:19 | 2026-07-05T11:26:14 | 00:05:55 | 4 | 05:48.011 | 6,23 |
+| `48607860_1` | OUT_OF_MEMORY | 2026-07-05T11:29:00 | 2026-07-06T04:43:16 | 17:14:16 | 4 | 17:15:06 | 98,15 |
+| `48607860_2` | OUT_OF_MEMORY | 2026-07-05T11:29:00 | 2026-07-06T04:00:05 | 16:31:05 | 4 | 16:33:30 | 99,67 |
+| `48607860_3` | OUT_OF_MEMORY | 2026-07-05T11:29:00 | 2026-07-06T02:02:41 | 14:33:41 | 4 | 14:36:29 | 87,46 |
+| `48607860_4` | OUT_OF_MEMORY | 2026-07-05T11:29:00 | 2026-07-06T06:21:23 | 18:52:23 | 4 | 18:54:35 | 96,06 |
+| `48607860_5` | OUT_OF_MEMORY | 2026-07-05T11:31:47 | 2026-07-06T09:04:30 | 21:32:43 | 4 | 21:34:34 | 87,10 |
+| `48873007_1` | FAILED | 2026-07-07T23:44:49 | 2026-07-08T13:09:13 | 13:24:24 | 4 | 13:25:10 | 55,83 |
+| `48873007_2` | TIMEOUT / CANCELLED | 2026-07-07T23:44:49 | 2026-07-10T23:55:02 | 3-00:10:13 | 4 | 3-00:12:38 | 224,81 |
+| `48873007_3` | FAILED | 2026-07-07T23:44:49 | 2026-07-08T15:03:35 | 15:18:46 | 4 | 15:12:51 | 204,99 |
+| `48873007_4` | TIMEOUT / CANCELLED | 2026-07-08T13:09:21 | 2026-07-11T13:19:26 | 3-00:10:05 | 4 | 3-00:05:28 | 238,47 |
+| `48873007_5` | TIMEOUT / CANCELLED | 2026-07-08T15:04:08 | 2026-07-11T15:14:30 | 3-00:10:22 | 4 | 3-00:08:57 | 218,91 |
+| `49507005_1` | CANCELLED | 2026-07-16T02:29:10 | 2026-07-17T16:41:31 | 1-14:12:21 | 112 | 1-23:10:07 | 261,79 |
+| `49507005_2` | CANCELLED | 2026-07-16T02:29:10 | 2026-07-17T16:41:47 | 1-14:12:37 | 112 | 2-01:56:18 | 315,93 |
+| `49507005_3` | CANCELLED | 2026-07-16T02:29:10 | 2026-07-17T16:41:51 | 1-14:12:41 | 112 | 1-23:03:40 | 261,08 |
+| `49628609_1` | CANCELLED | 2026-07-17T16:55:45 | 2026-07-17T17:10:00 | 00:14:15 | 112 | 14:02.010 | 4,15 |
+| `49629886` | OUT_OF_MEMORY | 2026-07-17T17:20:54 | 2026-07-17T22:46:14 | 05:25:20 | 112 | 08:58:39 | 477,91 |
+| `49630695_2` | OUT_OF_MEMORY | 2026-07-17T17:41:56 | 2026-07-17T19:17:35 | 01:35:39 | 112 | 05:38:57 | 480,79 |
+| `49842976_1` | FAILED | 2026-07-19T19:43:26 | 2026-07-20T01:27:26 | 05:44:00 | 2 | 09:33:58 | 413,22 |
+| `49843592_1` | FAILED | 2026-07-19T19:55:05 | 2026-07-19T23:52:30 | 03:57:25 | 4 | 09:35:48 | 413,80 |
+| `49844162_1` | COMPLETED | 2026-07-19T20:03:35 | 2026-07-20T18:37:25 | 22:33:50 | 4 | 2-23:09:10 | 260,94 |
+| `51485472_1` | COMPLETED | 2026-08-01T16:49:52 | 2026-08-02T15:11:32 | 22:21:40 | 4 | 2-22:41:02 | 264,69 |
+| `51494635_1` | COMPLETED | 2026-08-01T16:54:58 | 2026-08-02T10:45:54 | 17:50:56 | 6 | 3-00:56:52 | 258,95 |
+| `51485581_1` | COMPLETED | 2026-08-01T16:49:55 | 2026-08-02T07:55:30 | 15:05:35 | 8 | 3-00:30:21 | 278,67 |
+| `51738981_1` | COMPLETED | 2026-08-02T17:34:35 | 2026-08-03T03:56:05 | 10:21:30 | 16 | 3-02:44:47 | 464,77 |
+| `51739004_1` | OUT_OF_MEMORY | 2026-08-02T17:34:35 | 2026-08-02T20:31:53 | 02:57:18 | 16 | 17:02:30 | 472,57 |
+| `51739048_1` | OUT_OF_MEMORY | 2026-08-02T17:35:07 | 2026-08-02T19:15:05 | 01:39:58 | 32 | 06:46:05 | 481,16 |
+| `51756264_1` | TIMEOUT / CANCELLED | 2026-08-02T22:19:55 | 2026-08-03T08:00:13 | 09:40:18 | 12 | 2-08:52:17 | 364,37 |
+| `51756286_1` | TIMEOUT / CANCELLED | 2026-08-02T22:20:27 | 2026-08-03T08:00:45 | 09:40:18 | 12 | 2-08:41:25 | 351,85 |
+| `55020903_1` | COMPLETED | 2026-08-29T15:16:22 | 2026-08-30T16:53:04 | 1-01:36:42 | 8 | 5-20:39:00 | 316,16 |
+| `55020903_2` | COMPLETED | 2026-08-30T18:51:20 | 2026-08-31T16:18:13 | 21:26:53 | 8 | 4-14:27:34 | 315,78 |
+| `55020903_3` | COMPLETED | 2026-08-31T17:54:21 | 2026-09-02T03:52:58 | 1-09:58:37 | 8 | 8-06:02:47 | 291,42 |
+
+### Metadati disponibili nei log precedenti al wrapper
+
+I log non elencati hanno nodo `NA`. Le impostazioni comuni dei gruppi `D10` sono `R_DEBUG_ECHO=FALSE`, `FORCE_CLEAN=FALSE`, `FORCE_REBUILD_FUTURE=FALSE`, `PROJ_KEEP_IN_MEMORY=FALSE`, `PROJ_DO_STACK=FALSE` e `TERRA_MEMFRAC=0.7`; `RSCRIPT_PATH` è riportato nella tabella.
+
+| Run | Nodo | Script R | `OMP_NUM_THREADS` | Nota |
+|---|---|---|---:|---|
+| `47510573_2` | `lrdn4731` | NA | NA | metadati parziali |
+| `47510573_3` | `lrdn3458` | NA | NA | metadati parziali |
+| `47593184_2` | `lrdn3902` | NA | NA | metadati parziali |
+| `48075655_6` | `lrdn3914` | NA | NA | metadati parziali |
+| `48075655_7` | `lrdn4932` | NA | NA | metadati parziali |
+| `48075655_8` | `lrdn3602` | NA | NA | metadati parziali |
+| `48236130_1` | `lrdn3554` | NA | NA | metadati parziali |
+| `48238919_3` | `lrdn3602` | NA | NA | metadati parziali |
+| `48325677_3` | NA | `/work/R/fast.test_risolto.R` | NA | profilo `D10` |
+| `48325677_4` | `lrdn3583` | `/work/R/fast.test_risolto.R` | NA | profilo `D10` |
+| `48325677_5` | `lrdn3659` | `/work/R/fast.test_risolto.R` | NA | profilo `D10` |
+| `48418427_[3-5]` | NA | `/work/R/fast.test_risolto.R` | 112 | seed 42 |
+| `48606158_1`, `_2`, `_3` | `lrdn3980`, `lrdn3700`, `lrdn3991` | `/work/R/fast.test_risolto.R` | 112 | seed 42 |
+| `48607206_1`, `_2`, `_3` | `lrdn4383`, `lrdn4617`, `lrdn4690` | `/work/R/fast.test_risolto.R` | 112 | seed 42 |
+| `48607860_[1-5]` | NA | `/work/R/fast.test_risolto.R` | 4 | seed 42 |
+| `48873007_1`, `_3` | NA | `/work/R/fast.test_risolto.R` | 4 | seed 42 |
+| `48873007_2`, `_4`, `_5` | `lrdn3504`, `lrdn4369`, `lrdn3607` | `/work/R/fast.test_risolto.R` | 4 | seed 42 |
+
+`OMP_NUM_THREADS` è una variabile d'ambiente osservata, non una misura dell'utilizzo effettivo. L'header dei vecchi log non registra la memoria richiesta; i valori disponibili sono quindi quelli dell'export Slurm, riepilogati sopra.
+
+## Metadati del wrapper Slurm
+
+I 20 log seguenti contengono un header del wrapper. Per tutti gli altri log questi campi sono `NA`.
+
+| Run | Job ID | Task | Nodo | Inizio | Fine | CPU/memoria richiesta | Script R | Resource file |
+|---|---:|---:|---|---|---|---|---|---|
+| `49507005_1` | 49507007 | 1 | `lrdn4610` | 2026-07-16T02:29:12+02:00 | NA | 5/all-node | `/work/R/base_sequential_analysis.R` | `resources_49507005_1.txt` |
+| `49507005_2` | 49507008 | 2 | `lrdn4005` | 2026-07-16T02:29:12+02:00 | NA | 5/all-node | `/work/R/base_sequential_analysis.R` | `resources_49507005_2.txt` |
+| `49507005_3` | 49507005 | 3 | `lrdn4305` | 2026-07-16T02:29:12+02:00 | NA | 5/all-node | `/work/R/base_sequential_analysis.R` | `resources_49507005_3.txt` |
+| `49628609_1` | 49628609 | 1 | `lrdn4030` | 2026-07-17T16:55:46+02:00 | NA | 2/all-node | `/work/R/base_sequential_analysis.R` | `resources_49628609_1.txt` |
+| `49629886_4294967294` | 49629886 | none | `lrdn4582` | 2026-07-17T17:20:58+02:00 | 2026-07-17T22:46:14+02:00 | 2/all-node | `/work/R/base_sequential_analysis.R` | `resources_49629886_0.txt` |
+| `49630695_2` | 49630695 | 2 | `lrdn4386` | 2026-07-17T17:42:02+02:00 | 2026-07-17T19:17:34+02:00 | 112/all-node | `/work/R/base_sequential_analysis.R` | `resources_49630695_2.txt` |
+| `49842976_1` | 49842976 | 1 | `lrdn4717` | 2026-07-19T19:43:32+02:00 | 2026-07-20T01:27:26+02:00 | 2/all-node | `/work/R/base_sequential_analysis.R` | `resources_49842976_1.txt` |
+| `49843592_1` | 49843592 | 1 | `lrdn4682` | 2026-07-19T19:55:08+02:00 | 2026-07-19T23:52:30+02:00 | 4/all-node | `/work/R/base_sequential_analysis.R` | `resources_49843592_1.txt` |
+| `49844162_1` | 49844162 | 1 | `lrdn4376` | 2026-07-19T20:03:38+02:00 | 2026-07-20T18:37:24+02:00 | 4/all-node | `/work/R/base_sequential_analysis.R` | `resources_49844162_1.txt` |
+| `51485472_1` | 51485472 | 1 | `lrdn4939` | 2026-08-01T16:49:59+02:00 | 2026-08-02T15:11:31+02:00 | 4/all-node | `/work/R/base_sequential_analysis.R` | `resources_51485472_1.txt` |
+| `51494635_1` | 51494635 | 1 | `lrdn4454` | 2026-08-01T16:55:01+02:00 | 2026-08-02T10:45:54+02:00 | 6/all-node | `/work/R/base_sequential_analysis.R` | `resources_51494635_1.txt` |
+| `51485581_1` | 51485581 | 1 | `lrdn4946` | 2026-08-01T16:49:59+02:00 | 2026-08-02T07:55:29+02:00 | 8/all-node | `/work/R/base_sequential_analysis.R` | `resources_51485581_1.txt` |
+| `51738981_1` | 51738981 | 1 | `lrdn4795` | 2026-08-02T17:34:40+02:00 | 2026-08-03T03:56:03+02:00 | 16/all-node | `/work/R/base_sequential_analysis.R` | `resources_51738981_1.txt` |
+| `51739004_1` | 51739004 | 1 | `lrdn3936` | 2026-08-02T17:34:40+02:00 | 2026-08-02T20:31:52+02:00 | 16/all-node | `/work/R/base_sequential_analysis.R` | `resources_51739004_1.txt` |
+| `51739048_1` | 51739048 | 1 | `lrdn3756` | 2026-08-02T17:35:10+02:00 | 2026-08-02T19:15:04+02:00 | 32/all-node | `/work/R/base_sequential_analysis.R` | `resources_51739048_1.txt` |
+| `51756264_1` | 51756264 | 1 | `lrdn4863` | 2026-08-02T22:20:02+02:00 | NA | 12/all-node | `/work/R/base_sequential_analysis.R` | `resources_51756264_1.txt` |
+| `51756286_1` | 51756286 | 1 | `lrdn4866` | 2026-08-02T22:20:32+02:00 | NA | 12/all-node | `/work/R/base_sequential_analysis.R` | `resources_51756286_1.txt` |
+| `55020903_1` | 55020940 | 1 | `lrdn4946` | 2026-08-29T15:16:26+02:00 | 2026-08-30T16:53:03+02:00 | 8/all-node | `/work/R/base_sequential_analysis_campaign_49cfdb0.R` | `resources_55020903_1.txt` |
+| `55020903_2` | 55300210 | 2 | `lrdn3956` | 2026-08-30T18:51:31+02:00 | 2026-08-31T16:18:13+02:00 | 8/all-node | `/work/R/base_sequential_analysis_campaign_49cfdb0.R` | `resources_55020903_2.txt` |
+| `55020903_3` | 55415394 | 3 | `lrdn4379` | 2026-08-31T17:54:24+02:00 | 2026-09-02T03:52:58+02:00 | 8/all-node | `/work/R/base_sequential_analysis_campaign_49cfdb0.R` | `resources_55020903_3.txt` |
+
+“all-node” corrisponde a 494.000 MB nelle note Slurm. I riferimenti Git verificati sono `88e03c0` per le run 514/517 e lo snapshot `49cfdb0` per le run 550. La revisione esatta delle altre esecuzioni non è registrata.
+
+## Risorse GNU `time -v`
+
+Process MaxRSS può escludere i worker forkati e non sostituisce Slurm MaxRSS.
+
+| Resource record | User CPU (s) | System CPU (s) | CPU media | Wall time | Process MaxRSS (GiB) | Exit |
+|---|---:|---:|---:|---:|---:|---:|
+| `49629886_0` | 30.281,96 | 2.037,66 | 165% | 05:25:09 | 481,47 | 0 |
+| `49630695_2` | 15.965,18 | 4.366,14 | 354% | 01:35:31 | 79,12 | 1 |
+| `49842976_1` | 31.960,83 | 2.477,83 | 166% | 05:43:53 | 385,77 | 1 |
+| `49843592_1` | 32.167,70 | 2.380,63 | 242% | 03:57:21 | 385,67 | 1 |
+| `49844162_1` | 241.951,02 | 14.199,23 | 315% | 22:33:45 | 145,19 | 0 |
+| `51485472_1` | 239.185,37 | 15.276,65 | 316% | 22:21:31 | 144,95 | 0 |
+| `51494635_1` | 243.967,48 | 18.644,78 | 408% | 17:50:52 | 144,90 | 0 |
+| `51485581_1` | 241.217,54 | 19.803,45 | 480% | 15:05:30 | 103,42 | 0 |
+| `51738981_1` | 244.845,21 | 24.241,89 | 721% | 10:21:22 | 145,19 | 0 |
+| `51739004_1` | 56.233,13 | 5.117,38 | 577% | 02:57:11 | 145,16 | 1 |
+| `51739048_1` | 21.519,74 | 2.844,30 | 406% | 01:39:53 | 50,82 | 1 |
+| `55020903_1` | 473.071,25 | 33.268,49 | 549% | 25:36:36 | 161,99 | 0 |
+| `55020903_2` | 364.325,24 | 33.328,75 | 515% | 21:26:41 | 161,75 | 0 |
+| `55020903_3` | 678.009,30 | 34.956,76 | 582% | 33:58:34 | 138,32 | 0 |
+
+| Resource record | Major fault | Minor fault | Context switch volontari | Context switch involontari | Swap | FS input | FS output |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `49629886_0` | 667 | 1.561.096.070 | 1.202.883 | 88.556 | 0 | 815.095 | 4.140.408 |
+| `49630695_2` | 161.437 | 1.155.078.266 | 656.424 | 607.395 | 0 | 7.537.297 | 4.779.128 |
+| `49842976_1` | 701 | 1.972.693.905 | 1.234.946 | 298.061 | 0 | 925.465 | 3.001.448 |
+| `49843592_1` | 936 | 1.766.540.794 | 1.227.446 | 156.850 | 0 | 2.010.707 | 2.946.888 |
+| `49844162_1` | 698 | 11.011.153.689 | 328.200 | 904.215 | 0 | 10.677.245 | 15.108.632 |
+| `51485472_1` | 1.226 | 11.717.259.527 | 325.741 | 924.776 | 0 | 9.310.912 | 15.358.112 |
+| `51494635_1` | 696 | 13.815.408.078 | 300.506 | 798.771 | 0 | 4.037.177 | 16.075.160 |
+| `51485581_1` | 697 | 14.227.131.446 | 284.828 | 732.546 | 0 | 2.850.941 | 16.507.576 |
+| `51738981_1` | 1.473 | 15.822.143.712 | 265.235 | 415.428 | 0 | 7.397.238 | 18.758.536 |
+| `51739004_1` | 1.738 | 3.285.942.821 | 66.307 | 169.086 | 0 | 3.492.219 | 4.167.112 |
+| `51739048_1` | 18.967 | 1.442.174.306 | 55.023 | 361.347 | 0 | 2.538.212 | 1.735.776 |
+| `55020903_1` | 867 | 23.792.142.335 | 545.399 | 1.041.364 | 0 | 25.785.200 | 30.829.400 |
+| `55020903_2` | 990 | 23.894.065.318 | 521.959 | 961.512 | 0 | 26.072.713 | 29.881.200 |
+| `55020903_3` | 1.072 | 24.719.941.601 | 634.875 | 1.288.816 | 0 | 136.411.635 | 126.777.264 |
+
+I resource file vuoti, quindi con tutti i campi `NA`, sono: `49507005_[1-3]`, `49628609_1`, `51756264_1` e `51756286_1`.
+
+## Timing recuperati da Leonardo
+
+Tutti i valori sono secondi. I 32 record remoti per singolo scenario futuro, con proiezione, ensemble e totale, sono conservati in `logs/phase_timings_2026-09-06.tsv` insieme ai percorsi sorgente.
+
+| Run | Formattazione | Modelli | Ensemble | Corrente | Ensemble corrente | Futuro | Fonte |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `job_agrostis_pa10000_ok` | 2.613,78 | 3.061,96 | 84,35 | 2.970,52 | 1.096,26 | 32.736,86 | `data/output/time_Agrostis.capillaris.txt` |
+| `47510573_1` | 2.712,61 | 3.008,90 | 84,47 | 2.843,76 | 1.082,20 | 31.816,58 | `data/output/time_Potentilla.erecta.txt` |
+| `47574797_3` | 2.733,78 | 167,50 | 33,02 | 6.925,82 | 1.623,37 | 71.260,51 | `data/output/time_Festuca.glauca.txt` |
+| `51738981_1` | 4.484,97 | 78,85 | 139,75 | 2.186,34 | 1.516,89 | 28.855,09 | `phase_timings_2026-09-06.tsv` |
+| `55020903_1` | 8.972,15 | 268,48 | 575,45 | 7.254,20 | 2.009,00 | 73.097,20 | `phase_timings_2026-09-06.tsv` |
+| `55020903_2` | 9.055,09 | 172,03 | 537,99 | 5.611,28 | 1.949,81 | 59.841,05 | `phase_timings_2026-09-06.tsv` |
+| `55020903_3` | 8.933,03 | 10.989,13 | 1.189,51 | 9.398,56 | 1.970,20 | 89.815,20 | `phase_timings_2026-09-06.tsv` |
+
+## Benchmark split contro monolitico
+
+Condizioni `B1`: nodo esclusivo `lrdn3758`, run seriali alternate, `OMP_NUM_THREADS=1`.
+
+| Run | Versione | Wall time | MaxRSS (GiB) | Exit | Fonte |
+|---:|---|---:|---:|---:|---|
+| 1 | Split | 26:10 | 47,04 | 0 | `benchmark_split_vs_monolith_49303754/1_split*` |
+| 2 | Monolitica | 26:06 | 47,36 | 0 | `benchmark_split_vs_monolith_49303754/2_monolith*` |
+| 3 | Monolitica | 26:18 | 47,36 | 0 | `benchmark_split_vs_monolith_49303754/3_monolith*` |
+| 4 | Split | 25:59 | 47,04 | 0 | `benchmark_split_vs_monolith_49303754/4_split*` |
+| 5 | Split | 26:05 | 47,04 | 0 | `benchmark_split_vs_monolith_49303754/5_split*` |
+| 6 | Monolitica | 26:27 | 47,09 | 0 | `benchmark_split_vs_monolith_49303754/6_monolith*` |
+| 7 | Monolitica | 26:15 | 48,16 | 0 | `benchmark_split_vs_monolith_49303754/7_monolith*` |
+| 8 | Split | 26:26 | 47,04 | 0 | `benchmark_split_vs_monolith_49303754/8_split*` |
+| 9 | Split | 26:08 | 47,28 | 0 | `benchmark_split_vs_monolith_49303754/9_split*` |
+| 10 | Monolitica | 27:12 | 48,16 | 0 | `benchmark_split_vs_monolith_49303754/10_monolith*` |
+
+| Run | Versione | Formattazione (s) | Modelli (s) | Ensemble (s) | Corrente (s) | Ensemble corrente (s) | Futuro (s) |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 1 | Split | 32,97 | 2,50 | 5,77 | 261,90 | 1.256,25 | 0,00 |
+| 2 | Monolitica | 32,25 | 2,86 | 5,43 | 258,79 | 1.261,15 | 0,00 |
+| 3 | Monolitica | 32,88 | 2,92 | 5,45 | 262,03 | 1.268,10 | 0,00 |
+| 4 | Split | 32,59 | 2,55 | 5,80 | 261,26 | 1.250,88 | 0,00 |
+| 5 | Split | 32,26 | 2,55 | 5,92 | 261,72 | 1.255,32 | 0,00 |
+| 6 | Monolitica | 32,64 | 2,87 | 5,47 | 262,78 | 1.277,21 | 0,00 |
+| 7 | Monolitica | 32,77 | 2,87 | 5,47 | 261,68 | 1.266,06 | 0,00 |
+| 8 | Split | 32,53 | 2,51 | 5,76 | 267,00 | 1.271,60 | 0,00 |
+| 9 | Split | 32,09 | 2,51 | 5,74 | 262,36 | 1.260,26 | 0,00 |
+| 10 | Monolitica | 32,46 | 2,87 | 5,46 | 260,76 | 1.278,43 | 0,00 |
+
+Serie preliminare, anch'essa composta da run individuali:
+
+| Run | Versione | Wall time | MaxRSS (GiB) | Fonte |
+|---:|---|---:|---:|---|
+| 1 | Split | 26:18 | 48,3 | `srun_split_small_pa10*.log` |
+| 2 | Split | 25:53 | 47,1 | stesso gruppo |
+| 3 | Split | 25:51 | 48,0 | stesso gruppo |
+| 4 | Split | 26:00 | 40,3 | stesso gruppo |
+| 1 | Monolitica | 26:14 | 42,9 | `srun_monolithic_small_pa10*.log` |
+| 2 | Monolitica | 26:28 | 45,4 | stesso gruppo |
+| 3 | Monolitica | 26:05 | 45,4 | stesso gruppo |
+| 4 | Monolitica | 26:26 | 44,2 | stesso gruppo |
+
+### Profilazione della selezione delle pseudo-assenze
+
+Misure annotate durante le run `D10`; non sono una scomposizione completa del wall time.
+
+| Operazione | Tempo osservato |
+|---|---:|
+| `.get_data_mask()` | 13–15 s |
+| `cellFromXY` e aggiornamento maschera | 1–2 s |
+| `spatSample`, per replica | circa 7 s |
+| scansione `values()` su 64 milioni di celle | oltre 5 min |
+| replica di prova con 100 pseudo-assenze | circa 60 s |
+
+La scansione `values()` era il collo di bottiglia e veniva ripetuta per ogni replica.
+
+## Altre run e campagne presenti negli appunti
+
+| Run/serie | Configurazione disponibile | Stato e tempo | Risultato | Fonte |
+|---|---|---|---|---|
+| `52004b2`, `354e415` | almeno 16 CPU | Fallite/time limit, fino a 12 h | OOM in ensemble forecasting | A |
+| `bc71039` | 1 CPU | Time limit, 12 h | Futuro 2/8 | A |
+| `e622491` | input piccolo, 1 CPU, default T/T | Completata, 50,3 h | Corrente + 8 futuri | A |
+| `b26fbd3` | 1.000 righe, 1 CPU, default T/T | Completata, 17,2 h | Circa 30 modelli + 8 futuri | A |
+| Array `48075655_[9-167]` | `P10`, default T/T | Cancellato prima di R | Fermato dopo i primi 5 OOM | A |
+| Campagna `49507005-49507067` | `E5`, 56 onde, 5 worker, F/F | Cancellata | Nessun completamento valido | `campaign_20260716_022909.tsv`, A |
+| `55020903_3` | `P10-snapshot`, 8 worker, F/F | Completata, 33:58:37 accounting | 2.614 file specie + 4 riepiloghi; `_SUCCESS`; MaxRSS 291,42 GiB | L+R+A+S |
+| `55530303_[4-167]` | `P10-snapshot`, 8 worker, F/F | Cancellato, 1–16 s/task | Budget insufficiente; R non avviato | A |
+| `46403582` | NA | Completata, 50:18:54 | Circa 5.635 ore locali | A |
+
+Misure preliminari Spartaco, non confrontabili perché revisione, container, hardware e metodo non sono registrati:
+
+| Specie | `n_cells` | PA | Rep | Run | CPU | Formattazione | Modelli | Futuro | RAM max (GB) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| *Omalotheca hoppeana* | 681 | 10.000 | 10 | 10 | 5 | 1,9 h | 11,33 min | 3,65 min | 52,90 |
+| *Omalotheca hoppeana* | 681 | 10.000 | 10 | 10 | 10 | 2,02 h | 7,74 min | 8,07 min | 56,16 |
+| *Agrostis capillaris* | 100.000 | 5.000 | 5 | 5 | 5 | 32,25 min | 53,87 min | 3,73 min | 26,00 |
+| *Agrostis capillaris* | 100.000 | 10.000 | 5 | 5 | 5 | 59,37 min | 1,6 h | 4,22 min | 29,96 |
+
+Fonte: `docs/thesis/assets/tables/preliminary-spartaco.tex` e relativa nota di provenienza.
+
+## Output verificati
+
+I conteggi distinguono i file nella directory della specie dai quattro riepiloghi nella root dell'output: due valutazioni e due timing. Nessun file contato è vuoto. Fonte: `logs/output_validation_2026-09-06.tsv`.
+
+| Run | File specie + riepiloghi | Dimensione specie | Timing | `_SUCCESS` | Verifica strutturale |
+|---|---:|---:|---|---|---|
+| `49844162_1` | 1.364 + 4 | 7,18 GiB | presenti | presente | 127 modelli; corrente + 8 futuri |
+| `51485472_1` | 1.364 + 4 | 7,30 GiB | presenti | presente | 1.143 scritture di proiezione |
+| `51494635_1` | 1.364 + 4 | 7,24 GiB | presenti | presente | struttura uguale dopo normalizzazione ID BIOMOD2 |
+| `51485581_1` | 1.364 + 4 | 7,35 GiB | presenti | presente | struttura uguale dopo normalizzazione ID BIOMOD2 |
+| `51738981_1` | 1.364 + 4 | 7,20 GiB | presenti | presente | corrente + 8 futuri; accounting finale verificato |
+| `55020903_1` | 2.614 + 4 | 13,98 GiB | presenti | presente | produzione, *A. atrata* |
+| `55020903_2` | 2.614 + 4 | 13,36 GiB | presenti | presente | produzione, *A. clusiana* |
+| `55020903_3` | 2.614 + 4 | 59,13 GiB | presenti | presente | produzione, *A. capillaris* |
+
+## Warning e messaggi non fatali
+
+| Classe | Significato/stato | Esempio di fonte |
+|---|---|---|
+| Pacchetto opzionale `cito` assente | Caricamento; nessun effetto fatale osservato | tutti i log che avviano BIOMOD2 |
+| `%dopar%` senza backend, esecuzione sequenziale | Configurazione del parallelismo | `job_47574797_2.log` |
+| `glm.fit` non converge | Validità scientifica da controllare | `job_47510573_1.log` |
+| Probabilità GLM numericamente 0 o 1 | Validità scientifica da controllare | gran parte delle run di modellazione |
+| Classe binomiale con meno di 8 osservazioni | Input giocattolo troppo piccolo | `job9rows_ok.log` |
+| Predizione da fit rank-deficient | Validità della predizione da controllare | `job_agrostis_pa10_ok.log` |
+| Overflow intero durante le metriche | Può produrre `NA` | `job_48325677_3.log` |
+| Nessun valore non-missing per `max` | Metriche incomplete, restituisce `-Inf` | `job_48325677_3.log` |
+| Calibrazione GBM fallita | Alcuni modelli falliscono, la run può proseguire | `job9rows_ok.log`, benchmark piccoli |
+| Core programmati senza risultato | Conseguenza di worker falliti/OOM | `job_49630695_2.log`, `job_51739004_1.log`, `job_51739048_1.log` |
+| Elementi non `SpatRaster` | Output parziale dopo worker falliti | `job_49630695_2.log` |
+| Trasformazione binary/filter disabilitata per alcuni ensemble | Messaggio BIOMOD2; interpretazione output da esplicitare | run che completano ensemble forecasting |
+
+## Errori fatali e arresti
+
+| Classe | Run rappresentative | Evidenza |
+|---|---|---|
+| OOM di Slurm/processo | `48075655_[1-5]`, `48607860_[1-5]`, `49629886`, `49630695_2`, `51739004_1`, `51739048_1` | `oom_kill`, processo `Killed` |
+| Fork senza memoria | `49842976_1`, `49843592_1` | `mcfork(): unable to fork` |
+| Collisione con file esistente | `48325677_3`, `48418427_[3-5]` | errore `writeRaster` |
+| Path o filename non valido | `47574797_2`, `48873007_1`, `48873007_3` | path assente, scrittura fallita o nome vuoto |
+| SIGPIPE ripetuto | `47510573_2`, `47510573_3` | `sendMaster`, `ignoring SIGPIPE signal` |
+| Ensemble su output mancanti | `51739004_1`, `51739048_1` | `.fun_testIfIn(... full.name ...)` dopo worker OOM |
+| Time limit | `bc71039`, `48873007_[2,4,5]`, `51756264_1`, `51756286_1` | messaggio Slurm |
+| Cancellazione utente | varie campagne e run interrotte | accounting negli appunti |
+| Budget esaurito prima di R | `55530303_[4-167]` | `prolog controller: insufficient or expired budget` |
+
+## Limiti delle fonti
+
+- Alcune run storiche esistono solo come riferimento negli appunti; i relativi campi restano `NA`.
+- Gli orari senza data presenti nei vecchi log non sono stati trasformati in timestamp assoluti.
+- I log e i resource file completi di `55020903_2` e `_3` sono stati sincronizzati da Leonardo il 6 settembre 2026.
+- L'accounting e i controlli remoti aggiunti il 6 settembre sono conservati nei tre file TSV con suffisso `2026-09-06` sotto `logs/`.
+- Successo del processo e `_SUCCESS` non certificano la validità scientifica delle metriche.

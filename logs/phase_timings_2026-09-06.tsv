@@ -1,0 +1,37 @@
+run	species	record	scenario	formating	modeling	modeling_EM	cur_projection	cur_projection_EM	fut_projection	projection_secs	ensemble_secs	total_secs	source
+51738981_1	Achillea.atrata	phase		4484.97180485725	78.8544142246246	139.746379137039	2186.34172487259	1516.8903260231	28855.0900247097				/leonardo_work/IscrC_SPECC/data/output_disk_sp1_16cpu/time_Achillea.atrata.txt
+51738981_1	Achillea.atrata	scenario	gfdl.esm4_ssp370							2145.24135160446	1457.60691690445	3603.23286056519	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_16cpu/time_future_Achillea.atrata.txt
+51738981_1	Achillea.atrata	scenario	gfdl.esm4_ssp585							2160.36716866493	1413.84104013443	3574.28352093697	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_16cpu/time_future_Achillea.atrata.txt
+51738981_1	Achillea.atrata	scenario	ipsl.cm6a.lr_ssp370							2140.43969202042	1484.15067911148	3624.69233250618	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_16cpu/time_future_Achillea.atrata.txt
+51738981_1	Achillea.atrata	scenario	ipsl.cm6a.lr_ssp585							2150.88882088661	1433.44594526291	3584.43201971054	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_16cpu/time_future_Achillea.atrata.txt
+51738981_1	Achillea.atrata	scenario	mpi.esm1.2.hr_ssp370							2164.43209195137	1503.07014751434	3667.81304311752	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_16cpu/time_future_Achillea.atrata.txt
+51738981_1	Achillea.atrata	scenario	mpi.esm1.2.hr_ssp585							2155.36457180977	1431.64453101158	3587.10760211945	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_16cpu/time_future_Achillea.atrata.txt
+51738981_1	Achillea.atrata	scenario	mri.esm2.0_ssp370							2152.20711088181	1447.96837329865	3600.28985738754	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_16cpu/time_future_Achillea.atrata.txt
+51738981_1	Achillea.atrata	scenario	mri.esm2.0_ssp585							2158.34836864471	1447.58030414581	3606.04145860672	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_16cpu/time_future_Achillea.atrata.txt
+55020903_1	Achillea.atrata	phase		8972.14943265915	268.4786465168	575.447237730026	7254.19533443451	2008.99557876587	73097.1989576817				/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_Achillea.atrata.txt
+55020903_1	Achillea.atrata	scenario	gfdl.esm4_ssp370							7162.87680387497	1965.25909233093	9128.25356674194	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.atrata.txt
+55020903_1	Achillea.atrata	scenario	gfdl.esm4_ssp585							7215.65830111504	1893.16434407234	9108.94480347633	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.atrata.txt
+55020903_1	Achillea.atrata	scenario	ipsl.cm6a.lr_ssp370							7246.30031943321	1942.8329679966	9189.29298686981	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.atrata.txt
+55020903_1	Achillea.atrata	scenario	ipsl.cm6a.lr_ssp585							7250.61061024666	1895.7058596611	9146.45445203781	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.atrata.txt
+55020903_1	Achillea.atrata	scenario	mpi.esm1.2.hr_ssp370							7240.54234099388	1916.78585529327	9157.44971084595	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.atrata.txt
+55020903_1	Achillea.atrata	scenario	mpi.esm1.2.hr_ssp585							7167.48198795319	1908.01496934891	9075.67613816261	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.atrata.txt
+55020903_1	Achillea.atrata	scenario	mri.esm2.0_ssp370							7255.99129033089	1997.79665493965	9254.01765155792	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.atrata.txt
+55020903_1	Achillea.atrata	scenario	mri.esm2.0_ssp585							7141.87793207169	1887.28216910362	9029.25260066986	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.atrata.txt
+55020903_2	Achillea.clusiana	phase		9055.0928800106	172.025057315826	537.990304946899	5611.27582526207	1949.80875873566	59841.048078537				/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_Achillea.clusiana.txt
+55020903_2	Achillea.clusiana	scenario	gfdl.esm4_ssp370							5656.37962412834	1970.05200433731	7626.4969625473	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.clusiana.txt
+55020903_2	Achillea.clusiana	scenario	gfdl.esm4_ssp585							5498.73647379875	1927.51807498932	7426.34822654724	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.clusiana.txt
+55020903_2	Achillea.clusiana	scenario	ipsl.cm6a.lr_ssp370							5654.88094329834	1965.30561757088	7620.8730661869	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.clusiana.txt
+55020903_2	Achillea.clusiana	scenario	ipsl.cm6a.lr_ssp585							5637.64818668365	1906.73076272011	7544.49728035927	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.clusiana.txt
+55020903_2	Achillea.clusiana	scenario	mpi.esm1.2.hr_ssp370							5575.45880293846	1885.49286317825	7461.05143165588	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.clusiana.txt
+55020903_2	Achillea.clusiana	scenario	mpi.esm1.2.hr_ssp585							5481.2573800087	1905.85252952576	7388.20458269119	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.clusiana.txt
+55020903_2	Achillea.clusiana	scenario	mri.esm2.0_ssp370							5451.12293481827	1907.90752124786	7359.11028170586	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.clusiana.txt
+55020903_2	Achillea.clusiana	scenario	mri.esm2.0_ssp585							5505.26198482513	1901.33189272881	7406.72606897354	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Achillea.clusiana.txt
+55020903_3	Agrostis.capillaris	phase		8933.02663135529	10989.1317126751	1189.51440763474	9398.56301498413	1970.2038872242	89815.2017138004				/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_Agrostis.capillaris.txt
+55020903_3	Agrostis.capillaris	scenario	gfdl.esm4_ssp370							9171.33103060722	2054.52942872047	11226.0309021473	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Agrostis.capillaris.txt
+55020903_3	Agrostis.capillaris	scenario	gfdl.esm4_ssp585							9202.97437429428	2189.48631834984	11392.6066496372	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Agrostis.capillaris.txt
+55020903_3	Agrostis.capillaris	scenario	ipsl.cm6a.lr_ssp370							9017.6639854908	2039.69114089012	11057.5269348621	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Agrostis.capillaris.txt
+55020903_3	Agrostis.capillaris	scenario	ipsl.cm6a.lr_ssp585							8805.26833629608	2093.86656022072	10899.2243151665	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Agrostis.capillaris.txt
+55020903_3	Agrostis.capillaris	scenario	mpi.esm1.2.hr_ssp370							9271.43206477165	2029.97852706909	11301.5106363297	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Agrostis.capillaris.txt
+55020903_3	Agrostis.capillaris	scenario	mpi.esm1.2.hr_ssp585							8835.28285932541	2087.65082263947	10923.00629282	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Agrostis.capillaris.txt
+55020903_3	Agrostis.capillaris	scenario	mri.esm2.0_ssp370							9400.14010071754	2071.12013030052	11471.4345183372	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Agrostis.capillaris.txt
+55020903_3	Agrostis.capillaris	scenario	mri.esm2.0_ssp585							9319.572078228	2213.07681751251	11532.7649564743	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/time_future_Agrostis.capillaris.txt
