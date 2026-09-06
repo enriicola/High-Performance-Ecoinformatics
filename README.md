@@ -77,7 +77,7 @@ tail -f logs/job_<job-id>_<task-id>.log
 
   After inspecting the occurrence-count distribution, select and document a representative species and complete one baseline run. Do not extrapolate from a failed, partial or time-limited run. Using the exact occurrence counts from the full input CSV, calculate each unexecuted species estimate as `reference runtime / reference occurrences * species occurrences`, then sum the measured reference runtime and estimated values to obtain the projected sequential runtime for the complete dataset.
 
-  Keep measured runs in `docs/tables/runtime-and-resource-summary.md` and write the estimates, formula, reference run, assumptions and limitations in `docs/tables/sequential-baseline-projection.md`. Clearly label the result as a preliminary naive row-linear extrapolation because substantial parts of the workflow may not scale with occurrence count. Exclude Slurm queue time, concurrent-node scheduling and file transfers. Revisit the estimation method when additional comparable baseline runs become available.
+  Keep measured runs in `docs/tables/1.runtime-and-resource-summary.md` and write the estimates, formula, reference run, assumptions and limitations in `docs/tables/sequential-baseline-projection.md`. Clearly label the result as a preliminary naive row-linear extrapolation because substantial parts of the workflow may not scale with occurrence count. Exclude Slurm queue time, concurrent-node scheduling and file transfers. Revisit the estimation method when additional comparable baseline runs become available.
 
 ---
 
