@@ -1,9 +1,0 @@
-run	species	species_files	empty_species_files	root_sidecars	success_markers	species_bytes	source
-49844162_1	Achillea.atrata	1364	0	4	1	7705497216	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_4cpu/Achillea.atrata
-51485472_1	Achillea.atrata	1364	0	4	1	7833346333	/leonardo_work/IscrC_SPECC/data/output_keepmem_sp1_4cpu/Achillea.atrata
-51494635_1	Achillea.atrata	1364	0	4	1	7778340205	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_6cpu/Achillea.atrata
-51485581_1	Achillea.atrata	1364	0	4	1	7897266091	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_8cpu/Achillea.atrata
-51738981_1	Achillea.atrata	1364	0	4	1	7730682238	/leonardo_work/IscrC_SPECC/data/output_disk_sp1_16cpu/Achillea.atrata
-55020903_1	Achillea.atrata	2614	0	4	1	15014955493	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/Achillea.atrata
-55020903_2	Achillea.clusiana	2614	0	4	1	14347859475	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/Achillea.clusiana
-55020903_3	Agrostis.capillaris	2614	0	4	1	63488495778	/leonardo_work/IscrC_SPECC/data/output_campaign_pa10/Agrostis.capillaris

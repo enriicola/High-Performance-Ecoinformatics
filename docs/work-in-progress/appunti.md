@@ -824,6 +824,25 @@ Non è stata applicata alcuna politica automatica di cancellazione.
 
 # Occorrenze, specie e raster blocking
 
+## Distribuzione delle specie nel dataset completo
+
+Il file `data/input/full_1km_EUNIS.csv` contiene 2.583.359 record per 167 specie. Il conteggio è stato ottenuto raggruppando il campo `sp_name` e contando le righe, esclusa l'intestazione. Il risultato descrive quindi il numero di record assegnati a ciascuna specie nel dataset, non una nuova stima delle presenze biologiche.
+
+| Statistica | Record per specie |
+|---|---:|
+| Minimo | 43 |
+| Primo quartile | 2.026 |
+| Mediana | 5.936 |
+| Media | 15.469,2 |
+| Terzo quartile | 14.633 |
+| Massimo | 170.701 |
+
+*Galium anisophyllon* è la specie mediana per numerosità delle occorrenze: ha esattamente 5.936 record ed è la 84ª specie nella graduatoria ordinata per conteggio. È quindi il candidato rappresentativo per una prova basata sulla distribuzione dei conteggi delle occorrenze per specie. Le specie più vicine sono *Dichodon cerastoides* (5.912), *Festuca filiformis* (5.992), *Fumana procumbens* (6.098) e *Sagina saginoides* (5.238).
+
+La specie più frequente è invece *Agrostis capillaris* (170.701 record), seguita da *Potentilla erecta* (167.345), *Galium verum* (112.708), *Knautia arvensis* (92.894) e *Luzula campestris* (77.960). Questa è una scelta diversa dalla specie mediana e non va usata come rappresentativa della dimensione tipica senza una motivazione specifica.
+
+Il conteggio completo è conservato in [`docs/full_species_counts.csv`](../../docs/full_species_counts.csv); la sintesi tabellare e il metodo sono in [`docs/tables/3.full-species-occurrence-distribution.md`](../tables/3.full-species-occurrence-distribution.md).
+
 Dividere le righe di occorrenza di una stessa specie cambierebbe:
 
 - selezione delle pseudo-assenze;
