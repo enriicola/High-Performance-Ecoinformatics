@@ -843,6 +843,10 @@ La specie più frequente è invece *Agrostis capillaris* (170.701 record), segui
 
 Il conteggio completo è conservato in [`docs/full_species_counts.csv`](../../docs/full_species_counts.csv); la sintesi tabellare e il metodo sono in [`docs/tables/3.full-species-occurrence-distribution.md`](../tables/3.full-species-occurrence-distribution.md).
 
+Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` proietta le coordinate WGS84 con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e normalizza ogni specie allo stesso peso. La specie rappresentativa è il medoid, cioè quella con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo.
+
+*Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* è invece il compromesso tra i due criteri: ha il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. I risultati completi sono in `docs/spatial_species_representativeness.csv`.
+
 Dividere le righe di occorrenza di una stessa specie cambierebbe:
 
 - selezione delle pseudo-assenze;
