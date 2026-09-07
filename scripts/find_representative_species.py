@@ -181,7 +181,7 @@ def self_test():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", nargs="?", type=Path, default=Path("data/input/full_1km_EUNIS.csv"))
-    parser.add_argument("--output", type=Path, default=Path("docs/spatial_species_representativeness.csv"))
+    parser.add_argument("--output", type=Path, default=Path("data/output/spatial_species_representativeness.csv"))
     parser.add_argument("--cell-km", type=int, nargs="+", default=[5, 10, 20])
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()

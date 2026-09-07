@@ -845,7 +845,7 @@ Il conteggio completo è conservato in [`docs/full_species_counts.csv`](../../do
 
 Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` proietta le coordinate WGS84 con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e normalizza ogni specie allo stesso peso. La specie rappresentativa è il medoid, cioè quella con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo.
 
-*Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* è invece il compromesso tra i due criteri: ha il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. I risultati completi sono in `docs/spatial_species_representativeness.csv`.
+*Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* è invece il compromesso tra i due criteri: ha il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. I risultati completi, generati ma non versionati, sono in `data/output/spatial_species_representativeness.csv`.
 
 Dividere le righe di occorrenza di una stessa specie cambierebbe:
 
@@ -861,6 +861,14 @@ Raggruppare più specie complete nello stesso task conserverebbe l'analisi, ma:
 - ridurrebbe l'isolamento dei fallimenti per specie.
 
 Il raster blocking è diverso. Un modello già calibrato predice intervalli di righe o tile spaziali consecutivi, scrive ogni blocco e li combina nello stesso raster finale. Cambia la pianificazione della memoria, non i dati di occorrenza o il modello.
+
+# Questions for the ecologists
+
+Specie + rappresentativa da scegliere?
+
+- *Phyteuma orbiculare*: distribuzione spaziale più simile alle altre a 10 e 20 km.
+- *Galium anisophyllon*: mediana di 5.936 occorrenze e 7ª per rappresentatività spaziale.
+- *Agrostis capillaris*: massimo di 170.701 occorrenze.
 
 # Metodologia di misura e interpretazione
 
