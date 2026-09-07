@@ -867,8 +867,9 @@ Il raster blocking è diverso. Un modello già calibrato predice intervalli di r
 Specie + rappresentativa da scegliere?
 
 - *Phyteuma orbiculare*: distribuzione spaziale più simile alle altre a 10 e 20 km.
-- *Galium anisophyllon*: mediana di 5.936 occorrenze e 7ª per rappresentatività spaziale.
-- *Agrostis capillaris*: massimo di 170.701 occorrenze.
+- *Scabiosa lucida*: miglior compromesso distinto, 6ª per vicinanza alla mediana e 4ª-6ª nello spazio.
+- *Galium anisophyllon*: mediana esatta di 5.936 occorrenze.
+- *Agrostis capillaris*: massimo di 170.701 occorrenze, come caso limite.
 
 # Metodologia di misura e interpretazione
 
