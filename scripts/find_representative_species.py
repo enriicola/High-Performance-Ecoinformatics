@@ -168,6 +168,14 @@ def write_results(path, rows):
         writer.writerows(rows)
 
 
+def write_counts(path, species):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow(["count", "species"])
+        writer.writerows(sorted((item["rows"], item["name"]) for item in species))
+
+
 def self_test():
     centre = project_equal_area(10, 52)
     assert abs(centre[0]) < 1e-9 and abs(centre[1]) < 1e-9
@@ -182,6 +190,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", nargs="?", type=Path, default=Path("data/input/full_1km_EUNIS.csv"))
     parser.add_argument("--output", type=Path, default=Path("data/output/spatial_species_representativeness.csv"))
+    parser.add_argument("--counts-output", type=Path, default=Path("docs/full_species_counts.csv"))
     parser.add_argument("--cell-km", type=int, nargs="+", default=[5, 10, 20])
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
@@ -196,6 +205,7 @@ def main():
     species = load_distributions(args.input, args.cell_km)
     rows = analyse(species, args.cell_km)
     write_results(args.output, rows)
+    write_counts(args.counts_output, species)
     for size in args.cell_km:
         winner = next(row for row in rows if row["cell_km"] == size and row["medoid_rank"] == 1)
         print("{} km: {} (mean JSD {:.6f}, consensus rank {})".format(

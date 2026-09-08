@@ -303,7 +303,12 @@ time <- data.frame(
   cur_projection_EM = as.numeric(time.cur_proj_EM, units = "secs"),
   fut_projection = as.numeric(time.fut_proj, units = "secs")
 )
-write.table(time, paste0("time_", species_name, ".txt"), sep = "\t")
+write.table(
+  time,
+  paste0("time_", species_name, ".txt"),
+  sep = "\t",
+  row.names = FALSE # Avoid an unnamed R index column in the timing table.
+)
 write.table(
   future_timings,
   paste0("time_future_", species_name, ".txt"),
