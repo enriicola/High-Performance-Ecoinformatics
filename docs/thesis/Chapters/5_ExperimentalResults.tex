@@ -1,8 +1,41 @@
 \chapter{Experimental results}
 \comment{Experimental methodology and results.}
 
+\comment{New draft for supervisor review}
+
+% Working evidence: docs/tables/1.runtime-and-resource-summary.md and docs/tables/2.local-log-metadata.md.
+\comment{Convert the approved results to numbered LaTeX tables after supervisor review.}
+
 \section{Leonardo}
+
+The experiments ran on Leonardo DCGP nodes. Each node provides 112 CPU cores and 494,000 MB of allocatable memory. A Slurm array task processed one species on one node. The full-raster runs used five environmental variables over 63,951,097 cells. They produced projections for the current environment and eight future scenarios. Most experiments requested all allocatable node memory. This reserved the whole node for accounting purposes, even when the R process used fewer CPU cores.
+
+We evaluated completion separately from resource use. A zero process exit code was not sufficient when Slurm recorded an OOM event. A Slurm failure state also did not identify the failing R phase by itself. A run counted as complete only when its logs reached the end of the workflow. The expected timing files, output directories, non-empty files, and success marker also had to be present.
 
 \section{Tests}
 
+The first validated full-raster reference used four BIOMOD2 workers in F/F storage mode. Both projection storage options were disabled. The run completed in 22 hours, 33 minutes, and 45 seconds. Slurm reported a MaxRSS of 260.94 GiB. The species directory contained 1,364 non-empty files and occupied 7.18 GiB. Four additional summary files were written at the output root. The outputs included 125 individual models, two ensemble models, and all eight future scenarios.
+
+The F/T configurations used stacked projections and failed during the first future scenario. The two-worker run stopped after 5 hours and 44 minutes. The four-worker run stopped after 3 hours and 57 minutes. In both cases, \texttt{mcfork()} could not allocate memory. Their Slurm MaxRSS values were 413.22 and 413.80 GiB.
+
+Increasing the worker count reduced elapsed time for the validated F/F configuration. Six workers completed in 17.85 hours, with a speedup of 1.264 over four workers. Eight workers completed in 15.09 hours, with a speedup of 1.495. Sixteen workers completed in 10 hours and 21 minutes, with a speedup of 2.179. The accounting, timing files, output structure, and success marker of the 16-worker run were validated.
+
+Slurm MaxRSS was 258.95 GiB with six workers and 278.67 GiB with eight workers. It rose to 464.77 GiB with sixteen workers. CPU allocation efficiency fell from 68.1\% to 60.0\% and then 45.1\%. A 32-worker F/F run reached 481.16 GiB. It was killed during the current projection after 1 hour and 40 minutes.
+
+Future projections accounted for 77.4\% to 83.5\% of wall time in the validated runs. Formatting remained between 4,485 and 4,601 seconds. The current ensemble projection remained between 1,422 and 1,517 seconds. Neither phase showed a clear benefit from additional workers. The future loop fell from 67,819 seconds with four workers to 28,855 seconds with sixteen workers.
+
+A separate controlled benchmark compared split and monolithic R implementations on the same node. Five runs of each version used a fixed seed, one worker, a small input, and no future projections. The split version averaged 26 minutes and 10 seconds with 47.09 GiB MaxRSS. The monolithic version averaged 26 minutes and 28 seconds with 47.63 GiB MaxRSS. The observed differences were 18 seconds and 0.54 GiB in favour of the split version. These results do not establish equivalence between the implementations. They also do not establish effects on parallelism or reproducibility.
+
+The production configuration used ten pseudo-absence repetitions instead of five. It retained five cross-validation repetitions. Three species completed with this configuration. \textit{Achillea atrata} took 25 hours, 36 minutes, and 36 seconds. \textit{Achillea clusiana} took 21 hours, 26 minutes, and 42 seconds. \textit{Agrostis capillaris} took 33 hours, 58 minutes, and 34 seconds. Their Slurm MaxRSS values were 316.16, 315.78, and 291.42 GiB, respectively.
+
+Each species directory contained 2,614 non-empty files and a success marker. Four additional summaries were present for each run. The directories occupied 13.98, 13.36, and 59.13 GiB. In the recovered phase timings, the future loop ranged from 59,841 to 89,815 seconds. Individual modelling ranged from 172 to 10,989 seconds. This configuration performs more model runs than the earlier worker-count experiment, so their timings must not be compared directly.
+
 \section{Discussion and lessons learned}
+
+Increasing BIOMOD2 workers from four to sixteen reduced full-raster runtime in the validated F/F runs. Memory use rose sharply at sixteen workers, and the 32-worker run did not complete. The successful four-worker T/F run was 0.9\% faster than the F/F reference and used 3.75 GiB more peak memory. Each mode was run once, and the exact code revision of the F/F reference is not recorded. The comparison therefore does not establish a storage effect. The F/T configurations, which enabled stacked projections, failed before the first future projection could complete.
+
+Failed runs remain part of the evaluation. A failed run can reach its stopping point sooner when given more workers. This shorter time is not a speedup because the run produces no valid result. Runtime comparisons must include completion status, MaxRSS, and output checks. They must also keep scientific parameters fixed. The production runs with ten pseudo-absence repetitions answer a different performance question from the earlier runs with five.
+
+Resource allocation affected both cost and runtime. The three completed production species consumed about 9,076 CINECA local hours. Each task reserved all allocatable node memory. The replacement array for species 4 to 167 did not start R. CINECA cancelled it in the administrative prolog after the project exceeded its budget. Future campaigns need a memory request based on measured MaxRSS, with a margin for variation between species. They should not request the full node unconditionally.
+
+\comment{End of new draft for supervisor review}
