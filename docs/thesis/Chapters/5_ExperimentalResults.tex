@@ -18,7 +18,7 @@ The first validated full-raster reference used four BIOMOD2 workers in F/F stora
 
 The F/T configurations used stacked projections and failed during the first future scenario. The two-worker run stopped after 5 hours and 44 minutes. The four-worker run stopped after 3 hours and 57 minutes. In both cases, \texttt{mcfork()} could not allocate memory. Their Slurm MaxRSS values were 413.22 and 413.80 GiB.
 
-Increasing the worker count reduced elapsed time for the validated F/F configuration. Six workers completed in 17.85 hours, with a speedup of 1.264 over four workers. Eight workers completed in 15.09 hours, with a speedup of 1.495. Sixteen workers completed in 10 hours and 21 minutes, with a speedup of 2.179. The accounting, timing files, output structure, and success marker of the 16-worker run were validated.
+Among the validated F/F runs, elapsed time was lower at higher worker counts. Six workers completed in 17.85 hours, with an observed wall-time ratio of 1.264 relative to the four-worker reference. Eight workers completed in 15.09 hours, with a ratio of 1.495. Sixteen workers completed in 10 hours and 21 minutes, with a ratio of 2.179. The accounting, timing files, output structure, and success marker of the 16-worker run were validated. The exact code revision of the four-worker reference was not recorded, so these ratios describe the observed runs but do not isolate the effect of worker count.
 
 Slurm MaxRSS was 258.95 GiB with six workers and 278.67 GiB with eight workers. It rose to 464.77 GiB with sixteen workers. CPU allocation efficiency fell from 68.1\% to 60.0\% and then 45.1\%. A 32-worker F/F run reached 481.16 GiB. It was killed during the current projection after 1 hour and 40 minutes.
 
@@ -32,7 +32,7 @@ Each species directory contained 2,614 non-empty files and a success marker. Fou
 
 \section{Discussion and lessons learned}
 
-Increasing BIOMOD2 workers from four to sixteen reduced full-raster runtime in the validated F/F runs. Memory use rose sharply at sixteen workers, and the 32-worker run did not complete. The successful four-worker T/F run was 0.9\% faster than the F/F reference and used 3.75 GiB more peak memory. Each mode was run once, and the exact code revision of the F/F reference is not recorded. The comparison therefore does not establish a storage effect. The F/T configurations, which enabled stacked projections, failed before the first future projection could complete.
+The validated F/F runs had lower full-raster runtimes at higher worker counts. Since the exact code revision of the four-worker reference was not recorded, this comparison does not isolate the effect of worker count. Memory use rose sharply at sixteen workers, and the 32-worker run did not complete. The successful four-worker T/F run was 0.9\% faster than the F/F reference and used 3.75 GiB more peak memory. Each storage mode was run once, so the comparison does not establish a storage effect. The F/T configurations, which enabled stacked projections, failed before the first future projection could complete.
 
 Failed runs remain part of the evaluation. A failed run can reach its stopping point sooner when given more workers. This shorter time is not a speedup because the run produces no valid result. Runtime comparisons must include completion status, MaxRSS, and output checks. They must also keep scientific parameters fixed. The production runs with ten pseudo-absence repetitions answer a different performance question from the earlier runs with five.
 
