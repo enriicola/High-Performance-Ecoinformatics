@@ -879,9 +879,9 @@ La specie più frequente è invece *Agrostis capillaris* (170.701 record), segui
 
 Il conteggio completo è conservato in [`docs/full_species_counts.csv`](full_species_counts.csv); la sintesi tabellare e il metodo sono in [`docs/tables/3.full-species-occurrence-distribution.md`](tables/3.full-species-occurrence-distribution.md).
 
-Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` assume che `x` e `y` siano longitudine e latitudine WGS84. Le proietta con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e assegna lo stesso peso a ogni specie. Il medoid spaziale è la specie con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo. La verifica del sistema di riferimento delle coordinate (Coordinate Reference System, CRS) rispetto ai raster ambientali è ancora aperta; fino ad allora il ranking è provvisorio.
+Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` assume che `x` e `y` siano longitudine e latitudine WGS84. Le proietta con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e assegna lo stesso peso a ogni specie. Il medoid spaziale è la specie con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo. Il controllo eseguito su Leonardo nel container di produzione il 2026-09-08 ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali. Le coordinate delle occorrenze rientrano nell'estensione dei raster e coincidono con i centri delle celle entro la precisione del CSV; non serve quindi riproiettarle.
 
-Se il CRS WGS84 viene confermato, *Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* ha invece il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. Questi due criteri non sono combinati in un unico punteggio. Il ranking non misura runtime o memoria e non sostituisce il criterio per numerosità richiesto dalla proiezione preliminare. I risultati completi sono versionati in `data/output/spatial_species_representativeness.csv`.
+*Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* ha invece il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. Questi due criteri non sono combinati in un unico punteggio. Il ranking non misura runtime o memoria e non sostituisce il criterio per numerosità richiesto dalla proiezione preliminare. I risultati completi sono versionati in `data/output/spatial_species_representativeness.csv`.
 
 Dividere le righe di occorrenza di una stessa specie cambierebbe:
 
@@ -1066,9 +1066,9 @@ Il pre-prompt associato richiedeva di leggere prima `prompt.md`, il quaderno LaT
 
 ## Validazione scientifica
 
-- Controllare che punti di occorrenza e raster ambientali abbiano lo stesso CRS, atteso WGS84/EPSG:4326.
-- Nel container, verificare con `terra::crs(terra::rast("data/input/climate_vars/baseline/PC1.tif"), describe = TRUE)$code`.
-- Riproiettare i punti se necessario e documentare il controllo nella tesi.
+- Il controllo del 2026-09-08 nel container di produzione ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali.
+- Le coordinate delle occorrenze rientrano nell'estensione dei raster e coincidono con i centri delle celle entro la precisione del CSV; non è necessaria una riproiezione.
+- Il controllo è documentato nella tesi.
 - Controllare warning GLM, MAXNET, overflow interi, metriche mancanti e warning ensemble.
 - Verificare se `scale.models=FALSE` serve ancora esplicitamente.
 - Convertire gli output di valutazione da testo a CSV.

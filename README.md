@@ -115,7 +115,7 @@ tail -f logs/job_<job-id>_<task-id>.log
 
 ### Scientific validation
 
-- [ ] Verify that occurrence points and environmental rasters use the same CRS; expected: WGS84 / EPSG:4326. In the container, check with `terra::crs(terra::rast("data/input/climate_vars/baseline/PC1.tif"), describe = TRUE)$code`; reproject the points if necessary and document the check in the thesis.
+- [x] Verify that occurrence points and environmental rasters use the same CRS; expected: WGS84 / EPSG:4326. Verified on Leonardo inside the production container on 2026-09-08: all 18 environmental rasters report EPSG:4326 and have identical geometry. The occurrence coordinates fall within the raster extent and align with its grid-cell centres, so no reprojection is required. The check is documented in the thesis.
 - [ ] Check GLM, MAXNET and integer-overflow warnings.
 - [ ] Check whether the explicit `scale.models = FALSE` parameter is still needed.
 - [ ] Change evaluation output from text files to CSV.

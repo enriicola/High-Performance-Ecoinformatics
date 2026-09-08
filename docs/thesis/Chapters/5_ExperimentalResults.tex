@@ -10,6 +10,8 @@
 
 The experiments ran on Leonardo DCGP nodes. Each node provides 112 CPU cores and 494,000 MB of allocatable memory. A Slurm array task processed one species on one node. The full-raster runs used five environmental variables over 63,951,097 cells. They produced projections for the current environment and eight future scenarios. Most experiments requested all allocatable node memory. This reserved the whole node for accounting purposes, even when the R process used fewer CPU cores.
 
+We checked the coordinate reference system inside the production container on Leonardo. All 18 environmental rasters reported WGS 84 (EPSG:4326) and had the same geometry. The occurrence coordinates ranged from $-24.0043$ to $66.1957$ degrees longitude and from $29.5124$ to $71.1540$ degrees latitude. They fell within the raster extent and aligned with its grid-cell centres within the precision of the CSV input. No reprojection was required.
+
 We evaluated completion separately from resource use. A zero process exit code was not sufficient when Slurm recorded an OOM event. A Slurm failure state also did not identify the failing R phase by itself. A run counted as complete only when its logs reached the end of the workflow. The expected timing files, output directories, non-empty files, and success marker also had to be present.
 
 \section{Tests}
