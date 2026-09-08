@@ -881,7 +881,7 @@ Il conteggio completo è conservato in [`docs/full_species_counts.csv`](full_spe
 
 Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` assume che `x` e `y` siano longitudine e latitudine WGS84. Le proietta con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e assegna lo stesso peso a ogni specie. Il medoid spaziale è la specie con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo. La verifica del sistema di riferimento delle coordinate (Coordinate Reference System, CRS) rispetto ai raster ambientali è ancora aperta; fino ad allora il ranking è provvisorio.
 
-Se il CRS WGS84 viene confermato, *Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* è invece il compromesso tra i due criteri: ha il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. Il ranking non misura runtime o memoria e non sostituisce il criterio per numerosità richiesto dalla proiezione preliminare. I risultati completi sono versionati in `data/output/spatial_species_representativeness.csv`.
+Se il CRS WGS84 viene confermato, *Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* ha invece il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. Questi due criteri non sono combinati in un unico punteggio. Il ranking non misura runtime o memoria e non sostituisce il criterio per numerosità richiesto dalla proiezione preliminare. I risultati completi sono versionati in `data/output/spatial_species_representativeness.csv`.
 
 Dividere le righe di occorrenza di una stessa specie cambierebbe:
 
@@ -898,15 +898,16 @@ Raggruppare più specie complete nello stesso task conserverebbe l'analisi, ma:
 
 Il raster blocking è diverso. Un modello già calibrato predice intervalli di righe o tile spaziali consecutivi, scrive ogni blocco e li combina nello stesso raster finale. Cambia la pianificazione della memoria, non i dati di occorrenza o il modello.
 
-## Specie + rappresentativa da scegliere?
+## Specie rappresentativa da scegliere
 
-medoid: specie reale con la distanza media minore dalle distribuzioni spaziali delle altre specie.
+Il medoid è la specie reale con la distanza media minore dalle distribuzioni spaziali delle altre specie. Non è stato definito un punteggio che combini numerosità e distribuzione spaziale, quindi le candidate restano separate per criterio:
 
-- *Phyteuma orbiculare*: distribuzione spaziale più simile alle altre a 10 e 20 km (rappresentativa geografica), 13.877 occorrenze.
-- *Scabiosa lucida*: compromesso, 6ª per vicinanza alla mediana e 4ª-6ª nello spazio (miglior compromesso distinto), 6175 occorrenze.
-- *Galium anisophyllon*: mediana esatta di 5.936 occorrenze (miglior rappresentativa numerica).
-
+- *Phyteuma orbiculare*: distribuzione spaziale più simile alle altre a 10 e 20 km, con 13.877 occorrenze;
+- *Scabiosa lucida*: 6ª per vicinanza alla mediana e tra la 4ª e la 6ª posizione nello spazio, con 6.175 occorrenze;
+- *Galium anisophyllon*: mediana esatta di 5.936 occorrenze e 7ª per distanza spaziale media;
 - *Agrostis capillaris*: massimo di 170.701 occorrenze, come caso limite.
+
+La scelta dipende dal criterio ritenuto rilevante e va concordata con i collaboratori.
 
 # Metodologia di misura e interpretazione
 
