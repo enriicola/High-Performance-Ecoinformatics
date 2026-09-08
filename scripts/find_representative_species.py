@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rank species by how typical their spatial occurrence distribution is."""
+"""Rank spatial occurrence patterns, assuming WGS84 longitude/latitude input."""
 
 import argparse
 import csv
@@ -192,6 +192,11 @@ def main():
     parser.add_argument("--output", type=Path, default=Path("data/output/spatial_species_representativeness.csv"))
     parser.add_argument("--counts-output", type=Path, default=Path("docs/full_species_counts.csv"))
     parser.add_argument("--cell-km", type=int, nargs="+", default=[5, 10, 20])
+    parser.add_argument(
+        "--assume-wgs84",
+        action="store_true",
+        help="acknowledge that input x/y are WGS84 longitude/latitude",
+    )
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
 
@@ -199,6 +204,8 @@ def main():
     if args.self_test:
         print("self-test passed")
         return
+    if not args.assume_wgs84:
+        parser.error("--assume-wgs84 is required because CSV files do not store CRS metadata")
     if any(size <= 0 for size in args.cell_km):
         parser.error("--cell-km values must be positive")
 
