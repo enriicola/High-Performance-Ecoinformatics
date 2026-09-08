@@ -59,6 +59,7 @@ Git registra l'archiviazione congiunta degli undici file in `docs/work-in-progre
 - Il quaderno `docs/thesis/Chapters/notes.tex` e il backup furono organizzati il 1 settembre alle 17:52 nel commit `2c6b43f`.
 - Gli originali fuori da `work-in-progress/` furono rimossi il 2 settembre nel commit `a630f04`, dopo essere stati archiviati.
 - `prompt.md` fu aggiornato il 2 settembre alle 14:04 nel commit `9a65203`, che rinominò il target di sincronizzazione in `3sync`.
+- `prompt.md` e `run-manifest.md` furono aggiornati di nuovo il 5 settembre nel commit `b37e227`, dopo la diagnosi del 4 settembre. Le date nella tabella precedente descrivono le copie archiviate inizialmente; le versioni eliminate al termine di questo consolidamento includono anche l'aggiornamento successivo.
 
 La cronologia degli eventi, ricostruita sotto, è quindi più affidabile dell'ordine alfabetico o della sola data materiale dei file.
 
@@ -76,7 +77,7 @@ I documenti furono scritti durante un riordino del repository. Alcuni percorsi c
 | `docs/session-2026-07-03.md` | Copia archiviata in `docs/work-in-progress/session-2026-07-03.md`. |
 | `docs/thesis-plan.md` | Copia archiviata in `docs/work-in-progress/thesis-plan.md`. |
 | `docs/campaign-snapshot.md` | Copia archiviata in `docs/work-in-progress/campaign-snapshot.md`. |
-| `make 3sync` | Nome presente in una nota precedente. Il comando aggiornato è `make 3sync`. |
+| `make sync` | Nome presente in una nota precedente. Il comando aggiornato è `make 3sync`. |
 
 Gli hash brevi `52004b2`, `354e415`, `bc71039`, `e622491`, `b26fbd3`, `434b6a8`, `6c36715`, `88e03c0` e `49cfdb0` compaiono nel quaderno come riferimenti a revisioni storiche. Non sono risolvibili nell'attuale insieme di oggetti Git locale. Devono essere trattati come identificatori registrati nelle note, non come commit già riverificati nel clone corrente.
 
@@ -139,8 +140,9 @@ Le evidenze storiche principali sono:
 - i test legacy associati a `52004b2` e `354e415`, con almeno 16 CPU, fallirono durante l'ensemble forecasting per OOM; alcune run raggiunsero anche il limite di 12 ore;
 - il test `bc71039`, con una sola CPU, raggiunse il limite di 12 ore durante il secondo scenario futuro su otto;
 - un test non identificato di nove righe su *A. atrata*, con parametri giocattolo e una CPU, terminò in 7:01 con 24 modelli sopravvissuti;
-- `e622491`, con input piccolo, una CPU e default T/T, completò proiezione corrente e otto scenari in 50,3 ore;
+- `e622491`, con input piccolo, una CPU e default T/T, usò due repliche di pseudo-assenze e due ripetizioni di cross-validation; completò proiezione corrente e otto scenari in 50,3 ore;
 - `b26fbd3`, con 1.000 righe di Agrostis, una CPU, default T/T e parametri giocattolo, completò circa 30 modelli e otto scenari in 17,2 ore;
+- gli esperimenti Agrostis successivi usarono tre repliche di pseudo-assenze, due ripetizioni di cross-validation e cinque algoritmi, producendo circa 30 modelli;
 - `47333938`, su *Agrostis capillaris* con 170.701 righe, quattro CPU e default T/T, completò in 4:23 con dieci pseudo-assenze, 24 modelli sopravvissuti e un picco di circa 326 GB;
 - `47467973`, ancora su *A. capillaris*, usò 10.000 pseudo-assenze, quattro CPU e default T/T; completò 30 modelli validi in 11:50 con un picco vicino a 359 GB;
 - `47510573_1`, su *Potentilla erecta* con 167.345 righe, quattro CPU e default T/T, completò in 11:33 con un picco di circa 360 GB e file di timing presente;
@@ -237,7 +239,7 @@ Le azioni annotate erano:
 
 - usare `seed_val <- 42L` per rendere riproducibili le run;
 - studiare se `seed.val=42` rende pseudo-assenze e output abbastanza stabili da consentire una ripresa sicura;
-- confrontare `overwrite=FALSE`, che può riusare proiezioni esistenti e risparmiare tempo, con `overwrite=TRUE`, più sicuro dopo modifiche a codice, input o modelli;
+- confrontare in `BIOMOD_Projection` `overwrite=FALSE`, che può riusare proiezioni esistenti e risparmiare tempo, con `overwrite=TRUE`, più sicuro dopo modifiche a codice, input o modelli;
 - preparare l'array 1-167 soltanto dopo i test.
 
 I commit successivi aggiunsero seed deterministici, gestione di `overwrite`, ordinamento shortest-job-first e marker di successo. La baseline di produzione fu poi ricondotta allo script sequenziale in `R/base/`.
@@ -535,7 +537,7 @@ La prenotazione Slurm osservata arrivava al 17 agosto alle 18:00. L'avviso CINEC
 - produzione normale non garantita fino al 14 agosto;
 - possibile indisponibilità di accesso e filesystem.
 
-I job di produzione non potevano eseguire durante l'outage. L'invio in coda avrebbe potuto tornare possibile prima del 17 agosto se login, Slurm e filesystem fossero rientrati. Al momento descritto dal quaderno non erano in coda job di validazione o di campagna.
+I job di produzione non potevano eseguire durante l'outage. L'invio in coda avrebbe potuto tornare possibile prima del 17 agosto se login, Slurm e filesystem fossero rientrati. Al momento descritto dal quaderno non erano in coda job di validazione o di campagna e non era ancora stata scelta una configurazione per la campagna completa.
 
 ## Fase 9: campagna di produzione successiva, fine agosto e 2 settembre
 
@@ -575,6 +577,24 @@ La copia congelata documenta, tra le altre cose:
 - timing in secondi;
 - marker `_SUCCESS` scritto alla fine.
 
+### Interpretazione dei tempi per specie
+
+Negli identificativi delle campagne array, il suffisso indica il task: `55020903_1`, per esempio, è il task 1. Lo snapshot legge `SLURM_ARRAY_TASK_ID`, seleziona un solo nome e filtra le relative occorrenze; il wrapper Slurm assegna un nodo al task. Il wall time misura quindi l'intera pipeline di una specie. L'identificativo base `55020903` indica invece l'array o la campagna.
+
+I log forniscono un riscontro diretto:
+
+| Run/task | Specie | Occorrenze | Wall time |
+|---|---|---:|---:|
+| `55020903_1` | *Achillea atrata* | 1.475 | 25:36:36 |
+| `55020903_2` | *Achillea clusiana* | 174 | 21:26:42 |
+| `55020903_3` | *Agrostis capillaris* | 170.701 | 33:58:34 |
+
+La somma dei tre wall time, 81:01:52, non è il runtime di una singola run. Per `_1`, le fasi registrate sommano 92.176,47 s, cioè 25:36:16; i circa 20 s rispetto al wall time sono overhead del wrapper.
+
+Il tempo Futuro somma gli otto scenari della stessa specie. CPU-hours e TotalCPU accumulano il lavoro dei processi paralleli, mentre le CPU-hours allocate corrispondono al wall time moltiplicato per le CPU assegnate. Nessuna di queste misure somma automaticamente specie diverse.
+
+Evidenze: `R/base/baseline_49cfdb0.R`, `scripts/sbatch.sh`, `logs/job_55020903_[1-3].log` e `logs/phase_timings_2026-09-06.csv`.
+
 ### Stato rilevato il 31 agosto
 
 | Run o output | Stato al 31 agosto | Riferimento annotato |
@@ -602,11 +622,27 @@ L'handoff operativo più recente registra:
 - la QoS permette al massimo tre nodi concorrenti;
 - ogni task dell'array elabora una specie su un nodo.
 
-L'idea annotata in `new-prompt.txt` era valutare se usare uno dei tre nodi per la campagna completa da 1 a 167, accettandone l'esito, e lasciare gli altri due nodi al lavoro già in corso. La formulazione originale esprimeva un approccio deliberatamente pragmatico: "come andrà andrà". La configurazione effettiva successiva usa invece una concorrenza massima `%3` sulla campagna sostitutiva.
+L'idea annotata in `new-prompt.txt` era valutare se usare uno dei tre nodi per la campagna completa da 1 a 167, accettandone l'esito, e lasciare gli altri due nodi al lavoro già in corso. La formulazione originale era: "come andrà andrà, chi se ne frega". La configurazione effettiva successiva usa invece una concorrenza massima `%3` sulla campagna sostitutiva.
+
+### Stato consolidato al 4 settembre
+
+Il manifest aggiornato dopo la manutenzione registra:
+
+| Run o output | Stato al 4 settembre | Riferimento storico |
+|---|---|---|
+| `data/output` | Trasferito in `F:\HPC_Leonardo\data\output\`; archivio corrente 135 GB. | `scripts/3sync.sh`; verifica Spartaco. |
+| `55020903_1`, `Achillea.atrata` | Completato; `_SUCCESS`; 2.614 file. | `logs/leonardo-raw/`. |
+| `55020903_2`, `Achillea.clusiana` | Completato; `_SUCCESS`; 2.614 file. | `logs/leonardo-raw/`. |
+| `55020903_3`, `Agrostis.capillaris` | Completato il 2 settembre 2026 alle 03:52:58; `_SUCCESS`; 2.614 file. | `logs/leonardo-raw/`. |
+| Campagna restante | Non eseguita; nessun job attivo; saldo ore esaurito. | Stato comunicato da Leonardo. |
+| Benchmark `output_*` | Conservati su Leonardo e Spartaco; circa 54 GB. | Quaderno sperimentale e note della sessione del 3 luglio. |
+| Snapshot dello script | Archiviato e verificato. | Nota sullo snapshot della campagna. |
+
+Serviicola, Leonardo e Spartaco mantengono ciascuno un clone Git e `container/geospatial.sif`, escluso da Git. I dati pesanti sotto `data/` restano su Leonardo e Spartaco. `make 3sync` trasferisce dati e container da Leonardo a Spartaco attraverso Serviicola senza cancellare file a destinazione. Per un solo percorso, il comando storico esatto è `make 3sync ARGS="<relative-path>"`.
 
 # Inventario cronologico completo delle run
 
-La tabella raccoglie ogni run o campagna con identificatore presente nelle note. Le righe non costituiscono tutte confronti controllati: cambiano specie, pseudo-assenze, modelli, revisione del codice e storage.
+La tabella raccoglie ogni run o campagna con identificatore presente nelle note. Le righe non costituiscono tutte confronti controllati: cambiano specie, pseudo-assenze, modelli, revisione del codice e storage. I campi indicati come non registrati sono lasciati intenzionalmente incompleti e non vengono stimati.
 
 Nella colonna storage:
 
@@ -841,11 +877,11 @@ Il file `data/input/full_1km_EUNIS.csv` contiene 2.583.359 record per 167 specie
 
 La specie più frequente è invece *Agrostis capillaris* (170.701 record), seguita da *Potentilla erecta* (167.345), *Galium verum* (112.708), *Knautia arvensis* (92.894) e *Luzula campestris* (77.960). Questa è una scelta diversa dalla specie mediana e non va usata come rappresentativa della dimensione tipica senza una motivazione specifica.
 
-Il conteggio completo è conservato in [`docs/full_species_counts.csv`](../../docs/full_species_counts.csv); la sintesi tabellare e il metodo sono in [`docs/tables/3.full-species-occurrence-distribution.md`](../tables/3.full-species-occurrence-distribution.md).
+Il conteggio completo è conservato in [`docs/full_species_counts.csv`](full_species_counts.csv); la sintesi tabellare e il metodo sono in [`docs/tables/3.full-species-occurrence-distribution.md`](tables/3.full-species-occurrence-distribution.md).
 
-Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` proietta le coordinate WGS84 con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e normalizza ogni specie allo stesso peso. La specie rappresentativa è il medoid, cioè quella con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo.
+Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` assume che `x` e `y` siano longitudine e latitudine WGS84. Le proietta con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e assegna lo stesso peso a ogni specie. Il medoid spaziale è la specie con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo. La verifica del sistema di riferimento delle coordinate (Coordinate Reference System, CRS) rispetto ai raster ambientali è ancora aperta; fino ad allora il ranking è provvisorio.
 
-*Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* è invece il compromesso tra i due criteri: ha il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. I risultati completi, generati ma non versionati, sono in `data/output/spatial_species_representativeness.csv`.
+Se il CRS WGS84 viene confermato, *Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* è invece il compromesso tra i due criteri: ha il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. Il ranking non misura runtime o memoria e non sostituisce il criterio per numerosità richiesto dalla proiezione preliminare. I risultati completi, generati ma non versionati, sono in `data/output/spatial_species_representativeness.csv`.
 
 Dividere le righe di occorrenza di una stessa specie cambierebbe:
 
@@ -862,13 +898,14 @@ Raggruppare più specie complete nello stesso task conserverebbe l'analisi, ma:
 
 Il raster blocking è diverso. Un modello già calibrato predice intervalli di righe o tile spaziali consecutivi, scrive ogni blocco e li combina nello stesso raster finale. Cambia la pianificazione della memoria, non i dati di occorrenza o il modello.
 
-# Questions for the ecologists
+## Specie + rappresentativa da scegliere?
 
-Specie + rappresentativa da scegliere?
+medoid: specie reale con la distanza media minore dalle distribuzioni spaziali delle altre specie.
 
-- *Phyteuma orbiculare*: distribuzione spaziale più simile alle altre a 10 e 20 km.
-- *Scabiosa lucida*: miglior compromesso distinto, 6ª per vicinanza alla mediana e 4ª-6ª nello spazio.
-- *Galium anisophyllon*: mediana esatta di 5.936 occorrenze.
+- *Phyteuma orbiculare*: distribuzione spaziale più simile alle altre a 10 e 20 km (rappresentativa geografica), 13.877 occorrenze.
+- *Scabiosa lucida*: compromesso, 6ª per vicinanza alla mediana e 4ª-6ª nello spazio (miglior compromesso distinto), 6175 occorrenze.
+- *Galium anisophyllon*: mediana esatta di 5.936 occorrenze (miglior rappresentativa numerica).
+
 - *Agrostis capillaris*: massimo di 170.701 occorrenze, come caso limite.
 
 # Metodologia di misura e interpretazione
@@ -975,7 +1012,7 @@ branch
               └── agent
 ```
 
-L'idea è che un minimo di orchestrazione renda naturale creare un workspace pulito per ogni attività, evitando che lavori non correlati condividano branch, directory o contesto del terminale.
+L'implementazione dell'articolo è specifica per le preferenze dell'autore, ma l'idea generale è considerata più importante dello script. Un minimo di orchestrazione rende naturale creare un workspace pulito per ogni attività, evitando che lavori non correlati condividano branch, directory o contesto del terminale.
 
 Riferimento Leonardo annotato:
 
@@ -1143,7 +1180,7 @@ La tesi riguarda l'esecuzione e la misurazione su HPC di un workflow R/BIOMOD2 p
 L'organizzazione precedente prevedeva:
 
 - `prompt.md` come handoff operativo principale;
-- `docs/thesis/Chapters/notes.tex` come quaderno grezzo per misure, job, risultati e interpretazioni da verificare;
+- `docs/thesis/Chapters/notes.tex` come quaderno grezzo per misure, job, risultati e interpretazioni da verificare; durante quel riordino non doveva essere spostato né riscritto;
 - `session-2026-07-03.md` come memoria della sessione iniziale, senza sostituire il quaderno;
 - il TODO del `README.md` per attività future e decisioni operative sintetiche;
 - `thesis-plan.md` per collegare i risultati ai capitoli;
@@ -1153,6 +1190,24 @@ L'organizzazione precedente prevedeva:
 Soltanto il materiale verificato, riscritto e approvato esplicitamente doveva passare negli altri capitoli LaTeX.
 
 Dopo l'archiviazione, questo `appunti.md` diventa il punto unico per il materiale storico della cartella `work-in-progress`, ma non trasforma automaticamente le osservazioni in risultati scientifici definitivi.
+
+## Matrice di copertura delle fonti archiviate
+
+Questa matrice permette di rintracciare nel documento consolidato il contenuto dei file rimossi. Lo stato `COPERTO` significa che dati, decisioni, dubbi e riferimenti specifici della fonte sono riportati nelle sezioni indicate, anche quando sono stati tradotti o accorpati per evitare duplicazioni.
+
+| Fonte rimossa | Stato | Sezioni di destinazione |
+|---|---|---|
+| `campaign-snapshot.md` | COPERTO | "Fase 9: campagna di produzione", sottosezione "Snapshot dello script". |
+| `new-prompt.txt` | COPERTO | "Fase 9", "Modello operativo worktree, tmux e agent". |
+| `notes.md` | COPERTO | "Mappa dei riferimenti e dei nomi", "Regola storica di gestione delle note". |
+| `notes.tex` | COPERTO | "Contesto scientifico", fasi 1-8, inventario delle run, storage, MAXNET, spazio disco, misure, QoS e piano della tesi. |
+| `notes.tex.bak` | COPERTO | "Fase 6: campagna a onde e confronto controllato dello storage" e sezioni sullo storage. |
+| `pre-prompt.txt` | COPERTO | "Prossime operazioni della campagna al 2 settembre". |
+| `prompt.md` | COPERTO | "Fase 9", "Workflow tra i tre host", "Prossime operazioni della campagna al 2 settembre" e aggiornamento documentale del 4 settembre. |
+| `README.md` | COPERTO | "Regola storica di gestione delle note". |
+| `run-manifest.md` | COPERTO | "Stato consolidato al 4 settembre" e "Esaurimento del budget DCGP". |
+| `session-2026-07-03.md` | COPERTO | Fasi 3-5 e "Modalità sequenziale più prudente annotata il 3 luglio". |
+| `thesis-plan.md` | COPERTO | "Contesto scientifico e obiettivo del lavoro" e "Piano della tesi". |
 
 # Esaurimento del budget DCGP, 4 settembre 2026
 
@@ -1271,7 +1326,7 @@ Prima di inviare un nuovo array occorrono un'estensione del budget e una nuova s
 
 # Verifica, pulizia e riallineamento documentale del 4 settembre 2026
 
-Questa sezione registra le operazioni eseguite nella sessione di verifica successiva al decluttering. `docs/work-in-progress/appunti.md` resta un file di lavoro non committato e raccoglie anche queste operazioni.
+Questa sezione registra le operazioni eseguite nella sessione di verifica successiva al decluttering. In quella sessione, `docs/work-in-progress/appunti.md` era ancora un file di lavoro non committato e raccoglieva anche queste operazioni.
 
 ## Verifica del repository principale
 
@@ -1431,4 +1486,4 @@ Non è quindi stato possibile stabilire da questa sessione se il clone Git di Sp
 
 ## Stato Git lasciato dalla sessione
 
-Tutte le modifiche tracciabili prodotte o mantenute nella sessione devono essere committate, escluso intenzionalmente `docs/work-in-progress/appunti.md`, che resta non tracciato per la successiva review dedicata.
+Al termine di quella sessione, tutte le modifiche tracciabili prodotte o mantenute dovevano essere committate. `docs/work-in-progress/appunti.md` era stato escluso intenzionalmente ed era rimasto non tracciato in attesa di una review dedicata.
