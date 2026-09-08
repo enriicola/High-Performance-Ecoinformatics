@@ -68,4 +68,5 @@ data/input/*
 !data/input/small_1km_EUNIS.csv
 data/output/*
 !data/output/*.txt
+!data/output/spatial_species_representativeness.csv
 data/output_campaign_pa10/
