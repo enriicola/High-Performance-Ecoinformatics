@@ -82,6 +82,8 @@ tail -f logs/job_<job-id>_<task-id>.log
 
 ### orphaned todos
 
+- [ ] sync and update the git clone at leonardo, also deleting its git-lfs that we don't use anymore
+
 - [ ] research if possible to run the analysis on serviicola with some memory guardrail or similar, since my server has only 32gb of ram, but i'd still like to use it
 - [ ] same thing for spartaco, we could try this insane idea to distribute the analysis between 3 servers, but idk, could be too much overhead
 

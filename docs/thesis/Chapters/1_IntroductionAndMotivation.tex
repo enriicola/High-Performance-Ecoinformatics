@@ -28,6 +28,24 @@ scientific results.
 
 \section{Thesis motivation}
 
+\[
+N_{\mathrm{individual\ projections}} = S \times P \times R \times A \times (1 + F)
+\]
+\[
+N_{\mathrm{ensemble\ projections}} = S \times E \times (1 + F)
+\]
+\[
+N_{\mathrm{total\ projections}} = N_{\mathrm{individual\ projections}} + N_{\mathrm{ensemble\ projections}}
+\]
+
+Here, $S$ is the number of species, $P$ the number of pseudo-absence repetitions, $R$ the number of cross-validation repetitions, $A$ the number of modelling algorithms, $E$ the number of ensemble algorithms, and $F$ the number of future scenarios. Each pseudo-absence dataset is split $R$ times, and every algorithm is fitted to each resulting combination. Each fitted model is then used to make one raster map for the current environment and one raster map for every future scenario. The ensemble models are projected in the same way. A projection map applies one fitted model to all cells of one set of environmental rasters. The count therefore measures pairs of fitted models and environmental raster sets, rather than occurrence records or explicit iterations of the R loop.
+
+For the configuration described here, each species has $5 \times 5 \times 5 = 125$ individual models. These models are projected over the current environment and eight future scenarios, giving $125 \times (1 + 8) = 1{,}125$ individual projection maps per species. Across 167 species, this gives
+\[
+167 \times 5 \times 5 \times 5 \times (1 + 8) = 187{,}875
+\]
+individual projection maps. The two ensemble algorithms add $167 \times 2 \times (1 + 8) = 3{,}006$ ensemble projection maps, for $190{,}881$ model-projection combinations in total.
+
 The current workflow models 167 Alpine grassland species from 2,583,359 presence records. Its environmental rasters contain 63,951,097 cells and five variables. For each species, the production configuration calibrates five algorithms and builds two ensemble models. It projects these models onto the current environment and eight future climate scenarios. The workload combines a large spatial domain with repeated model calibration and raster projection.
 
 The computational method determines whether the analysis can be completed at this scale. Historical runs lasted many hours. Several ended because of memory exhaustion, failed process forks, time limits, or file-writing collisions. Running the script on an HPC system does not solve these problems by itself. The software must control memory use, raster storage, and the scheduling of independent species.
