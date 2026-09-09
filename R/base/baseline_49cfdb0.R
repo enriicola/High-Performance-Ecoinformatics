@@ -130,7 +130,7 @@ myResp <- rep(1, nrow(spocc1)) # species occurences
 cat("DEBUG: starting BIOMOD_FormatingData at", format(Sys.time(), "%H:%M:%S"), "\n")
 flush.console()
 
-# 1. Formatting Data (5 sets of pseudo-absences, 10000 absences each, random strategy)
+# 1. Formatting Data (10 sets of pseudo-absences, 10000 absences each, random strategy)
 # resp è la distribuzione della specie
 # expl sono le variabili che vanno a spiegare la distribuzione della specie (spiegano la resp) (caldo, freddo, neve, etc)
 

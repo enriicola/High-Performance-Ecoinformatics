@@ -18,7 +18,8 @@ list(
   science = list(
     raster_names = c("PC1_clim", "PC2_clim", "tri", "PC1_soil", "PC2_soil"),
     models = c("GLM", "GBM", "ANN", "FDA", "MAXNET"),
-    pa_nb_rep = 5L,
+    # Production PA/CV values confirmed by the domain supervisor.
+    pa_nb_rep = 10L,
     pa_nb_absences = 10000L,
     pa_strategy = "random",
     filter_raster = FALSE,
