@@ -41,3 +41,49 @@ Failed runs remain part of the evaluation. A failed run can reach its stopping p
 Resource allocation affected both cost and runtime. The three completed production species consumed about 9,076 CINECA local hours. Each task reserved all allocatable node memory. The replacement array for species 4 to 167 did not start R. CINECA cancelled it in the administrative prolog after the project exceeded its budget. Future campaigns need a memory request based on measured MaxRSS, with a margin for variation between species. They should not request the full node unconditionally.
 
 \comment{End of new draft for supervisor review}
+
+\comment{BEGIN TODO: Container, workflow and Leonardo}
+
+\section{Operational difficulties on Leonardo}
+
+The summary above reports the successful measurements. This section records the failure paths that led to the final workflow and distinguishes resolved execution problems from open scientific and operational work.
+
+\subsection{Projection memory and process forks}
+
+The first production-scale array used BIOMOD2's default in-memory stacked projections. Its first five species tasks ended in out-of-memory conditions after 13 to 17 hours. Later F/T tests disabled retained values but still built stacks. They stopped while creating the clamping mask for the first future scenario because \texttt{mcfork()} could not allocate another worker process. These failures showed that a large memory request did not make the stacked representation safe.
+
+The mitigation was to set both projection storage options to \texttt{FALSE} and to vary the worker count without changing the node-memory request. This configuration completed with 4, 6, 8 and 16 workers. It still used substantial memory: the 16-worker run reached 464.77 GiB, and the 32-worker run ended in OOM during current projection. F/F storage is therefore the validated representation for these runs, but it does not remove the need for a measured worker and memory limit.
+
+Code inspection also found a MAXNET-specific risk. The other four algorithms delegate raster prediction to Terra, which can process blocks. The MAXNET path converts the complete raster to points and then to a data frame. A local blockwise prototype produced identical values on 226,775 valid cells, but it has not been validated on full rasters, all models or all scenarios. It remains outside the production workflow.
+
+\subsection{Concurrent writes and stale output}
+
+Several failures were unrelated to total memory. Job \texttt{48325677\_3} reported that a projection file already existed while parallel workers wrote the same output. Jobs \nolinkurl{48418427_[3-5]} failed on pre-existing outputs, while other runs recorded invalid paths or filenames.
+
+The adapted workflow uses isolated output directories, removes the selected species directory before a fresh run and passes \texttt{bm.proj} to ensemble forecasting. Later validated runs contained no empty files and showed the expected current and future structure. Automatic resume from partial output is not enabled because a stale file may belong to a different model or configuration.
+
+\subsection{Long phases without visible progress}
+
+The pseudo-absence step initially appeared to be stalled. Process accounting showed that R was still using approximately one CPU core while BIOMOD2 repeatedly scanned the 64-million-cell raster. The production choice of ten pseudo-absence repetitions is a scientific setting and was not reduced as a performance workaround.
+
+We added timestamps, per-phase measurements and one timing record for each future scenario. These records distinguish slow computation from a stopped process and identify the phase reached before a failure. Formatting and MAXNET prediction remain candidates for later optimization, but neither has a production replacement validated across the complete workflow.
+
+\subsection{Scheduling, maintenance and time limits}
+
+Scheduling was constrained by the long-production QOS and by a project limit of three concurrent nodes. Maintenance reservations prevented jobs whose requested wall time overlapped the outage from starting. Two 12-worker tests were then stopped after 9 hours and 40 minutes when maintenance began. Their elapsed times are imposed limits, not complete runtimes.
+
+Shortening the requested limit allowed some tests to run before maintenance, but this was an operational scheduling change rather than a code optimization. The incomplete 12-worker jobs are retained in the run inventory and excluded from successful runtime comparisons.
+
+\subsection{Accounting and budget exhaustion}
+
+Most experiments requested all 494,000 MB allocatable on a DCGP node. CINECA accounting charged the resulting node allocation even when BIOMOD2 used only a small fraction of its 112 cores. By the time the first three production species had completed, cumulative project accounting had reached 103.4\% of the 100,000 local-hour budget.
+
+The replacement array for species 4 to 167 received nodes for only 1 to 16 seconds per task. The controller cancelled those tasks in the administrative prolog with \texttt{insufficient or expired budget}. Singularity, R and the batch script did not start, so the zero application exit status did not indicate a completed analysis. A new campaign requires additional budget and a memory request derived from measured MaxRSS with a margin for variation between species.
+
+\subsection{Completion and scientific validation}
+
+Slurm state, application exit code and scientific validity are separate checks. Some OOM jobs retained a zero application exit code, and a \texttt{\_SUCCESS} marker only proves that the R script reached its final write step. We therefore combined Slurm accounting, phase logs, non-empty file counts, output structure, timing tables and the success marker when classifying a run as complete.
+
+This procedure validated the 16-worker F/F run and the three completed production species. It does not resolve the GLM, MAXNET, integer-overflow and missing-metric warnings recorded in successful logs. Those warnings remain open scientific-review items and prevent the execution checks from being treated as validation of the ecological results.
+
+\comment{END TODO: Container, workflow and Leonardo}

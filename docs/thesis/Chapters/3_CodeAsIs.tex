@@ -3,13 +3,31 @@
 
 \section{R}
 
+\comment{BEGIN TODO: Container, workflow and Leonardo}
+
+The workflow received from DISTAV was a single R script written for a Windows workstation. It used absolute paths, loaded both \texttt{raster} and \texttt{terra}, and created a ten-worker \texttt{doParallel} cluster. The filename \nolinkurl{ensamble_modelling_no_parallel.R} is therefore misleading: model fitting and projection both used \texttt{nb.cpu = 10}. The script selected one species by a fixed index and limited that species to 100,000 occurrence rows. It also contained path-dependent parsing and a syntax error in the future ensemble call. The historical file is preserved without correction so that it remains a record of the received code.
+
 \section{BIOMOD2}
+
+BIOMOD2 performs the scientific stages of the workflow. \nolinkurl{BIOMOD_FormatingData} combines presence points, environmental rasters and random pseudo-absences. \nolinkurl{BIOMOD_Modeling} calibrates GLM, GBM, ANN, FDA and MAXNET models under repeated cross-validation. \nolinkurl{BIOMOD_EnsembleModeling} builds mean and coefficient-of-variation ensembles after filtering models with an evaluation threshold. The fitted models are then projected over the current environment and each future climate scenario. A final ensemble forecast combines the corresponding individual projections.
+
+The workflow handles large objects at several stages. Each environmental raster has 63,951,097 cells, and each projection uses five predictor layers. BIOMOD2 may run several model predictions at the same time and may retain or stack their raster outputs. Worker count and projection storage therefore affect the memory schedule even when the scientific parameters do not change.
 
 \section{Code pipeline}
 
+The original pipeline loads the occurrence table and all calibration rasters, selects one species, formats its data, calibrates the individual models and builds the ensembles. It writes model evaluations before projecting the individual and ensemble models over the current environment. A loop then loads each future climate directory, adds the static terrain and soil layers, and repeats both projection stages. The script records one duration for each main phase at the end.
+
+All stages share one R process, one working directory and a set of mutable objects. Species selection, file paths, worker counts and scientific parameters are embedded in the script. There is no scheduler-level isolation between species and no completion marker that distinguishes a finished analysis from a directory left by a failed run.
+
 \section{Original execution times}
 
+\comment{No controlled runtime is available for the unchanged DISTAV script. It cannot run in the repository environment without correcting its Windows paths and syntax, and the preliminary Spartaco records do not identify enough configuration details for a direct comparison.}
+
 \section{Improved execution times}
+
+The measured Leonardo runs use adapted versions of the workflow. Chapter 5 reports those results and keeps them separate from the historical script described here.
+
+\comment{END TODO: Container, workflow and Leonardo}
 
 \section{Preliminary measurements on Spartaco}
 

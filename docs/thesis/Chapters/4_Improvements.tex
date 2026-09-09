@@ -3,6 +3,28 @@
 
 \section{Container}
 
+\comment{BEGIN TODO: Container, workflow and Leonardo}
+
+We packaged the runtime in a Singularity image built from \texttt{rocker/geospatial}. The definition installs the required system libraries and the R packages used by BIOMOD2. It also creates the mount points used on CINECA and runs an installation check for the main R libraries. The production image contained BIOMOD2 4.3.4.5 and Terra 1.9.11.
+
+The Slurm wrapper binds the repository root to \texttt{/work} inside the container and starts the R script from that path. Code, input paths and output paths are therefore the same inside each job. The image itself is not stored in Git because of its size. Copies are retained with the repository on Serviicola, Leonardo and Spartaco.
+
+\comment{The current definition uses the mutable base tag \texttt{rocker/geospatial:latest}. A future rebuild should pin the base image or record its digest before the container is treated as independently reproducible.}
+
 \section{Parallel model execution}
 
+The adapted workflow assigns one species to each Slurm array task. The array index selects the species, and every task writes to an isolated species directory. This design uses separate nodes for independent species without splitting the occurrence records of one species or changing its fitted models.
+
+Within a task, \texttt{BIOMOD\_NCPU} controls BIOMOD2 model and projection workers. The script rejects values larger than \texttt{SLURM\_CPUS\_PER\_TASK}. Ensemble stages use at most two workers, and BLAS and OpenMP thread counts are fixed at one to avoid nested parallelism. BIOMOD2 registers the required backend, so the external \texttt{doParallel} cluster from the historical script is no longer created.
+
+The projection settings are also explicit. Both \texttt{keep.in.memory} and \texttt{do.stack} are set to \texttt{FALSE}. BIOMOD2 then writes individual model projections separately and does not retain a combined raster stack in the returned object. Ensemble forecasting receives the projection object through \texttt{bm.proj}, so it reuses completed projections instead of starting the same individual projection again. The worker removes the target species directory before a fresh run and writes a \texttt{\_SUCCESS} marker only after all current and future stages finish.
+
 \section{Parallel I/O}
+
+The current implementation does not provide a separate parallel I/O algorithm. BIOMOD2 workers may write model rasters concurrently, while \texttt{do.stack = FALSE} changes the representation and lifetime of those outputs. This is part of the measured storage configuration, not evidence of an independently optimized I/O stage.
+
+Large inputs, model outputs and the Singularity image remain outside Git. The command \texttt{make 3sync} invokes \nolinkurl{scripts/3sync.sh} and copies either selected relative paths or, by default, \texttt{data/} and the container from Leonardo to matching paths on Spartaco. Serviicola acts as the transfer relay without storing an intermediate data copy. The script uses \texttt{rclone} first and falls back to \texttt{scp -3}; neither path deletes destination files.
+
+\comment{Transfer duration, throughput and filesystem contention were not measured. No performance claim is made for the transfer workflow, and the intended scope of parallel I/O still requires a separate definition and benchmark.}
+
+\comment{END TODO: Container, workflow and Leonardo}
