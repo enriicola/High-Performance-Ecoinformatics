@@ -1122,15 +1122,15 @@ Elenco preparato il 9 settembre 2026 per Lucia e Gabriele. Contiene soltanto dec
 
 ## Q4 — Strategia e quantità delle pseudo-assenze
 
-- **Stato:** `OPEN`
+- **Stato:** `CLOSED`
 - **Domanda:** La configurazione scientifica definitiva deve usare selezione casuale, 10.000 pseudo-assenze per replica e quante repliche: 5 o 10? La stessa quantità deve valere per tutti gli algoritmi e per specie con numerosità diverse, mantenendo il bilanciamento predefinito tra presenze e pseudo-assenze?
-- **Contesto:** `config.R` e lo script parallelo usano 5 repliche; lo script Snowfall e lo snapshot di produzione ne usano 10. Nessuno imposta pesi o prevalenza, quindi BIOMOD2 applica il bilanciamento predefinito. Gli appunti dicono che 10 repliche e 10.000 pseudo-assenze erano state richieste dai biologi, ma non riportano interlocutore, data o motivazione. BIOMOD2 segnala che metodo e quantità dipendono dal campionamento e dall'algoritmo.
-- **File e riga:** `R/base/config.R:38-40`; `R/performance/old.ensamble_modelling_parallel.R:107-109`; `R/performance/old.ensamble_modelling_snowfall.R:106-108`; `R/base/baseline_49cfdb0.R:142-144`.
-- **Motivo:** l'evidenza storica è parziale e la configurazione corrente contraddice lo snapshot di produzione.
-- **Impatto:** modifica il numero di modelli, la variabilità tra repliche, il bilanciamento presenze/pseudo-assenze e il costo computazionale.
-- **Risposta:** da raccogliere.
-- **Fonte:** `docs/appunti.md:224`; `docs/biomod2/vignettes/vignette_pseudoAbsences.Rmd:23-95`; `docs/biomod2/R/BIOMOD_Modeling.R:79-84,252-264`; script e configurazione in esame.
-- **Data risposta:** —
+- **Contesto:** le note della riunione del 24 giugno e lo snapshot della campagna di produzione fissano 10 repliche e 10.000 pseudo-assenze per replica. Il commit `ed6837d`, scritto il 29 agosto e registrato il 1 settembre, applicò questi valori alla baseline. Il successivo refactoring `53950ba` introdusse per errore `pa_nb_rep <- 5L` nel nuovo `R/base/config.R`, lo stesso valore usato dalla configurazione sperimentale E5. Il POC ereditò lo stesso valore nel commit `a3c97ad`. Le configurazioni correnti sono state riallineate allo snapshot produttivo. Gli script sotto `R/performance/old.*` e il riferimento storico `R/base/ensamble_modelling_no_parallel.R` conservano invece i valori originari e non sono configurazioni di produzione.
+- **File e riga:** `R/base/config.R:39-41`; `R/poc/config.R:22-24`; `R/base/baseline_49cfdb0.R:142-144`; `R/performance/old.ensamble_modelling_parallel.R:107-109`.
+- **Motivo:** 10 repliche sono il requisito produttivo documentato. Le run E5 restano valide come esperimenti storici, ma non definiscono la configurazione scientifica corrente.
+- **Impatto:** la configurazione produttiva genera fino a 250 modelli individuali per specie, contro i 125 delle run E5. Tempi e memoria dei due gruppi non sono direttamente confrontabili.
+- **Risposta:** usare `PA.nb.rep = 10`, `PA.nb.absences = 10000`, `CV.nb.rep = 5` e `CV.perc = 0.7` nelle configurazioni correnti.
+- **Fonte:** `docs/appunti.md:224`; commit `ab7f01c`, `ed6837d`, `53950ba` e `a3c97ad`; `R/base/baseline_49cfdb0.R`; log `55020903_[1-3]`.
+- **Data risposta:** 9 settembre 2026
 
 ## Q5 — Disegno della cross-validation
 
