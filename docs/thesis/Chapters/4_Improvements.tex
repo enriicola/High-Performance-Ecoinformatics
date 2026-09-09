@@ -13,7 +13,7 @@ The Slurm wrapper binds the repository root to \texttt{/work} inside the contain
 
 \section{Parallel model execution}
 
-The adapted workflow assigns one species to each Slurm array task. The array index selects the species, and every task writes to an isolated species directory. This design uses separate nodes for independent species without splitting the occurrence records of one species or changing its fitted models.
+The adapted workflow assigns one species to each Slurm array task. The array index selects the species, and every task writes to an isolated species directory. This design uses separate nodes for independent species without splitting the occurrence records of one species or changing its fitted models. The production configuration uses ten pseudo-absence repetitions with 10,000 pseudo-absences each, five cross-validation repetitions and a 70\% calibration split.
 
 Within a task, \texttt{BIOMOD\_NCPU} controls BIOMOD2 model and projection workers. The script rejects values larger than \texttt{SLURM\_CPUS\_PER\_TASK}. Ensemble stages use at most two workers, and BLAS and OpenMP thread counts are fixed at one to avoid nested parallelism. BIOMOD2 registers the required backend, so the external \texttt{doParallel} cluster from the historical script is no longer created.
 

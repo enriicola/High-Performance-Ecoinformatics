@@ -16,7 +16,7 @@ We evaluated completion separately from resource use. A zero process exit code w
 
 \section{Tests}
 
-The first validated full-raster reference used four BIOMOD2 workers in F/F storage mode. Both projection storage options were disabled. The run completed in 22 hours, 33 minutes, and 45 seconds. Slurm reported a MaxRSS of 260.94 GiB. The species directory contained 1,364 non-empty files and occupied 7.18 GiB. Four additional summary files were written at the output root. The outputs included 125 individual models, two ensemble models, and all eight future scenarios.
+The first validated full-raster reference used the experimental E5 configuration, with five pseudo-absence repetitions, and four BIOMOD2 workers in F/F storage mode. Both projection storage options were disabled. The run completed in 22 hours, 33 minutes, and 45 seconds. Slurm reported a MaxRSS of 260.94 GiB. The species directory contained 1,364 non-empty files and occupied 7.18 GiB. Four additional summary files were written at the output root. The outputs included 125 individual models, two ensemble models, and all eight future scenarios.
 
 The F/T configurations used stacked projections and failed during the first future scenario. The two-worker run stopped after 5 hours and 44 minutes. The four-worker run stopped after 3 hours and 57 minutes. In both cases, \texttt{mcfork()} could not allocate memory. Their Slurm MaxRSS values were 413.22 and 413.80 GiB.
 
@@ -28,7 +28,7 @@ Future projections accounted for 77.4\% to 83.5\% of wall time in the validated 
 
 A separate controlled benchmark compared split and monolithic R implementations on the same node. Five runs of each version used a fixed seed, one worker, a small input, and no future projections. The split version averaged 26 minutes and 10 seconds with 47.09 GiB MaxRSS. The monolithic version averaged 26 minutes and 28 seconds with 47.63 GiB MaxRSS. The observed differences were 18 seconds and 0.54 GiB in favour of the split version. These results do not establish equivalence between the implementations. They also do not establish effects on parallelism or reproducibility.
 
-The production configuration used ten pseudo-absence repetitions instead of five. It retained five cross-validation repetitions. Three species completed with this configuration. \textit{Achillea atrata} took 25 hours, 36 minutes, and 36 seconds. \textit{Achillea clusiana} took 21 hours, 26 minutes, and 42 seconds. \textit{Agrostis capillaris} took 33 hours, 58 minutes, and 34 seconds. Their Slurm MaxRSS values were 316.16, 315.78, and 291.42 GiB, respectively.
+The production configuration uses ten pseudo-absence repetitions, 10,000 pseudo-absences per repetition, five cross-validation repetitions and a 70\% calibration split. Three species completed with this configuration. \textit{Achillea atrata} took 25 hours, 36 minutes, and 36 seconds. \textit{Achillea clusiana} took 21 hours, 26 minutes, and 42 seconds. \textit{Agrostis capillaris} took 33 hours, 58 minutes, and 34 seconds. Their Slurm MaxRSS values were 316.16, 315.78, and 291.42 GiB, respectively.
 
 Each species directory contained 2,614 non-empty files and a success marker. Four additional summaries were present for each run. The directories occupied 13.98, 13.36, and 59.13 GiB. In the recovered phase timings, the future loop ranged from 59,841 to 89,815 seconds. Individual modelling ranged from 172 to 10,989 seconds. This configuration performs more model runs than the earlier worker-count experiment, so their timings must not be compared directly.
 
