@@ -70,7 +70,7 @@ I documenti furono scritti durante un riordino del repository. Alcuni percorsi c
 | Nome negli appunti | Nome corrente o significato |
 |---|---|
 | `R/base/base_sequential_analysis.R` | `R/base/baseline.R` dopo il refactor del 2 settembre. |
-| `R/base/base_sequential_analysis_campaign_49cfdb0.R` | `R/base/baseline_49cfdb0.R`. È lo snapshot della campagna. |
+| `R/base/base_sequential_analysis_campaign_49cfdb0.R` | Snapshot storico della campagna, non mantenuto nell'albero corrente; recupero: `git show bd135b2:R/base_sequential_analysis_campaign_49cfdb0.R`. |
 | `R/tmp/base_sequential_analysis_blockwise.R` | `R/tmp/baseline_blockwise.R`. |
 | `docs/thesis/Chapters/notes.tex` | Copia archiviata in `docs/work-in-progress/notes.tex`; il percorso originale è stato rimosso. |
 | `docs/run-manifest.md` | Copia archiviata in `docs/work-in-progress/run-manifest.md`. |
@@ -545,15 +545,9 @@ Questa fase è successiva alla frase del quaderno "nessuna campagna è attualmen
 
 ### Snapshot dello script
 
-`R/base/base_sequential_analysis_campaign_49cfdb0.R`, oggi `R/base/baseline_49cfdb0.R`, è una copia congelata dello script usato dalla campagna di produzione.
+`R/base/base_sequential_analysis_campaign_49cfdb0.R` era la copia congelata dello script usato dalla campagna di produzione. Fu archiviata nel commit locale `bd135b2` e in seguito rimossa dall'albero corrente perché resta recuperabile con `git show bd135b2:R/base_sequential_analysis_campaign_49cfdb0.R`.
 
-Non è:
-
-- uno snapshot Git speciale;
-- un worktree;
-- un clone.
-
-È un artefatto materializzato. Il nome conserva il riferimento sorgente `49cfdb0`. Lo SHA-256 verificato è:
+Non era uno snapshot Git speciale, un worktree o un clone, ma un artefatto materializzato il cui nome conservava il riferimento sorgente Leonardo `49cfdb0`. Lo SHA-256 verificato era:
 
 ```text
 11faf284ac01e00aeee16e48fc8938855edc624d956e5859330cc9b0625c9c7a
@@ -593,7 +587,7 @@ La somma dei tre wall time, 81:01:52, non è il runtime di una singola run. Per 
 
 Il tempo Futuro somma gli otto scenari della stessa specie. CPU-hours e TotalCPU accumulano il lavoro dei processi paralleli, mentre le CPU-hours allocate corrispondono al wall time moltiplicato per le CPU assegnate. Nessuna di queste misure somma automaticamente specie diverse.
 
-Evidenze: `R/base/baseline_49cfdb0.R`, `scripts/sbatch.sh`, `logs/job_55020903_[1-3].log` e `logs/phase_timings_2026-09-06.csv`.
+Evidenze: snapshot `R/base_sequential_analysis_campaign_49cfdb0.R` nel commit `bd135b2`, `scripts/sbatch.sh`, `logs/job_55020903_[1-3].log` e `logs/phase_timings_2026-09-06.csv`.
 
 ### Stato rilevato il 31 agosto
 
@@ -877,7 +871,7 @@ Il file `data/input/full_1km_EUNIS.csv` contiene 2.583.359 record per 167 specie
 
 La specie più frequente è invece *Agrostis capillaris* (170.701 record), seguita da *Potentilla erecta* (167.345), *Galium verum* (112.708), *Knautia arvensis* (92.894) e *Luzula campestris* (77.960). Questa è una scelta diversa dalla specie mediana e non va usata come rappresentativa della dimensione tipica senza una motivazione specifica.
 
-Il conteggio completo è conservato in [`data/output/full_species_counts.csv`](../data/output/full_species_counts.csv); la sintesi tabellare e il metodo sono in [`docs/review/3.full-species-occurrence-distribution.md`](review/3.full-species-occurrence-distribution.md).
+Il conteggio completo è conservato in [`data/output/full_species_counts.csv`](../data/output/full_species_counts.csv); la sintesi e le specie candidate sono in [`docs/review/1.runtime-and-resource-summary.md`](review/1.runtime-and-resource-summary.md#distribuzione-delle-occorrenze-e-specie-candidate).
 
 Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` assume che `x` e `y` siano longitudine e latitudine WGS84. Le proietta con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e assegna lo stesso peso a ogni specie. Il medoid spaziale è la specie con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo. Il controllo eseguito su Leonardo nel container di produzione il 2026-09-08 ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali. Tutte le 2.583.359 coordinate rientrano nell'estensione e coincidono con i centri delle celle entro una tolleranza di `1e-9` gradi; non serve quindi riproiettarle. Comandi e output sono conservati in [`logs/crs_validation_2026-09-08.txt`](../logs/crs_validation_2026-09-08.txt).
 
@@ -1078,7 +1072,19 @@ Anche due ripetizioni completamente sequenziali producevano risultati diversi. I
 
 Il POC costruisce ora una tabella casuale deterministica con la stessa proporzione di calibrazione, la salva come `CV_<specie>.csv` e la passa a BIOMOD2 tramite `CV.user.table`. Usa anche un `modeling.id` stabile. Durante le prove è emerso inoltre che BIOMOD2 4.3-4-5 fallisce con pseudo-assenze e una sola colonna CV definita dall'utente, perché una matrice viene ridotta a vettore prima della chiamata a `ncol()`. Il POC richiede quindi almeno due colonne CV per questo percorso di compatibilità.
 
-Dopo la correzione, le ripetizioni sequenziali e parallele e i confronti tra I/O sequenziale e parallelo hanno prodotto tabelle CV, metriche, struttura, geometria, maschere `NA` e valori raster identici. Il test versionato è `R/poc/test-smoke.R`. Queste prove verificano il funzionamento su dati sintetici, non le prestazioni o la validità scientifica della configurazione reale. Progettazione, comandi, limiti e verifiche sono raccolti in [`docs/review/4.r-poc.md`](review/4.r-poc.md).
+Dopo la correzione, le ripetizioni sequenziali e parallele e i confronti tra I/O sequenziale e parallelo hanno prodotto tabelle CV, metriche, struttura, geometria, maschere `NA` e valori raster identici. Il test versionato è `R/poc/test-smoke.R`. Queste prove verificano il funzionamento su dati sintetici, non le prestazioni o la validità scientifica della configurazione reale.
+
+### Spiegazione semplice del test smoke e di Snowfall
+
+`R/poc/test-smoke.R` è una prova piccola e veloce. Crea raster e presenze fittizie, poi fa girare la stessa pipeline con i tre profili POC. Infine confronta i risultati. È come dare la stessa mappa a tre bambini che colorano in modi diversi e controllare che i disegni finali siano uguali. Il test cerca errori di collegamento tra le fasi, seed casuali applicati male, file mancanti, geometrie diverse e valori raster diversi.
+
+Il test non dimostra che il workflow completo funzionerà per 167 specie e raster grandi: controlla soltanto che i pezzi principali siano coerenti su un esempio piccolo. Non è neppure un benchmark di velocità. Se passa, `_SUCCESS`, le metriche, i file TIFF, la geometria, le celle `NA` e i valori devono coincidere tra i profili confrontati.
+
+Snowfall è un livello diverso di parallelismo. Distribuisce specie diverse a processi diversi: per esempio, un processo elabora la specie A e un altro la specie B. Non è semplicemente un'opzione che rende più veloce una singola specie. BIOMOD2 può inoltre usare più worker per i modelli di ogni specie. Con due worker Snowfall e quattro worker BIOMOD2, il picco teorico è `2 × 4 = 8` worker; il POC rifiuta la configurazione se supera `SLURM_CPUS_PER_TASK`.
+
+Nel POC Snowfall è opzionale, non appartiene alle tre varianti principali e richiede il pacchetto R `snowfall`, che non è presente nel container di produzione. È quindi documentato come possibilità futura, non come modalità già validata. La decisione tecnica di usarlo resta aperta soltanto se i test del backend interno BIOMOD2 mostreranno che serve davvero.
+
+La sezione `Stato della validazione full-raster` in `docs/review/3.r-poc.md` viene mantenuta, ma in forma breve: serve a ricordare che lo smoke test non autorizza ancora l'uso produttivo. La checklist dei benchmark resta nel `README.md`, per evitare di duplicarla nei documenti di review. Progettazione, comandi, limiti e verifiche sono raccolti in [`docs/review/3.r-poc.md`](review/3.r-poc.md).
 
 # Questions for the ecologists / Domande per gli ecologi
 
@@ -1125,11 +1131,11 @@ Elenco preparato il 9 settembre 2026 per Lucia e Gabriele. Contiene soltanto dec
 - **Stato:** `CLOSED`
 - **Domanda:** La configurazione scientifica definitiva deve usare selezione casuale, 10.000 pseudo-assenze per replica e quante repliche: 5 o 10? La stessa quantità deve valere per tutti gli algoritmi e per specie con numerosità diverse, mantenendo il bilanciamento predefinito tra presenze e pseudo-assenze?
 - **Contesto:** le note della riunione del 24 giugno e lo snapshot della campagna di produzione fissano 10 repliche e 10.000 pseudo-assenze per replica. Il commit `ed6837d`, scritto il 29 agosto e registrato il 1 settembre, applicò questi valori alla baseline. Il successivo refactoring `53950ba` introdusse per errore `pa_nb_rep <- 5L` nel nuovo `R/base/config.R`, lo stesso valore usato dalla configurazione sperimentale E5. Il POC ereditò lo stesso valore nel commit `a3c97ad`. Le configurazioni correnti sono state riallineate allo snapshot produttivo. Gli script sotto `R/performance/old.*` e il riferimento storico `R/base/ensamble_modelling_no_parallel.R` conservano invece i valori originari e non sono configurazioni di produzione.
-- **File e riga:** `R/base/config.R:39-41`; `R/poc/config.R:22-24`; `R/base/baseline_49cfdb0.R:142-144`; `R/performance/old.ensamble_modelling_parallel.R:107-109`.
+- **File e riga:** `R/base/config.R:39-41`; `R/poc/config.R:22-24`; `bd135b2:R/base_sequential_analysis_campaign_49cfdb0.R:142-144`; `R/performance/old.ensamble_modelling_parallel.R:107-109`.
 - **Motivo:** 10 repliche sono il requisito produttivo documentato. Le run E5 restano valide come esperimenti storici, ma non definiscono la configurazione scientifica corrente.
 - **Impatto:** la configurazione produttiva genera fino a 250 modelli individuali per specie, contro i 125 delle run E5. Tempi e memoria dei due gruppi non sono direttamente confrontabili.
 - **Risposta:** usare `PA.nb.rep = 10`, `PA.nb.absences = 10000`, `CV.nb.rep = 5` e `CV.perc = 0.7` nelle configurazioni correnti.
-- **Fonte:** `docs/appunti.md:224`; commit `ab7f01c`, `ed6837d`, `53950ba` e `a3c97ad`; `R/base/baseline_49cfdb0.R`; log `55020903_[1-3]`.
+- **Fonte:** `docs/appunti.md:224`; commit `ab7f01c`, `ed6837d`, `53950ba`, `a3c97ad` e snapshot `bd135b2:R/base_sequential_analysis_campaign_49cfdb0.R`; log `55020903_[1-3]`.
 - **Data risposta:** 9 settembre 2026
 
 ## Q5 — Disegno della cross-validation
