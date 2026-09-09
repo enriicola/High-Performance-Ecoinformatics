@@ -67,7 +67,7 @@ tail -f logs/job_<job-id>_<task-id>.log
     2. sequential I/O and parallel model execution through BIOMOD2 workers;
     3. parallel I/O and parallel model execution.
 
-  Before implementation, compare separate scripts or directories, separate Git branches, and a shared implementation controlled by external configuration. Record the chosen approach, the scope of parallel I/O, the proof of concept and its verification in `docs/review/4.r-workflow-variants.md`.
+  Before implementation, compare separate scripts or directories, separate Git branches, and a shared implementation controlled by external configuration. Record the chosen approach, the scope of parallel I/O, the proof of concept and its verification in `docs/review/4.r-poc.md`.
   Benchmark one Slurm task for *Achillea atrata* first. Keep scientific inputs and unrelated settings fixed when comparing execution variants, and validate the resulting metrics, rasters and output structure using a documented numerical tolerance. In separate experiments, measure performance while varying one scientific parameter at a time, including pseudo-absence and cross-validation settings. Record phase timings, wall time, CPU-hours, CPU utilization, MaxRSS, I/O measurements and output validation in Markdown tables under `docs/review/`.
   Do not estimate the complete 167-species campaign in this TODO. Defer automated table and plot generation until the workflow produces a stable machine-readable output format. Design, implementation and synthetic smoke testing are complete; the checkbox remains open for the full-raster benchmarks and validation.
 
@@ -94,8 +94,14 @@ tail -f logs/job_<job-id>_<task-id>.log
 
 ### wip
 
-- [ ] 01a00bf8-1198-7cb9-b45e-aeb25163cebd: researching and solving the OOM errors + blockwise-override trial run (old session)
-- [ ] 01a03831-9d4c-7366-8a2b-fa1f748f70c1: declutter: + finish Leonardo stuff and runs after maintenance (4 september 0800)
+- [ ] `leo` — shell SSH; no `pi` session
+- [ ] `OOM error` — `01a00bf8-1198-7cb9-b45e-aeb25163cebd`: OOM errors and blockwise-override trial run
+- [ ] `thesis` — `01a06266-4e71-78cd-9dad-094aedcba065`: thesis TODOs and LaTeX workflow
+- [ ] `orphans` — `01a06633-b948-7fb8-a796-daefe9e651fc`: orphaned TODOs and code documentation
+- [ ] `doParallelError` — `01a0671f-b8f4-7cab-bfb3-ae7fd5ccf0c5`: BIOMOD2 parallelism and sequential baseline
+- [ ] `3sync` — `01a067f1-d895-7ef4-acb3-ef3ed033d744`: repository and data synchronization
+- [ ] `new-do` — `01a0710a-1797-759a-ad49-69488b719288`: supervisor TODOs and workflow variants
+- [ ] `tables` — `01a0786c-26b7-71de-8470-d2e01b937d11`: runtime and resource tables
 
 ### Thesis
 

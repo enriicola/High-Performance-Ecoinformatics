@@ -1,6 +1,6 @@
 # Data storage
 
-Large files under `data/input/` and generated files under `data/output/` are intentionally excluded from Git. Input data totals several gigabytes and most source rasters exceed GitHub's 100 MB file limit; BIOMOD2 output is substantially larger. Git keeps the two small input CSV files and summary files matching `data/output/*.txt`.
+Large files under `data/input/` and generated files under `data/output/` are intentionally excluded from Git. Input data totals several gigabytes and most source rasters exceed GitHub's 100 MB file limit; BIOMOD2 output is substantially larger. Git keeps the two small input CSV files, summary files matching `data/output/*.txt`, and the two small derived CSV summaries in `data/output/`.
 
 The Git repository and `container/geospatial.sif` are kept on all three computers. The container is ignored by Git.
 
@@ -86,4 +86,4 @@ data/output
     └── proj_futureEM_<gcm>_<ssp>
 ```
 
-Only the `.txt` files written directly under `data/output/` are versioned.
+Only the root-level `.txt` files and the two derived CSV summaries in `data/output/` are versioned.

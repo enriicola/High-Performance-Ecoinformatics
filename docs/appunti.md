@@ -1078,7 +1078,7 @@ Anche due ripetizioni completamente sequenziali producevano risultati diversi. I
 
 Il POC costruisce ora una tabella casuale deterministica con la stessa proporzione di calibrazione, la salva come `CV_<specie>.csv` e la passa a BIOMOD2 tramite `CV.user.table`. Usa anche un `modeling.id` stabile. Durante le prove è emerso inoltre che BIOMOD2 4.3-4-5 fallisce con pseudo-assenze e una sola colonna CV definita dall'utente, perché una matrice viene ridotta a vettore prima della chiamata a `ncol()`. Il POC richiede quindi almeno due colonne CV per questo percorso di compatibilità.
 
-Dopo la correzione, le ripetizioni sequenziali e parallele e i confronti tra I/O sequenziale e parallelo hanno prodotto tabelle CV, metriche, struttura, geometria, maschere `NA` e valori raster identici. Il test versionato è `R/poc/test-smoke.R`. Queste prove verificano il funzionamento su dati sintetici, non le prestazioni o la validità scientifica della configurazione reale. Progettazione, comandi, limiti e verifiche sono raccolti in [`docs/review/4.r-workflow-variants.md`](review/4.r-workflow-variants.md).
+Dopo la correzione, le ripetizioni sequenziali e parallele e i confronti tra I/O sequenziale e parallelo hanno prodotto tabelle CV, metriche, struttura, geometria, maschere `NA` e valori raster identici. Il test versionato è `R/poc/test-smoke.R`. Queste prove verificano il funzionamento su dati sintetici, non le prestazioni o la validità scientifica della configurazione reale. Progettazione, comandi, limiti e verifiche sono raccolti in [`docs/review/4.r-poc.md`](review/4.r-poc.md).
 
 # Questions for the ecologists / Domande per gli ecologi
 
