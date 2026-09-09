@@ -1,0 +1,37 @@
+CRS validation run on Leonardo login01 inside container/geospatial.sif on 2026-09-08.
+All commands were read-only.
+
+Input checksum
+==============
+
+$ sha256sum data/input/full_1km_EUNIS.csv
+733a4c01bf6bac60c9ff8994480ad1f70fadad9af5697b596e30956fea4f1e7b  data/input/full_1km_EUNIS.csv
+
+Reference raster CRS and extent
+===============================
+
+$ singularity exec --pwd /work --bind "$PWD:/work" container/geospatial.sif Rscript -e 'r <- terra::rast("/work/data/input/climate_vars/baseline/PC1.tif"); print(terra::crs(r, describe=TRUE)); print(terra::ext(r))'
+    name authority code  area             extent
+1 WGS 84      EPSG 4326 World -180, 180, -90, 90
+SpatExtent : -24.53347284405, 66.20819345965, 22.24152732885, 71.18319379975 (xmin, xmax, ymin, ymax)
+
+Raster count and CRS
+====================
+
+$ singularity exec --pwd /work --bind "$PWD:/work" container/geospatial.sif Rscript -e 'fs <- list.files("/work/data/input/climate_vars", pattern="[.]tif$", recursive=TRUE, full.names=TRUE); codes <- vapply(fs, function(f) as.character(terra::crs(terra::rast(f), describe=TRUE)$code), character(1)); cat("rasters=", length(fs), "\n", sep=""); print(table(codes, useNA="ifany"))'
+rasters=18
+codes
+4326
+  18
+
+Raster geometry
+===============
+
+$ singularity exec --pwd /work --bind "$PWD:/work" container/geospatial.sif Rscript -e 'fs <- list.files("/work/data/input/climate_vars", pattern="[.]tif$", recursive=TRUE, full.names=TRUE); r0 <- terra::rast(fs[1]); same <- vapply(fs, function(f) terra::compareGeom(r0, terra::rast(f), stopOnError=FALSE), logical(1)); cat("same_geometry=", all(same), " mismatches=", sum(!same), "\n", sep="")'
+same_geometry=TRUE mismatches=0
+
+Occurrence coordinates and cell centres
+=======================================
+
+$ singularity exec --pwd /work --bind "$PWD:/work" container/geospatial.sif Rscript -e 'r <- terra::rast("/work/data/input/climate_vars/baseline/PC1.tif"); d <- read.csv("/work/data/input/full_1km_EUNIS.csv")[, c("x", "y")]; cells <- terra::cellFromXY(r, as.matrix(d)); centres <- terra::xyFromCell(r, cells); delta <- abs(as.matrix(d) - centres); cat("rows=", nrow(d), " outside_extent=", sum(is.na(cells)), " max_lon_delta=", max(delta[,1], na.rm=TRUE), " max_lat_delta=", max(delta[,2], na.rm=TRUE), " tolerance=", 1e-9, " all_on_centres=", all(delta <= 1e-9, na.rm=TRUE), "\n", sep="")'
+rows=2583359 outside_extent=0 max_lon_delta=1.421085e-14 max_lat_delta=1.421085e-14 tolerance=1e-09 all_on_centres=TRUE

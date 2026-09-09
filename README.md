@@ -115,7 +115,7 @@ tail -f logs/job_<job-id>_<task-id>.log
 
 ### Scientific validation
 
-- [x] Verify that occurrence points and environmental rasters use the same CRS; expected: WGS84 / EPSG:4326. Verified on Leonardo inside the production container on 2026-09-08: all 18 environmental rasters report EPSG:4326 and have identical geometry. The occurrence coordinates fall within the raster extent and align with its grid-cell centres, so no reprojection is required. The check is documented in the thesis.
+- [x] Verify that occurrence points and environmental rasters use the same CRS; expected: WGS84 / EPSG:4326. Verified on Leonardo inside the production container on 2026-09-08: all 18 environmental rasters report EPSG:4326 and have identical geometry. All 2,583,359 occurrence coordinates fall within the raster extent and align with its grid-cell centres within `1e-9` degrees, so no reprojection is required. The check is documented in the thesis and in `logs/crs_validation_2026-09-08.txt`.
 - [ ] Check GLM, MAXNET and integer-overflow warnings.
 - [ ] Check whether the explicit `scale.models = FALSE` parameter is still needed.
 - [ ] Change evaluation output from text files to CSV.
@@ -128,7 +128,7 @@ tail -f logs/job_<job-id>_<task-id>.log
 ### Leonardo campaign
 
 - [ ] Use the 4-, 6- and 8-worker results to choose and document a configuration.
-- [ ] Validate the 16-worker test and its outputs before using it as evidence.
+- [x] Validate the 16-worker test and its outputs before using it as evidence. The retrospective check confirmed final accounting, 464.77 GiB MaxRSS, phase timings, 1,364 non-empty species files, four root summaries, `_SUCCESS`, the current projection and all eight future scenarios.
 - [ ] Design the complete campaign as one task per species, with at most three concurrent nodes.
 - [ ] Decide how to handle failed species: collect errors, retry selectively or stop later waves.
 - [ ] Evaluate shortest-job-first ordering without confusing it with a reduction in total cost.

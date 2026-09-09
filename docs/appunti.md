@@ -396,12 +396,12 @@ I job da quattro e otto worker erano stati inviati con limite di quattro giorni.
 
 ### Confronti rispetto alla baseline 4-worker F/F
 
-La baseline originale `49844162_1` durò 81.230 s, cioè 1.353,83 minuti o 22,56 ore.
+La baseline originale `49844162_1` durò 81.230 s, cioè 1.353,83 minuti o 22,56 ore. La sua revisione esatta non è registrata, quindi i rapporti seguenti descrivono le run osservate ma non isolano l'effetto dello storage o del numero di worker.
 
-- T/F con quattro worker risparmiò 730 s, cioè 12,17 minuti o 0,20 ore, pari allo 0,9%, ma aumentò il picco di memoria di 3,75 GiB.
-- F/F con sei worker ottenne speedup 1,264 e ridusse il wall time del 20,9%.
-- F/F con otto worker ottenne speedup 1,495 e ridusse il wall time del 33,1%.
-- Il passaggio da sei a otto worker diede un ulteriore speedup di 1,183 e ridusse il wall time del 15,4%.
+- La run T/F con quattro worker ebbe un wall time inferiore di 730 s, cioè 12,17 minuti o 0,20 ore, pari allo 0,9%, e un picco di memoria superiore di 3,75 GiB.
+- La run F/F con sei worker ebbe un rapporto di wall time di 1,264 rispetto alla baseline e un tempo inferiore del 20,9%.
+- La run F/F con otto worker ebbe un rapporto di 1,495 rispetto alla baseline e un tempo inferiore del 33,1%.
+- Tra le run da sei e otto worker, entrambe associate al riferimento `88e03c0`, il rapporto fu 1,183 e la differenza di wall time fu del 15,4%.
 
 Ogni configurazione fu eseguita una sola volta, quindi non è disponibile una misura della variabilità tra run.
 
@@ -423,7 +423,7 @@ La formattazione restò tra 4.490,02 e 4.600,66 s. L'ensemble corrente restò tr
 | 6 | 72,95 | 107,09 | 4,09 | 68,1% |
 | 8 | 72,51 | 120,74 | 4,80 | 60,0% |
 
-L'aumento dei worker ridusse il wall time ma abbassò la percentuale media di utilizzo delle CPU allocate.
+Nelle run osservate, a un numero maggiore di worker corrisposero wall time inferiori e percentuali medie di utilizzo delle CPU allocate più basse.
 
 ### Validazione degli output
 
@@ -460,7 +460,7 @@ Tre test ulteriori furono inviati il 2 agosto dal riferimento `88e03c0`, con lim
 - a un controllo intermedio, dopo 15.943 s, 265,72 minuti o 4,43 ore, era allo scenario futuro 3 di 8 e aveva raggiunto 464,77 GiB MaxRSS;
 - il MaxRSS finale e la validazione degli output non furono raccolti prima della manutenzione.
 
-Il piano della tesi lo riassume come "notificato come completato ma ancora da validare nei dettagli". Non va usato come evidenza completa finché non vengono verificati accounting e output.
+Il piano della tesi lo riassumeva allora come "notificato come completato ma ancora da validare nei dettagli". Tra il 5 e il 7 settembre la verifica retrospettiva ha confermato accounting finale, MaxRSS di 464,77 GiB, 1.364 file non vuoti nella directory della specie, quattro riepiloghi, timing, `_SUCCESS`, proiezione corrente e otto scenari futuri. Da quel momento la run può essere usata come singola osservazione validata.
 
 ### Sedici worker T/F
 
@@ -683,11 +683,11 @@ Nella colonna storage:
 | `51485472_1` | *A. atrata* | 4 | T/F | completato, 22:21:40 | 264,69 GiB; 1.368 file non vuoti. |
 | `51494635_1` | *A. atrata* | 6 | F/F | completato, 17:50:56 | 258,95 GiB; 1.368 file non vuoti. |
 | `51485581_1` | *A. atrata* | 8 | F/F | completato, 15:05:35 | 278,67 GiB; 1.368 file non vuoti. |
-| `51738981_1` | *A. atrata* | 16 | F/F | notificato completato, 10:21:30 | MaxRSS finale e output non ancora validati. |
+| `51738981_1` | *A. atrata* | 16 | F/F | completato, 10:21:30 | 464,77 GiB; accounting, output, timing e `_SUCCESS` validati. |
 | `51739004_1` | *A. atrata* | 16 | T/F | OOM, 02:57:18 | Un `oom_kill` al primo futuro; 472,57 GiB. |
 | `51739048_1` | *A. atrata* | 32 | F/F | OOM, 01:39:58 | 12 `oom_kill` nella proiezione corrente; 481,16 GiB. |
-| `51756264_1` | *A. atrata* | 12 | F/F | limite, 09:30:20 | Incompleto con limite 9:30. |
-| `51756286_1` | *A. atrata* | 12 | T/F | limite, 09:30:18 | Incompleto con limite 9:30. |
+| `51756264_1` | *A. atrata* | 12 | F/F | limite, 09:40:18 | Incompleto con limite 9:40. |
+| `51756286_1` | *A. atrata* | 12 | T/F | limite, 09:40:18 | Incompleto con limite 9:40. |
 | `55020903_1` | *A. atrata*, produzione | configurazione snapshot | F/F | completato entro 31 agosto | `_SUCCESS`; 2.614 file. |
 | `55020903_2` | *A. clusiana*, produzione | configurazione snapshot | F/F | completato entro 31 agosto | `_SUCCESS`; 2.614 file. |
 | `55020903_3` | *A. capillaris*, produzione | configurazione snapshot | F/F | completato il 2 settembre, 1d 9h 58m 34s | `_SUCCESS`; fine alle 03:52:58. |
@@ -879,7 +879,15 @@ La specie più frequente è invece *Agrostis capillaris* (170.701 record), segui
 
 Il conteggio completo è conservato in [`docs/full_species_counts.csv`](full_species_counts.csv); la sintesi tabellare e il metodo sono in [`docs/tables/3.full-species-occurrence-distribution.md`](tables/3.full-species-occurrence-distribution.md).
 
-Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` assume che `x` e `y` siano longitudine e latitudine WGS84. Le proietta con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e assegna lo stesso peso a ogni specie. Il medoid spaziale è la specie con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo. Il controllo eseguito su Leonardo nel container di produzione il 2026-09-08 ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali. Le coordinate delle occorrenze rientrano nell'estensione dei raster e coincidono con i centri delle celle entro la precisione del CSV; non serve quindi riproiettarle.
+Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` assume che `x` e `y` siano longitudine e latitudine WGS84. Le proietta con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e assegna lo stesso peso a ogni specie. Il medoid spaziale è la specie con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo. Il controllo eseguito su Leonardo nel container di produzione il 2026-09-08 ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali. Tutte le 2.583.359 coordinate rientrano nell'estensione e coincidono con i centri delle celle entro una tolleranza di `1e-9` gradi; non serve quindi riproiettarle. Comandi e output sono conservati in [`logs/crs_validation_2026-09-08.txt`](../logs/crs_validation_2026-09-08.txt).
+
+Per controllare rapidamente la sintassi dello script si può usare:
+
+```bash
+python3 -m py_compile scripts/find_representative_species.py
+```
+
+`py_compile` è un modulo della libreria standard, richiamato con l'opzione `-m`, non un flag. Compila il file senza eseguire `main()` e segnala gli errori di sintassi, ma non verifica la logica. Il comando crea un file `.pyc` sotto `scripts/__pycache__/`; la directory è temporanea e non va committata. Il comportamento dello script va controllato separatamente con `python3 scripts/find_representative_species.py --self-test` e, quando serve, con un'esecuzione completa sui dati.
 
 *Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* ha invece il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. Questi due criteri non sono combinati in un unico punteggio. Il ranking non misura runtime o memoria e non sostituisce il criterio per numerosità richiesto dalla proiezione preliminare. I risultati completi sono versionati in `data/output/spatial_species_representativeness.csv`.
 
@@ -1067,8 +1075,8 @@ Il pre-prompt associato richiedeva di leggere prima `prompt.md`, il quaderno LaT
 ## Validazione scientifica
 
 - Il controllo del 2026-09-08 nel container di produzione ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali.
-- Le coordinate delle occorrenze rientrano nell'estensione dei raster e coincidono con i centri delle celle entro la precisione del CSV; non è necessaria una riproiezione.
-- Il controllo è documentato nella tesi.
+- Tutte le 2.583.359 coordinate rientrano nell'estensione dei raster e coincidono con i centri delle celle entro una tolleranza di `1e-9` gradi; non è necessaria una riproiezione.
+- Il controllo è documentato nella tesi; comandi e output sono in [`logs/crs_validation_2026-09-08.txt`](../logs/crs_validation_2026-09-08.txt).
 - Controllare warning GLM, MAXNET, overflow interi, metriche mancanti e warning ensemble.
 - Verificare se `scale.models=FALSE` serve ancora esplicitamente.
 - Convertire gli output di valutazione da testo a CSV.
