@@ -1,4 +1,4 @@
-# High-performance ecoinformatics
+# High-Performance Ecoinformatics
 
 This repository contains my MSc thesis project, developed through a collaboration between DIBRIS and DISTAV at the University of Genoa. The project studies how climate change may affect Alpine grassland habitats using Species Distribution Models implemented in R with BIOMOD2.
 
@@ -67,7 +67,7 @@ tail -f logs/job_<job-id>_<task-id>.log
     2. sequential I/O and parallel model execution through BIOMOD2 workers;
     3. parallel I/O and parallel model execution.
 
-  Before implementation, compare separate scripts or directories, separate Git branches, and a shared implementation controlled by external configuration. Record the chosen approach, the scope of parallel I/O, the proof of concept and its verification in `docs/review/4.r-poc.md`.
+  Before implementation, compare separate scripts or directories, separate Git branches, and a shared implementation controlled by external configuration. Record the chosen approach, the scope of parallel I/O, the proof of concept and its verification in `docs/review/3.r-poc.md`.
   Benchmark one Slurm task for *Achillea atrata* first. Keep scientific inputs and unrelated settings fixed when comparing execution variants, and validate the resulting metrics, rasters and output structure using a documented numerical tolerance. In separate experiments, measure performance while varying one scientific parameter at a time, including pseudo-absence and cross-validation settings. Record phase timings, wall time, CPU-hours, CPU utilization, MaxRSS, I/O measurements and output validation in Markdown tables under `docs/review/`.
   Do not estimate the complete 167-species campaign in this TODO. Defer automated table and plot generation until the workflow produces a stable machine-readable output format. Design, implementation and synthetic smoke testing are complete; the checkbox remains open for the full-raster benchmarks and validation.
 
@@ -82,6 +82,7 @@ tail -f logs/job_<job-id>_<task-id>.log
 
 ### orphaned todos
 
+- [ ] Review the fatal failures catalogued in `docs/review/2.local-log-metadata.md#errori-fatali-e-arresti` against the current workflow; reproduce those still applicable, fix them at their source and add focused regression checks.
 - [ ] sync and update the git clone at leonardo, also deleting its git-lfs that we don't use anymore
 
 - [ ] research if possible to run the analysis on serviicola with some memory guardrail or similar, since my server has only 32gb of ram, but i'd still like to use it
@@ -147,7 +148,8 @@ tail -f logs/job_<job-id>_<task-id>.log
 - [ ] Complete the full-raster comparison in `tests/test_maxnet_blockwise.R`, including runtime, MaxRSS and output equality.
 - [ ] Update `tests/expected_output_foreach_species.txt` only when the output contract intentionally changes.
 - [ ] write a test suite for the src code at `R/`, using (if reviewed as good or useful) `tests/test_output.R`.
-- [ ] Verify whether splitting the script changes memory, parallelism or reproducibility.
+- [ ] Move the POC integration test from `R/poc/test-smoke.R` to `tests/` once the POC layout is stable, preserving its container-based execution and exact output comparisons.
+- [x] Verify whether splitting the script changes memory or runtime. Benchmark `49303754` found the split and monolithic versions equivalent under the tested conditions; the historical harness is recoverable from commit `3825368`.
 - [ ] Measure I/O contention with multiple workers.
 - [ ] Reduce recalculation and copying only when measurements justify it.
 - [ ] Pass the Slurm CPU count to R through `BIOMOD_NCPU`.
