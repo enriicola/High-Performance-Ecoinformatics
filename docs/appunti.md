@@ -877,7 +877,7 @@ Il file `data/input/full_1km_EUNIS.csv` contiene 2.583.359 record per 167 specie
 
 La specie più frequente è invece *Agrostis capillaris* (170.701 record), seguita da *Potentilla erecta* (167.345), *Galium verum* (112.708), *Knautia arvensis* (92.894) e *Luzula campestris* (77.960). Questa è una scelta diversa dalla specie mediana e non va usata come rappresentativa della dimensione tipica senza una motivazione specifica.
 
-Il conteggio completo è conservato in [`docs/full_species_counts.csv`](full_species_counts.csv); la sintesi tabellare e il metodo sono in [`docs/tables/3.full-species-occurrence-distribution.md`](tables/3.full-species-occurrence-distribution.md).
+Il conteggio completo è conservato in [`data/output/full_species_counts.csv`](../data/output/full_species_counts.csv); la sintesi tabellare e il metodo sono in [`docs/review/3.full-species-occurrence-distribution.md`](review/3.full-species-occurrence-distribution.md).
 
 Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` assume che `x` e `y` siano longitudine e latitudine WGS84. Le proietta con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e assegna lo stesso peso a ogni specie. Il medoid spaziale è la specie con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo. Il controllo eseguito su Leonardo nel container di produzione il 2026-09-08 ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali. Tutte le 2.583.359 coordinate rientrano nell'estensione e coincidono con i centri delle celle entro una tolleranza di `1e-9` gradi; non serve quindi riproiettarle. Comandi e output sono conservati in [`logs/crs_validation_2026-09-08.txt`](../logs/crs_validation_2026-09-08.txt).
 
@@ -1069,6 +1069,152 @@ Il pre-prompt associato richiedeva di leggere prima `prompt.md`, il quaderno LaT
 - non lanciare job;
 - non modificare file;
 - non ripulire il worktree.
+
+# Proof of concept delle varianti R
+
+Durante la preparazione dei tre profili in `R/poc/` sono stati eseguiti dry-run e smoke test sintetici nel container di produzione. Le prime esecuzioni sequenziale e parallela terminavano correttamente e scrivevano `_SUCCESS`. I TIFF avevano gli stessi nomi relativi, geometria e maschere `NA`, ma i valori differivano fino a circa 831. Le differenze comparivano già nelle metriche, nelle soglie e nei coefficienti GLM, quindi non erano dovute alla copia parallela degli output.
+
+Anche due ripetizioni completamente sequenziali producevano risultati diversi. Il confronto con I/O parallelo e modelli sequenziali ha escluso lo staging concorrente. L'ispezione della versione BIOMOD2 4.3-4-5 nel container ha mostrato che `BIOMOD_Modeling(seed.val)` non determina la partizione casuale: `bm_CrossValidation()` non riceve il seed e la funzione interna `.sample_num()` esegue `set.seed(NULL)`. Chiamare `set.seed()` prima della funzione non basta, perché il generatore viene reinizializzato al suo interno.
+
+Il POC costruisce ora una tabella casuale deterministica con la stessa proporzione di calibrazione, la salva come `CV_<specie>.csv` e la passa a BIOMOD2 tramite `CV.user.table`. Usa anche un `modeling.id` stabile. Durante le prove è emerso inoltre che BIOMOD2 4.3-4-5 fallisce con pseudo-assenze e una sola colonna CV definita dall'utente, perché una matrice viene ridotta a vettore prima della chiamata a `ncol()`. Il POC richiede quindi almeno due colonne CV per questo percorso di compatibilità.
+
+Dopo la correzione, le ripetizioni sequenziali e parallele e i confronti tra I/O sequenziale e parallelo hanno prodotto tabelle CV, metriche, struttura, geometria, maschere `NA` e valori raster identici. Il test versionato è `R/poc/test-smoke.R`. Queste prove verificano il funzionamento su dati sintetici, non le prestazioni o la validità scientifica della configurazione reale. Progettazione, comandi, limiti e verifiche sono raccolti in [`docs/review/4.r-workflow-variants.md`](review/4.r-workflow-variants.md).
+
+# Questions for the ecologists / Domande per gli ecologi
+
+Elenco preparato il 9 settembre 2026 per Lucia e Gabriele. Contiene soltanto decisioni che non possono essere risolte leggendo il codice o la documentazione di BIOMOD2. Le fonti BIOMOD2 locali corrispondono alla versione 4.3-4-7, mentre i log di produzione riportano la 4.3-4-5; sono state usate per chiarire il significato dei parametri, non per attribuire una motivazione scientifica alle scelte del progetto. `OPEN` indica che manca una risposta definitiva; un elemento passa ad `ANSWERED` solo quando sono registrate risposta, fonte e data.
+
+## Q1 — Provenienza e perimetro dei dati di presenza
+
+- **Stato:** `OPEN`
+- **Domanda:** Quali provenienza, periodo di osservazione, criteri di qualità e copertura geografica definiscono il dataset finale? Dobbiamo usare tutte le 2.583.359 righe delle 167 specie senza il limite storico di 100.000 occorrenze per specie, e la colonna `pseudo-absences` va interpretata come un semplice indicatore di presenza?
+- **Contesto:** la colonna `pseudo-absences` contiene soltanto il valore 1. La baseline la ignora e ricostruisce una risposta composta solo da presenze usando l'intero CSV. Lo script parallelo storico limitava invece la specie selezionata alle prime 100.000 righe. Il codice non documenta se le righe escluse fossero ridondanti, ordinate o meno affidabili.
+- **File e riga:** `data/input/full_1km_EUNIS.csv:1`; `R/base/baseline.R:29-30,72,90-92`; `R/performance/old.ensamble_modelling_parallel.R:22,83-84`.
+- **Motivo:** dimensione e selezione del campione devono derivare dal protocollo ecologico, non da un limite introdotto per ragioni computazionali.
+- **Impatto:** cambia il campione di calibrazione e può modificare modelli, metriche, tempi e memoria.
+- **Risposta:** da raccogliere.
+- **Fonte:** CSV corrente, script corrente e script parallelo storico.
+- **Data risposta:** —
+
+## Q2 — Occorrenze multiple nella stessa cella
+
+- **Stato:** `OPEN`
+- **Domanda:** Le occorrenze multiple nella stessa cella da 1 km devono essere mantenute oppure ridotte a una sola osservazione per specie e cella? Esistono correzioni concordate per autocorrelazione spaziale o bias di campionamento?
+- **Contesto:** la configurazione corrente e lo script parallelo usano `filter.raster = FALSE`, mentre lo script Snowfall usa `TRUE`. BIOMOD2 chiarisce che `TRUE` filtra più osservazioni nella stessa cella e invita a decidere il trattamento in base alla risoluzione e al disegno di campionamento.
+- **File e riga:** `R/base/config.R:41`; `R/performance/old.ensamble_modelling_parallel.R:111`; `R/performance/old.ensamble_modelling_snowfall.R:113`.
+- **Motivo:** il codice descrive due comportamenti incompatibili ma non conserva la decisione scientifica che li giustifica.
+- **Impatto:** cambia il peso delle aree campionate più intensamente e può influire su pseudo-assenze, calibrazione e validazione.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_FormatingData.R:93-100`; `docs/biomod2/vignettes/vignette_dataPreparation.Rmd:128-134`; tre script in esame.
+- **Data risposta:** —
+
+## Q3 — Dati indipendenti di valutazione
+
+- **Stato:** `OPEN`
+- **Domanda:** Esiste un dataset indipendente, distinto dalle occorrenze usate per calibrare i modelli, che debba essere impiegato per la valutazione finale?
+- **Contesto:** la baseline non passa gli argomenti `eval.*`; lo script Snowfall li imposta esplicitamente a `NULL`. Le metriche disponibili derivano quindi dalla calibrazione e dalla cross-validation, non da osservazioni indipendenti.
+- **File e riga:** `R/base/baseline.R:103-113`; `R/performance/old.ensamble_modelling_snowfall.R:98-105`.
+- **Motivo:** solo Lucia e Gabriele possono confermare se tali dati esistono e se sono confrontabili con il dataset di calibrazione.
+- **Impatto:** determina quali metriche possono essere interpretate come valutazione indipendente della capacità predittiva e di trasferimento.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_FormatingData.R:42-56`; `docs/biomod2/vignettes/vignette_crossValidation.Rmd:50-88`; script in esame.
+- **Data risposta:** —
+
+## Q4 — Strategia e quantità delle pseudo-assenze
+
+- **Stato:** `OPEN`
+- **Domanda:** La configurazione scientifica definitiva deve usare selezione casuale, 10.000 pseudo-assenze per replica e quante repliche: 5 o 10? La stessa quantità deve valere per tutti gli algoritmi e per specie con numerosità diverse, mantenendo il bilanciamento predefinito tra presenze e pseudo-assenze?
+- **Contesto:** `config.R` e lo script parallelo usano 5 repliche; lo script Snowfall e lo snapshot di produzione ne usano 10. Nessuno imposta pesi o prevalenza, quindi BIOMOD2 applica il bilanciamento predefinito. Gli appunti dicono che 10 repliche e 10.000 pseudo-assenze erano state richieste dai biologi, ma non riportano interlocutore, data o motivazione. BIOMOD2 segnala che metodo e quantità dipendono dal campionamento e dall'algoritmo.
+- **File e riga:** `R/base/config.R:38-40`; `R/performance/old.ensamble_modelling_parallel.R:107-109`; `R/performance/old.ensamble_modelling_snowfall.R:106-108`; `R/base/baseline_49cfdb0.R:142-144`.
+- **Motivo:** l'evidenza storica è parziale e la configurazione corrente contraddice lo snapshot di produzione.
+- **Impatto:** modifica il numero di modelli, la variabilità tra repliche, il bilanciamento presenze/pseudo-assenze e il costo computazionale.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/appunti.md:224`; `docs/biomod2/vignettes/vignette_pseudoAbsences.Rmd:23-95`; `docs/biomod2/R/BIOMOD_Modeling.R:79-84,252-264`; script e configurazione in esame.
+- **Data risposta:** —
+
+## Q5 — Disegno della cross-validation
+
+- **Stato:** `OPEN`
+- **Domanda:** Confermate cinque ripetizioni con partizione casuale 70%/30%, oppure la dipendenza spaziale delle occorrenze richiede una validazione `block`, `strat`, `env` o una partizione definita dal gruppo? Dopo la validazione servono anche modelli calibrati sull'intero dataset?
+- **Contesto:** la baseline corrente e lo script parallelo usano cinque ripetizioni casuali con il 70% dei dati per la calibrazione e disabilitano i modelli sull'intero dataset; lo script Snowfall usa dieci ripetizioni e non esplicita quest'ultima scelta. BIOMOD2 offre partizioni spaziali e ambientali per valutare overfitting e trasferibilità.
+- **File e riga:** `R/base/config.R:44-49`; `R/performance/old.ensamble_modelling_parallel.R:135-141`; `R/performance/old.ensamble_modelling_snowfall.R:124-130`.
+- **Motivo:** la scelta dipende dalla distribuzione spaziale dei dati e dall'obiettivo inferenziale, non dalle sole API.
+- **Impatto:** cambia i modelli addestrati, la comparabilità delle metriche e la stima della capacità di trasferimento nello spazio e nel clima futuro.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_Modeling.R:24-54`; `docs/biomod2/vignettes/vignette_crossValidation.Rmd:13-47`; script in esame.
+- **Data risposta:** —
+
+## Q6 — Algoritmi e opzioni di modellazione
+
+- **Stato:** `OPEN`
+- **Domanda:** La combinazione definitiva è GLM, GBM, ANN, FDA e MAXNET con opzioni `bigboss` per tutti gli algoritmi? Perché MAXNET ha sostituito MARS rispetto allo script Snowfall, e questa sostituzione vale per tutte le specie?
+- **Contesto:** la baseline e lo script parallelo usano MAXNET e `bigboss`; lo script Snowfall usa MARS e le vecchie opzioni predefinite. La documentazione BIOMOD2 spiega le implementazioni disponibili e che `bigboss` è un preset del team, ma non stabilisce quale combinazione sia adatta a questo studio.
+- **File e riga:** `R/base/config.R:37,43`; `R/performance/old.ensamble_modelling_parallel.R:76,117-141`; `R/performance/old.ensamble_modelling_snowfall.R:119-130`.
+- **Motivo:** il passaggio MARS/MAXNET non è motivato nei materiali del repository.
+- **Impatto:** cambia la composizione dell'ensemble, i requisiti software, gli errori osservabili e il costo di modellazione e proiezione.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_Modeling.R:120-182`; `docs/biomod2/R/BIOMOD_Modeling.R:184-199`; script e configurazione in esame.
+- **Data risposta:** —
+
+## Q7 — Composizione e interpretazione degli ensemble
+
+- **Stato:** `OPEN`
+- **Domanda:** Devono essere prodotti un unico `EMmean` e un unico `EMcv` combinando tutti gli algoritmi, le pseudo-assenze e le ripetizioni con `em.by = "all"`? `EMcv` va trattato esplicitamente come misura di incertezza anziché come probabilità di presenza?
+- **Contesto:** tutti gli script richiedono `EMmean` ed `EMcv`; la baseline corrente combina tutti i modelli. BIOMOD2 definisce `EMmean` come media delle probabilità ed `EMcv` come coefficiente di variazione, su scala e con interpretazione diverse. Con `em.by = "all"`, fold di calibrazione differenti vengono fusi e la valutazione ensemble non conserva una colonna di validazione separata.
+- **File e riga:** `R/base/config.R:52`; `R/base/baseline.R:151-159`; `R/performance/old.ensamble_modelling_parallel.R:154-161`; `R/performance/old.ensamble_modelling_snowfall.R:135-142`.
+- **Motivo:** l'API descrive il calcolo, ma la scelta dell'aggregazione e l'uso scientifico dei due prodotti devono essere confermati.
+- **Impatto:** determina quanti ensemble vengono costruiti, quali modelli vengono combinati e come devono essere interpretati raster e metriche.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_EnsembleModeling.R:19-24,105-154,159-228`; `docs/biomod2/vignettes/vignette_crossValidation.Rmd:70-88`.
+- **Data risposta:** —
+
+## Q8 — Metriche, soglia e trasformazioni delle proiezioni
+
+- **Stato:** `OPEN`
+- **Domanda:** Confermate AUC-ROC come criterio di selezione, la soglia 0,6 per escludere i modelli e TSS, AUC-ROC e Kappa come metriche ensemble? Quali trasformazioni binarie e filtrate devono essere considerate risultati scientifici, anziché semplici output diagnostici?
+- **Contesto:** i modelli calcolano TSS, AUC-ROC, Kappa, POD e FAR; l'ensemble seleziona con `AUCroc >= 0.6`; le proiezioni ensemble richiedono `metric.binary = "all"` e `metric.filter = "all"`. BIOMOD2 conferma che la soglia esclude i modelli con punteggio inferiore, ma non giustifica il valore 0,6 per questo studio.
+- **File e riga:** `R/base/config.R:47,53-55`; `R/base/baseline.R:156-158,210-211,274-275`; `R/performance/old.ensamble_modelling_parallel.R:159-161,217-218`.
+- **Motivo:** la selezione delle metriche e delle soglie dipende dagli obiettivi ecologici e dal compromesso tra errori di omissione e commissione.
+- **Impatto:** cambia quali modelli entrano nell'ensemble, quali raster vengono prodotti e quali risultati possono essere confrontati e pubblicati.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_Modeling.R:68-77,184-249`; `docs/biomod2/R/BIOMOD_EnsembleModeling.R:26-52,127-154`; `docs/biomod2/R/BIOMOD_EnsembleForecasting.R:37-52`.
+- **Data risposta:** —
+
+## Q9 — Politica dei semi casuali
+
+- **Stato:** `OPEN`
+- **Domanda:** Le esecuzioni definitive devono usare un seme fisso? In caso affermativo, deve essere lo stesso per specie e fase oppure devono essere conservati più semi indipendenti per misurare la variabilità delle pseudo-assenze e della cross-validation?
+- **Contesto:** né la baseline corrente né i due script storici passano `seed.val`. Il commit `ed748218` introdusse temporaneamente il seme 42 nelle fasi BIOMOD2, ma la scelta non è presente nella configurazione corrente. BIOMOD2 permette di impostare il seme in formattazione, modellazione, ensemble e proiezione.
+- **File e riga:** `R/base/baseline.R:103-112,129-140,151-160,185-195`; `R/performance/old.ensamble_modelling_parallel.R:102-111,132-142`; `R/performance/old.ensamble_modelling_snowfall.R:98-113,121-131`.
+- **Motivo:** la riproducibilità tecnica non stabilisce da sola se un unico campionamento casuale sia sufficiente per l'analisi scientifica.
+- **Impatto:** determina la ripetibilità esatta delle run e la possibilità di quantificare la variabilità dovuta al campionamento.
+- **Risposta:** da raccogliere.
+- **Fonte:** commit `ed748218`; `docs/biomod2/R/BIOMOD_FormatingData.R:99-100`; `docs/biomod2/R/BIOMOD_Modeling.R:92-93`; `docs/biomod2/R/BIOMOD_EnsembleModeling.R:69-70`.
+- **Data risposta:** —
+
+## Q10 — Scenari climatici e variabili statiche
+
+- **Stato:** `OPEN`
+- **Domanda:** Confermate i cinque predittori `PC1_clim`, `PC2_clim`, `tri`, `PC1_soil` e `PC2_soil` e l'uso degli stessi raster per calibrazione e proiezione corrente? Quali GCM, SSP e orizzonti temporali costituiscono il set futuro definitivo, e TRI e suolo devono restare invariati in ogni scenario?
+- **Contesto:** la baseline corrente riusa il raster di calibrazione per la proiezione corrente, mentre i due script storici caricavano directory separate. La struttura dati contiene quattro GCM (`gfdl.esm4`, `ipsl.cm6a.lr`, `mpi.esm1.2.hr` e `mri.esm2.0`), ciascuno con `ssp370` e `ssp585`, per otto scenari. I commenti della baseline parlano ancora di cinque GCM e dieci proiezioni. Il ciclo aggiunge a ogni coppia di raster climatici futuri gli stessi raster TRI e suolo correnti; l'orizzonte temporale non è documentato nel repository.
+- **File e riga:** `data/README.md:32-61`; `R/base/config.R:30-33`; `R/base/baseline.R:43-52,59,222-223,245-246`; `R/performance/old.ensamble_modelling_parallel.R:33-50`; `R/performance/old.ensamble_modelling_snowfall.R:30-47`.
+- **Motivo:** il contenuto delle directory prova cosa è disponibile, non che il set sia scientificamente completo o definitivo.
+- **Impatto:** determina il numero e il significato delle proiezioni e l'interpretazione delle variazioni future.
+- **Risposta:** da raccogliere.
+- **Fonte:** struttura dati documentata, baseline corrente e `docs/review/2.local-log-metadata.md:72-74`.
+- **Data risposta:** —
+
+## Q11 — Output scientifici da conservare
+
+- **Stato:** `OPEN`
+- **Domanda:** Qual è il set minimo di output da conservare per analisi, revisione e pubblicazione: modelli salvati, metriche, importanza delle variabili, `EMmean`, `EMcv`, trasformazioni binarie o filtrate, clamping mask e quali raster dei modelli individuali?
+- **Contesto:** la baseline proietta tutti i modelli, produce tutte le trasformazioni richieste e costruisce le clamping mask, ma non richiede il calcolo dell'importanza delle variabili. Per una sola specie validata, le proiezioni individuali occupano circa 6,6 GiB contro circa 700 MiB degli ensemble; eliminare file senza una regola scientifica potrebbe impedire controlli o rianalisi.
+- **File e riga:** `R/base/config.R:57`; `R/base/baseline.R:185-213,255-277`; `data/README.md:71-89`.
+- **Motivo:** BIOMOD2 definisce gli artefatti, ma non quali siano necessari per gli obiettivi DISTAV e per la riproducibilità dello studio.
+- **Impatto:** determina spazio richiesto, trasferimenti, possibilità di ricalcolare gli ensemble e verificabilità dei risultati.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/appunti.md:822-851`; `docs/biomod2/R/BIOMOD_Modeling.R:75-77`; `docs/biomod2/R/BIOMOD_Projection.R:32-56`; `docs/biomod2/R/BIOMOD_EnsembleForecasting.R:37-52`.
+- **Data risposta:** —
 
 # Attività aperte consolidate
 
