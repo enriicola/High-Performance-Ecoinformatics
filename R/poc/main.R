@@ -323,12 +323,12 @@ resolved$package_versions <- setNames(
 )
 
 source(file.path(script_dir, "helpers.R"))
-source(file.path(script_dir, "1_formatting.R"))
-source(file.path(script_dir, "2_modeling.R"))
-source(file.path(script_dir, "3_ensemble.R"))
-source(file.path(script_dir, "4_projection.R"))
-source(file.path(script_dir, "5_current_ensemble.R"))
-source(file.path(script_dir, "6_future_projections.R"))
+source(file.path(script_dir, "1_formatting_and_cv.R"))
+source(file.path(script_dir, "2_individual_modeling.R"))
+source(file.path(script_dir, "3_ensemble_modeling_and_evaluation.R"))
+source(file.path(script_dir, "4_model_projections.R"))
+source(file.path(script_dir, "5_ensemble_forecasting.R"))
+source(file.path(script_dir, "6_future_scenario_loop.R"))
 
 run_species <- function(entry, run_cfg, input_dir, output_dir) {
   old_working_directory <- getwd()
@@ -365,7 +365,7 @@ run_species <- function(entry, run_cfg, input_dir, output_dir) {
   )
   timings$formatting <- seconds_since(started)
 
-  # Step 2: build the deterministic calibration table.
+  # Step 1b: build the deterministic calibration table.
   # BIOMOD2 4.3-4-5 resets the random split with set.seed(NULL). Build the
   # random calibration table explicitly so every execution profile reuses the
   # same rows. Other CV strategies stay outside this proof of concept.
@@ -375,36 +375,36 @@ run_species <- function(entry, run_cfg, input_dir, output_dir) {
   )
   timings$cross_validation <- seconds_since(started)
 
-  # Step 3: fit the individual models.
+  # Step 2: fit the individual models.
   started <- Sys.time()
   models <- step_modeling(
     formatted, calibration_lines, entry, run_cfg, species_seed
   )
   timings$modeling <- seconds_since(started)
 
-  # Step 4: fit the ensemble models and write evaluations.
+  # Step 3: fit the ensemble models and write evaluations.
   started <- Sys.time()
   ensemble <- step_ensemble_modeling(models, run_cfg, species_seed)
   timings$ensemble_modeling <- seconds_since(started)
 
   write_evaluation_outputs(models, ensemble, species_name)
 
-  # Step 5: project individual models on current conditions.
+  # Step 4: project individual models on current conditions.
   started <- Sys.time()
-  current_projection <- step_projection(
+  current_projection <- project_models(
     models, current_environment, "current", run_cfg, species_seed
   )
   timings$current_projection <- seconds_since(started)
 
-  # Step 6: forecast the current ensemble.
+  # Step 5: forecast the current ensemble.
   started <- Sys.time()
-  step_ensemble_forecast(
+  forecast_ensemble(
     ensemble, current_projection, "CurrentEM", run_cfg, species_seed
   )
   timings$current_ensemble <- seconds_since(started)
 
-  # Step 7: project individual and ensemble models for every future scenario.
-  future <- step_future_projections(
+  # Step 6: project individual and ensemble models for every future scenario.
+  future <- run_future_scenarios(
     models, ensemble, future_scenarios, terrain, soil, run_cfg, species_seed
   )
   future_timings <- future$timings
@@ -497,7 +497,7 @@ if (state$species_backend == "direct") {
         "run_species", "load_environment", "list_future_scenarios", "list_tif_files",
         "build_seeded_random_cv", "step_formatting", "step_cross_validation",
         "step_modeling", "step_ensemble_modeling", "write_evaluation_outputs",
-        "step_projection", "step_ensemble_forecast", "step_future_projections",
+        "project_models", "forecast_ensemble", "run_future_scenarios",
         "seconds_since", "abort", "run_cfg", "staged_input", "work_output"
       )
       snowfall::sfLapply(

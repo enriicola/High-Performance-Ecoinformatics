@@ -1,6 +1,6 @@
 # Step 5: ensemble forecasting on current conditions.
 
-step_ensemble_forecast <- function(ensemble, projection, projection_name, run_cfg, species_seed) {
+forecast_ensemble <- function(ensemble, projection, projection_name, run_cfg, species_seed) {
   doParallel::registerDoParallel(cores = run_cfg$ensemble_workers)
   BIOMOD_EnsembleForecasting(
     bm.em = ensemble,

@@ -1,6 +1,6 @@
 # Step 4: individual model projection on current conditions.
 
-step_projection <- function(models, environment, projection_name, run_cfg, species_seed) {
+project_models <- function(models, environment, projection_name, run_cfg, species_seed) {
   BIOMOD_Projection(
     bm.mod = models,
     proj.name = projection_name,

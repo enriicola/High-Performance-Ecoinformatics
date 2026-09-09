@@ -1,6 +1,6 @@
 # Step 6: individual and ensemble projections for future scenarios.
 
-step_future_projections <- function(
+run_future_scenarios <- function(
   models, ensemble, future_scenarios, terrain, soil, run_cfg, species_seed
 ) {
   future_timings <- data.frame(
@@ -22,13 +22,13 @@ step_future_projections <- function(
     names(future_environment) <- run_cfg$science$raster_names
 
     projection_started <- Sys.time()
-    future_projection <- step_projection(
+    future_projection <- project_models(
       models, future_environment, scenario, run_cfg, species_seed
     )
     projection_seconds <- seconds_since(projection_started)
 
     ensemble_started <- Sys.time()
-    step_ensemble_forecast(
+    forecast_ensemble(
       ensemble, future_projection, paste0("futureEM_", scenario), run_cfg, species_seed
     )
     ensemble_seconds <- seconds_since(ensemble_started)
