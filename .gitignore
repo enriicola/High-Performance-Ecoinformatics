@@ -71,3 +71,4 @@ data/output/*
 !data/output/full_species_counts.csv
 !data/output/spatial_species_representativeness.csv
 data/output_campaign_pa10/
+secrets/
