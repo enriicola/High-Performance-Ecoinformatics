@@ -39,8 +39,7 @@ fi
 # Reuse a valid certificate without asking for credentials again.
 CERTIFICATE=$(step ssh list --raw "$USER_EMAIL" | grep -- '-cert-v01@openssh.com ' || true)
 if [[ -n "$CERTIFICATE" ]] && ! step ssh needs-renewal <(printf '%s\n' "$CERTIFICATE") --expires-in 0s; then
-    ssh "$NICK@$HOST"
-    exit $?
+    exec ssh "$NICK@$HOST"
 fi
 
 # CINECA enables Keycloak's direct grant, unlike its device and OOB flows.
@@ -80,4 +79,4 @@ unset TOKEN_RESPONSE
 
 step ssh login "$USER_EMAIL" --token "$TOKEN"
 unset TOKEN
-ssh "$NICK@$HOST"
+exec ssh "$NICK@$HOST"

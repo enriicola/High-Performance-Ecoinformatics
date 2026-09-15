@@ -3,7 +3,7 @@ ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 $(ARGS):
 	@:
 
-.PHONY: thesis slides container leogin sbatch 3sync txt2csv biomod2sync
+.PHONY: thesis slides container leogin unigin sbatch 3sync txt2csv biomod2sync
 
 thesis:
 	./scripts/compile-thesis.sh
@@ -20,6 +20,9 @@ biomod2sync:
 leogin:
 	./scripts/leogin.sh $(ARGS)
 
+unigin:
+	./scripts/unigin.sh
+
 sbatch:
 	sbatch scripts/sbatch.sh $(ARGS)
 
@@ -28,4 +31,3 @@ sbatch:
 
 txt2csv:
 	./scripts/txt2csv.sh $(ARGS)
-

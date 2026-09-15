@@ -21,7 +21,7 @@ if grep -iE 'co[- ]?authored[- ]?by' "$MSG_FILE" >/dev/null; then
 fi
 
 # -------------------------------------------------
-# Identify staged R files (your existing logic).
+# Identify staged R files
 FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.[rR]$')
 if [ -z "$FILES" ]; then
     exit 0
