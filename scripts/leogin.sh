@@ -1,17 +1,34 @@
 #!/bin/bash
 # https://docs.hpc.cineca.it/general/access.html
 
-CA_URL="https://sshproxy.hpc.cineca.it"
-CA_FINGERPRINT="2ae1543202304d3f434bdc1a2c92eff2cd2b02110206ef06317e70c1c1735ecd"
-HOST="login.leonardo.cineca.it"
-USER_EMAIL="${1:-}"
-NICK="${2:-}"
+readonly CA_URL="https://sshproxy.hpc.cineca.it"
+readonly CA_FINGERPRINT="2ae1543202304d3f434bdc1a2c92eff2cd2b02110206ef06317e70c1c1735ecd"
 SECRETS_DIR="$(dirname "$0")/../secrets"
-PASSWORD_FILE="$SECRETS_DIR/cineca.passwd"
-TOTP_SECRET_FILE="$SECRETS_DIR/cineca-totp.secret"
+readonly SECRETS_DIR
+readonly CONNECTION_FILE="$SECRETS_DIR/cineca.env"
+readonly PASSWORD_FILE="$SECRETS_DIR/cineca.passwd"
+readonly TOTP_SECRET_FILE="$SECRETS_DIR/cineca-totp.secret"
 
-[[ -n "$USER_EMAIL" ]] || read -r -p "CINECA email: " USER_EMAIL
-[[ -n "$NICK" ]] || read -r -p "CINECA username: " NICK
+for SECRET_FILE in "$CONNECTION_FILE" "$PASSWORD_FILE" "$TOTP_SECRET_FILE"; do
+    if [[ ! -s "$SECRET_FILE" ]]; then
+        echo "Error: $SECRET_FILE is empty"
+        exit 1
+    fi
+done
+# Loaded at runtime from a gitignored credential file.
+# shellcheck disable=SC1090
+source "$CONNECTION_FILE"
+
+for req_var in CINECA_EMAIL CINECA_USERNAME CINECA_HOST; do
+    if [[ -z "${!req_var:-}" ]]; then
+        echo "Missing $req_var in $CONNECTION_FILE" >&2
+        exit 1
+    fi
+done
+
+readonly USER_EMAIL="$CINECA_EMAIL"
+readonly NICK="$CINECA_USERNAME"
+readonly HOST="$CINECA_HOST"
 
 # Check step-cli installed
 if ! command -v step &> /dev/null; then
@@ -37,24 +54,22 @@ else
 fi
 
 # Reuse a valid certificate without asking for credentials again.
-CERTIFICATE=$(step ssh list --raw "$USER_EMAIL" | grep -- '-cert-v01@openssh.com ' || true)
+CERTIFICATE="$(step ssh list --raw "$USER_EMAIL" | grep -- '-cert-v01@openssh.com ' || true)"
+readonly CERTIFICATE
 if [[ -n "$CERTIFICATE" ]] && ! step ssh needs-renewal <(printf '%s\n' "$CERTIFICATE") --expires-in 0s; then
     exec ssh "$NICK@$HOST"
 fi
 
 # CINECA enables Keycloak's direct grant, unlike its device and OOB flows.
-PROVISIONER=$(step ca provisioner list | jq -c '.[] | select(.name == "cineca-hpc")')
-CLIENT_ID=$(jq -r '.clientID' <<<"$PROVISIONER")
+PROVISIONER="$(step ca provisioner list | jq -c '.[] | select(.name == "cineca-hpc")')"
+readonly PROVISIONER
+CLIENT_ID="$(jq -r '.clientID' <<<"$PROVISIONER")"
+readonly CLIENT_ID
 CLIENT_SECRET=$(jq -r '.clientSecret' <<<"$PROVISIONER")
-DISCOVERY_URL=$(jq -r '.configurationEndpoint' <<<"$PROVISIONER")
-TOKEN_ENDPOINT=$(curl --fail --silent --show-error "$DISCOVERY_URL" | jq -r '.token_endpoint')
-
-for SECRET_FILE in "$PASSWORD_FILE" "$TOTP_SECRET_FILE"; do
-    if [[ ! -s "$SECRET_FILE" ]]; then
-        echo "Error: $SECRET_FILE is empty"
-        exit 1
-    fi
-done
+DISCOVERY_URL="$(jq -r '.configurationEndpoint' <<<"$PROVISIONER")"
+readonly DISCOVERY_URL
+TOKEN_ENDPOINT="$(curl --fail --silent --show-error "$DISCOVERY_URL" | jq -r '.token_endpoint')"
+readonly TOKEN_ENDPOINT
 
 PASSWORD=$(<"$PASSWORD_FILE")
 OTP=$(oathtool --totp=SHA1 --base32 --digits=6 "@$TOTP_SECRET_FILE")

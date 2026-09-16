@@ -29,9 +29,10 @@ cd "$REPO_ROOT"
 mkdir -p data/output logs
 
 # Prevent nested BLAS/OpenMP threads inside each biomod2 worker.
-export OMP_NUM_THREADS=1
-export OPENBLAS_NUM_THREADS=1
-export MKL_NUM_THREADS=1
+readonly OMP_NUM_THREADS=1
+readonly OPENBLAS_NUM_THREADS=1
+readonly MKL_NUM_THREADS=1
+export OMP_NUM_THREADS OPENBLAS_NUM_THREADS MKL_NUM_THREADS
 
 printf 'Job: id=%s array_task=%s node=%s\n' \
   "${SLURM_JOB_ID:-local}" \
@@ -43,7 +44,7 @@ printf 'R script: %s\n' "$RSCRIPT_PATH"
 printf 'Started: %s\n' "$(date -Is)"
 printf 'Resource log: %s\n' "$RESOURCE_LOG"
 
-started_at=$SECONDS
+readonly started_at=$SECONDS
 if /usr/bin/time -v -o "$RESOURCE_LOG" singularity exec \
   --pwd /work \
   --bind "$REPO_ROOT:/work" \
@@ -55,7 +56,7 @@ then
 else
   exit_code=$?
 fi
-elapsed=$((SECONDS - started_at))
+readonly elapsed=$((SECONDS - started_at))
 
 printf 'Finished: %s\n' "$(date -Is)"
 printf 'Elapsed: %dd %dh %dm %ds\n' \

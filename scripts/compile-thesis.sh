@@ -5,11 +5,13 @@
 set -u
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-main_tex="$script_dir/../docs/thesis/main.tex"
+readonly script_dir
+readonly main_tex="$script_dir/../docs/thesis/main.tex"
 main_tex_dir="$(dirname "$main_tex")"
-log_file="/tmp/tesi-compile.log"
+readonly main_tex_dir
+readonly log_file="/tmp/tesi-compile.log"
 
-cd "$main_tex_dir"
+cd "$main_tex_dir" || exit
 
 if ! latexmk -pdf -interaction=nonstopmode -halt-on-error "$main_tex" >"$log_file" 2>&1; then
   tail -n 80 "$log_file" >&2

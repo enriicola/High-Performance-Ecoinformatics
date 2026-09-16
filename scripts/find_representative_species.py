@@ -6,10 +6,11 @@ import csv
 import math
 from collections import Counter, defaultdict
 from pathlib import Path
+from typing import Final
 
-EARTH_RADIUS_M = 6_371_008.8
-CENTER_LON = math.radians(10)
-CENTER_LAT = math.radians(52)
+EARTH_RADIUS_M: Final = 6_371_008.8
+CENTER_LON: Final = math.radians(10)
+CENTER_LAT: Final = math.radians(52)
 
 
 def project_equal_area(lon, lat):
