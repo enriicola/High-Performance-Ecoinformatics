@@ -23,7 +23,7 @@ The projection settings are also explicit. Both \texttt{keep.in.memory} and \tex
 
 The current implementation does not provide a separate parallel I/O algorithm. BIOMOD2 workers may write model rasters concurrently, while \texttt{do.stack = FALSE} changes the representation and lifetime of those outputs. This is part of the measured storage configuration, not evidence of an independently optimized I/O stage.
 
-Large inputs, model outputs and the Singularity image remain outside Git. The command \texttt{make 3sync} invokes \nolinkurl{scripts/3sync.sh} and copies either selected relative paths or, by default, \texttt{data/} and the container from Leonardo to matching paths on Spartaco. Serviicola acts as the transfer relay without storing an intermediate data copy. The script uses \texttt{rclone} first and falls back to \texttt{scp -3}; neither path deletes destination files.
+Large inputs, model outputs and the Singularity image remain outside Git. The command \texttt{make omni-sync} invokes \nolinkurl{scripts/omni-sync.sh} and copies either selected relative paths or, by default, \texttt{data/} and the container from Leonardo to matching paths on Spartaco. Serviicola acts as the transfer relay without storing an intermediate data copy. The script uses \texttt{rclone} first and falls back to \texttt{scp -3}; neither path deletes destination files.
 
 \comment{Transfer duration, throughput and filesystem contention were not measured. No performance claim is made for the transfer workflow, and the intended scope of parallel I/O still requires a separate definition and benchmark.}
 
