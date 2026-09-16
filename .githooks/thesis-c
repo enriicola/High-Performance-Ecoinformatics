@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+if ! git diff --cached --name-only -- docs/thesis | grep -qE '\.(tex|bib|cls|sty)$'; then
+    exit 0
+fi
+
+make thesis
+git add docs/thesis/main.pdf

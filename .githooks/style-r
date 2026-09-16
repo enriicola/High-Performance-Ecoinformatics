@@ -1,0 +1,46 @@
+#!/bin/bash
+# -------------------------------------------------
+# Enforce project convention: R scripts end in .R (uppercase), never .r.
+LOWER=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.r$')
+if [ -n "$LOWER" ]; then
+    echo "Renaming staged .r -> .R (project convention):"
+    echo "$LOWER" | while read f; do
+        [ -f "$f" ] || continue
+        git mv -f "$f" "${f%.r}.R"
+        echo "  $f -> ${f%.r}.R"
+    done
+fi
+
+# -------------------------------------------------
+# Block commit messages that contain prohibited LLM co‑author tags.
+MSG_FILE=$(git rev-parse --git-dir)/COMMIT_EDITMSG
+if grep -iE 'co[- ]?authored[- ]?by' "$MSG_FILE" >/dev/null; then
+    echo "ERROR: Commit message contains prohibited LLM co‑author tag."
+    echo "Remove the line or use a different attribution."
+    exit 1
+fi
+
+# -------------------------------------------------
+# Identify staged R files
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.[rR]$')
+if [ -z "$FILES" ]; then
+    exit 0
+fi
+
+# Ensure styler is installed.
+if ! Rscript -e 'stopifnot(requireNamespace("styler", quietly=TRUE))' 2>/dev/null; then
+    echo "WARN: styler non installato -> skip formattazione (file NON stilizzati)."
+    echo "      Installa con: Rscript -e 'install.packages(\"styler\")'"
+    exit 0
+fi
+
+echo "Running styler on staged R files..."
+
+echo "$FILES" | while read file; do
+    if [ -f "$file" ]; then
+        Rscript -e "styler::style_file(commandArgs(TRUE))" "$file" > /dev/null
+        git add "$file"
+    fi
+done
+
+exit 0
