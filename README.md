@@ -15,36 +15,19 @@ The input data are from:
 - soil variables are from ...
 - TRI variables are from ...
 
-## Usage (TO BE UPDATED)
+## Usage
 
 This project uses a `Makefile` to simplify environment setup, compilation, and remote cluster access, see the `Makefile` for additional commands.
 
-Enable the common git config setup:
-
 ```bash
-make git-setup
-```
-
-Build the container, compile the thesis locally, or compile the slides:
-
-```bash
-make container
-make thesis
-make slides
-```
-
-Connect to one on the HPC unit:
-
-```bash
-make leogin #CINECA's Leonardo
-make sshpartaco #Spartaco pc
-make unigin #UniGe cluster
-```
-
-Sync everything:
-
-```bash
-make omni-sync
+make git-setup   #enable the common git config setup
+make container   #build the container
+make thesis      #compile the thesis
+make slides      #compile the slides
+make leogin      #connect to CINECA's Leonardo
+make sshpartaco  #connect to Spartaco pc
+make unigin      #connect to UniGe cluster
+make omni-sync   #sync everything
 ```
 
 ## TL;DR
@@ -59,7 +42,7 @@ this section is an extremely brief archive of every execution (tables and relate
 | `51738981_1` | 16 | lorem | 10:21:23 | 2,179× | 54,1% | 464,77 | notes ... |
 | `51739048_1` | 32 | OOM | 01:39:54 | NA | NA | 481,16 | notes ... |
 
-## Situantionship schema
+## Situationship
 
 ```text
                           GitHub ----------------------------------------+
@@ -73,9 +56,9 @@ this section is an extremely brief archive of every execution (tables and relate
    [pc 2] ----+              |                   +--> ...   <------------+
               |              |                   |                       |
    [pc n] ----+            output                +--> HPComputer n <-----+
-                             |
-                             v
-                         Spartaco
+                             |                                           |
+                             v                                           |
+                         Spartaco  <-------------------------------------+
                     [archivio finale]
 ```
 
@@ -113,6 +96,7 @@ this section is an extremely brief archive of every execution (tables and relate
 
 ### Thesis
 
+- [ ] add the right credits for the input data to the 'Credits' section
 - [ ] add also expected or estimated values in various projetions, tables and plots and graphs using dotted lines, i.e. a preliminary row-normalized runtime projection for a hypothetical execution of all 167 species using sequential I/O, sequential model execution and one worker. 
 - [ ] produce the same thing as above using an actual sequential base execution and then derive the data for plots as `reference runtime / reference occurrences * species occurrences`, then sum the measured reference runtime and estimated values to obtain the projected sequential runtime for the complete dataset.
 - [ ] Check whether any images from the [WGS84 Wikipedia article](https://it.wikipedia.org/wiki/WGS84) are needed for the thesis.
