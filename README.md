@@ -1,21 +1,28 @@
 # High-Performance Ecoinformatics
 
-This repository contains my MSc thesis project, developed through a collaboration between DIBRIS and DISTAV at the University of Genoa. The project studies how climate change may affect Alpine grassland habitats using Species Distribution Models implemented in R with BIOMOD2.
+This repository contains my MSc thesis project. The project studies how climate change may affect Alpine grassland habitats using Species Distribution Models implemented in R with BIOMOD2.
 
-The working dataset contains 2,583,359 species-presence records for 167 species at 1 km resolution. For each species, the workflow calibrates five algorithms, builds two ensemble models, and projects them over the current environment and eight future climate scenarios. The environmental rasters contain approximately 64 million cells. The climate and soil input data were obtained from [CHELSA Climate](https://www.chelsa-climate.org).
+The dataset contains 2,583,359 species-presence records for 167 species at 1 km resolution. For each species, the workflow calibrates 5 algorithms, builds 2 ensemble models, and projects them over the current environment and 8 future climate scenarios. The environmental rasters contain approximately 64 million cells. 
 
-My work focuses on making this workflow executable and measurable on the CINECA Leonardo supercomputer. In particular, my goal is to make the complete analysis much faster: it currently takes X days, and I am working to reduce its execution time to X hours without compromising the correctness or reproducibility of the results.
+My work focuses on making this workflow executable and measurable on a HPC unit. In particular, my goal is to make the complete ecology analysis much faster: it currently takes X days, and I am working to reduce its execution time to X hours without compromising the correctness or reproducibility of the results.
 
-The Git repository and `container/geospatial.sif` are kept on Serviicola, Leonardo and Spartaco. The container image is ignored by Git. Large inputs and generated model output under `data/` are also ignored; they are stored on Leonardo and copied to Spartaco with `make 3sync`. The same command copies the container from Leonardo to Spartaco through Serviicola.
+## Credits
 
-Git tracks the two small input CSV files and the textual summaries written directly under `data/output/`. `scripts/3sync.sh` transfers the remaining data without deleting files from the destination.
+The input data are from:
 
-## Usage
+- species dataset is from ... [CHELSA Climate](https://www.chelsa-climate.org). (?)
+- climate variables are from ...
+- soil variables are from ...
+- TRI variables are from ...
 
-Enable the repository hooks after cloning:
+## Usage (TO BE UPDATED)
+
+This project uses a `Makefile` to simplify environment setup, compilation, and remote cluster access, see the `Makefile` for additional commands.
+
+Enable the common git config setup:
 
 ```bash
-git config core.hookspath .githooks
+make git-setup
 ```
 
 Build the container, compile the thesis locally, or compile the slides:
@@ -26,88 +33,89 @@ make thesis
 make slides
 ```
 
-Connect to Leonardo and submit a species task:
+Connect to one on the HPC unit:
 
 ```bash
-make leogin
-make sbatch
+make leogin #CINECA's Leonardo
+make sshpartaco #Spartaco pc
+make unigin #UniGe cluster
 ```
 
-Monitor submitted jobs with:
+Sync everything:
 
 ```bash
-squeue --me
-tail -f logs/job_<job-id>_<task-id>.log
+make omni-sync
+```
+
+## TL;DR
+
+this section is an extremely brief archive of every execution (tables and related contents), showcasing the performance improvements over time.
+
+| lorem | ipsum | dolores | lorem | ipsum | dolores| lorem | ipsum |
+|---|---:|---|---:|---:|---:|---:|---|
+| `49844162_1` | 4 | completed | 22:33:45 | 1,000× | 0,0% | 260,94 | notes ...|
+| `51494635_1` | 6 | failed | 17:50:53 | 1,264× | 20,9% | 258,95 | notes ... |
+| `51485581_1` | 8 | to be done | 15:05:30 | 1,495× | 33,1% | 278,67 | notes ... |
+| `51738981_1` | 16 | lorem | 10:21:23 | 2,179× | 54,1% | 464,77 | notes ... |
+| `51739048_1` | 32 | OOM | 01:39:54 | NA | NA | 481,16 | notes ... |
+
+## Situantionship schema
+
+```text
+                          GitHub ----------------------------------------+
+                             ^                                           |
+                             |                               'git pull' foreach host
+                             |                                           |
+                             v                   +--> Leonardo <---------+
+ John Doe     SSH       Serviicola       SSH     |                       |
+   [pc 1] ----+-----> [orchestratore] -----------+--> Cluster UniGe <----+
+              |              |          rclone   |                       |
+   [pc 2] ----+              |                   +--> ...   <------------+
+              |              |                   |                       |
+   [pc n] ----+            output                +--> HPComputer n <-----+
+                             |
+                             v
+                         Spartaco
+                    [archivio finale]
 ```
 
 ## TODOs
 
----
+### immediate
 
-### Prof/Supervisor TODOs
+- [ ] does it make sense to have the actual biomod2 code on every non-serviicola computer? keeping in mind that i downloaded on serviicola for develpment and llm porpuses, i don't this is useful to be downloaded also on the other computers
+- [ ] rename HPC_Leonardo to High-Performance-Ecoinformatics (spartaco)
+- [ ] manage all things inside right-now-todo and delete each file after each single inside step is done 1by1
+- [ ] Comment well every .R file
+- [ ] after having refactor the R code, add precise specifics and metrics with whom track precisely the progress, performances, hotspot, i/o, and whatnot
+- [ ] add also resource (cpu/ram/disk) used to the tables 
+- [ ] send a whatsapp msg as soon as the tables got updated telling the tables got updated with resources consumption
+- [ ] find the species with the least occurrencies and meditate if running some tests with it on serviicola (ryzen 5, 32gb ram)
+- [ ] check n_cpu
+- [ ] if snowfall needs at least 2 species, should we adjust our project accordingly? (since rn we're improving execution times on a single specie bases)
+- [ ] check if we can migrate R variables from double to float
+- [ ] /home/ubuntu/.config/rclone/rclone.conf
+- [ ] convert the input data to binary and keep them as binary instead of loading them everytime
+- [ ] check disparità proiezione_corrente vs ensemble_corrente (soprattutto ensemble che resta costante, nonostante sia una costa sola, controllare se davvero non si può fare meglio di così)
+- [ ] splittare 'quota futura' come il 'corrente' in proiezione e ensemble
+- [ ] ragionare se tirare fuori 10 seed per la formattazione iniziale e poi mergiare il 10% di ognuno
+- [ ] alla fine, controllora perchè la 'formattazione' ci mette così tanto
+- [ ] check the biomod2 version
+- [ ] read and study the new article of new biomod2 also for latex purposes
+- [ ] check if have to use biomod2 fron cran registry or source code
+- [ ] add prof dell'amico as a collaborator to the repo
 
-<!-- - [ ] tempistiche tabelle con tutti gli step e tutte le variabili -->
-- [x] Compile the existing runtime and resource-usage data from `logs/` and `docs/appunti.md` into linked tables under `docs/review/`. Include successful, failed, cancelled and incomplete R runs. Record all available run metadata, workflow parameters, phase timings, resource usage, output details, warnings, errors and source files, using `NA` for missing values. Report any existing file-transfer measurements in a separate table without estimating missing data.
+### performance hw issue (OOM, fork errors, etc)
 
-<!-- - [ ] scrivere nella bozza della tesi una bella descrizione della tesi, perché ecc., e presentare i risultati -->
-- [x] Draft concise text in `docs/thesis/Chapters/1_IntroductionAndMotivation.tex` and `docs/thesis/Chapters/5_ExperimentalResults.tex` for the next supervisor meeting. Preserve the existing provisional text and separate the new draft with `\comment{New draft for supervisor review}` markers. Explain the scientific motivation, the HPC software focus, the role of hardware resources, the objectives, the methodology and the personal contribution. Present and discuss only the verified findings from the runtime and resource tables, including the effects of CPU count, memory and software configuration. Do not rewrite the abstract or attempt to complete the thesis.
-
-<!-- - [ ] capitolo container e workflow, risultati e difficoltà su Leonardo -->
-- [x] Draft concise, evidence-based sections about the original R workflow, the containerized HPC workflow and the Leonardo experiments. Add the original workflow to `docs/thesis/Chapters/3_CodeAsIs.tex`, the container and implemented changes to `docs/thesis/Chapters/4_Improvements.tex`, and the detailed results and operational difficulties to `docs/thesis/Chapters/5_ExperimentalResults.tex`. Wrap each new block between visible red `\comment{BEGIN TODO: Container, workflow and Leonardo}` and `\comment{END TODO: Container, workflow and Leonardo}` markers. Describe each difficulty in terms of the problem, evidence, mitigation and current status, using only verified information from the repository, logs and project notes. Document the verified transfer workflow without making performance claims, and add a `\comment{}` wherever relevant measurements are unavailable. Avoid repeating the high-level results summary from the previous TODO.
-
-<!-- - [ ] domande sul codice -->
-- [x] Review the scientific choices in `R/base/baseline.R` and its configuration, `R/performance/old.ensamble_modelling_parallel.R`, and `R/performance/old.ensamble_modelling_snowfall.R`. First search the code, repository documentation and BIOMOD2 sources for existing answers. Add an Italian `Questions for the ecologists` section to `docs/appunti.md` containing only questions that require input from Lucia and Gabriele. Cover the choices concerning input data, pseudo-absences, cross-validation, algorithms, ensembles, metrics and thresholds, random seeds, climate scenarios and retained scientific outputs. For each item, record its status (`OPEN` or `ANSWERED`), question, context, file and line, reason, impact, answer, source and answer date. Document partial evidence but keep the question open when it does not provide a definitive answer. Prepare the initial list for the next meeting and update it as answers are collected. The initial list was prepared on 2026-09-09; all eleven questions remain `OPEN` pending answers from Lucia and Gabriele.
-
-<!-- - [ ] serviranno 3 versioni del codice R:
-    1. I/O sequenziale e modelli sequenziali
-    2. I/O sequenziale e modelli paralleli
-    3. I/O parallelo e modelli paralleli -->
-- [ ] Design, implement and benchmark three controlled variants of the R workflow:
-    1. sequential I/O and sequential model execution;
-    2. sequential I/O and parallel model execution through BIOMOD2 workers;
-    3. parallel I/O and parallel model execution.
-
-  Before implementation, compare separate scripts or directories, separate Git branches, and a shared implementation controlled by external configuration. Record the chosen approach, the scope of parallel I/O, the proof of concept and its verification in `docs/review/3.r-poc.md`.
-  Benchmark one Slurm task for *Achillea atrata* first. Keep scientific inputs and unrelated settings fixed when comparing execution variants, and validate the resulting metrics, rasters and output structure using a documented numerical tolerance. In separate experiments, measure performance while varying one scientific parameter at a time, including pseudo-absence and cross-validation settings. Record phase timings, wall time, CPU-hours, CPU utilization, MaxRSS, I/O measurements and output validation in Markdown tables under `docs/review/`.
-  Do not estimate the complete 167-species campaign in this TODO. Defer automated table and plot generation until the workflow produces a stable machine-readable output format. Design, implementation and synthetic smoke testing are complete; the checkbox remains open for the full-raster benchmarks and validation.
-
-<!-- - [ ] in futuro aggiungere anche dei valori 'expected' o teorici o proiettati, rispetto alle specie che non sono state eseguite, in modo da avere un ipotetico runtime sequenziale totale -->
-- [ ] Produce a preliminary row-normalized runtime projection for a hypothetical execution of all 167 species using sequential I/O, sequential model execution and one worker. Use `R/base/ensamble_modelling_no_parallel.R`, recovered from commit `890f4c5`, as the earliest tracked historical reference. Confirm that this is the first version received from DISTAV before adding an annotated Git tag. Note that the recovered script is not actually sequential because it configures 10 workers. Derive the executable baseline from the first sequential variant defined in the previous TODO, preserving required compatibility and correctness fixes. Treat it as the original workflow without performance optimizations, not as the slowest implementation theoretically possible.
-
-  After inspecting the occurrence-count distribution, select and document a representative species and complete one baseline run. Do not extrapolate from a failed, partial or time-limited run. Using the exact occurrence counts from the full input CSV, calculate each unexecuted species estimate as `reference runtime / reference occurrences * species occurrences`, then sum the measured reference runtime and estimated values to obtain the projected sequential runtime for the complete dataset.
-
-  Keep measured runs in `docs/review/1.runtime-and-resource-summary.md` and write the estimates, formula, reference run, assumptions and limitations in `docs/review/sequential-baseline-projection.md`. Clearly label the result as a preliminary naive row-linear extrapolation because substantial parts of the workflow may not scale with occurrence count. Exclude Slurm queue time, concurrent-node scheduling and file transfers. Revisit the estimation method when additional comparable baseline runs become available.
-
----
-
-### orphaned todos
-
-- [ ] Review the fatal failures catalogued in `docs/review/2.local-log-metadata.md#errori-fatali-e-arresti` against the current workflow; reproduce those still applicable, fix them at their source and add focused regression checks.
-- [ ] sync and update the git clone at leonardo, also deleting its git-lfs that we don't use anymore
-
-- [ ] research if possible to run the analysis on serviicola with some memory guardrail or similar, since my server has only 32gb of ram, but i'd still like to use it
-- [ ] same thing for spartaco, we could try this insane idea to distribute the analysis between 3 servers, but idk, could be too much overhead
-
-- [x] aggiungere i criteri di minimalismo e indicazioni di scarse dipendenze
-- [ ] Commentare come si deve e per bene sia il codice R e anche il resto
 - [ ] Controllare se alcuni problemi per cui non riesco a fare i test Run su Leonardo sono dovuti al container rocker e non alla ram
-- [ ] dopo una baseline solidissima, Aggiungere delle specifiche con cui tracciare dei precisissimi progressi al codice e alle sue performance, hotspot, i/o, and whatnot
-- [ ] valutare se aggiungere all'agent.md di dire a pi di usare Chrome per fare degli screenshot per controllarsi da solo (e anche farsi controllare da me)
-- [ ] Riassumere questo video e prenderne degli appunti della trascrizione di buone pratiche di programmazione con i coding agent da aggiungere alla tesi: <https://www.youtube.com/watch?v=TJ6ruN-o0PA>
-
-### wip
-
-- [ ] `leo` — shell SSH; no `pi` session
-- [ ] `OOM error` — `01a00bf8-1198-7cb9-b45e-aeb25163cebd`: OOM errors and blockwise-override trial run
-- [ ] `thesis` — `01a06266-4e71-78cd-9dad-094aedcba065`: thesis TODOs and LaTeX workflow
-- [ ] `orphans` — `01a06633-b948-7fb8-a796-daefe9e651fc`: orphaned TODOs and code documentation
-- [ ] `doParallelError` — `01a0671f-b8f4-7cab-bfb3-ae7fd5ccf0c5`: BIOMOD2 parallelism and sequential baseline
-- [ ] `3sync` — `01a067f1-d895-7ef4-acb3-ef3ed033d744`: repository and data synchronization
-- [ ] `new-do` — `01a0710a-1797-759a-ad49-69488b719288`: supervisor TODOs and workflow variants
-- [ ] `tables` — `01a0786c-26b7-71de-8470-d2e01b937d11`: runtime and resource tables
+- [ ] Review the fatal failures catalogued in `docs/review/2.local-log-metadata.md#errori-fatali-e-arresti` against the current workflow; reproduce those still applicable, fix them at their source and add focused regression checks.
+- [ ] research if possible to run the analysis on serviicola with some memory guardrail or similar, since my server has only 32gb of ram, but i'd still like to use it
 
 ### Thesis
 
+- [ ] add also expected or estimated values in various projetions, tables and plots and graphs using dotted lines, i.e. a preliminary row-normalized runtime projection for a hypothetical execution of all 167 species using sequential I/O, sequential model execution and one worker. 
+- [ ] produce the same thing as above using an actual sequential base execution and then derive the data for plots as `reference runtime / reference occurrences * species occurrences`, then sum the measured reference runtime and estimated values to obtain the projected sequential runtime for the complete dataset.
+- [ ] Check whether any images from the [WGS84 Wikipedia article](https://it.wikipedia.org/wiki/WGS84) are needed for the thesis.
 - [ ] Write and revise the chapters using verified results.
 - [ ] NB: keep in mind and remmber to use the professor suggestions inside docs/thesis/main.tex after the end of the document
 - [ ] Confirm the title, structure, abstract and scientific content with the supervisors.
@@ -179,3 +187,27 @@ tail -f logs/job_<job-id>_<task-id>.log
 - [ ] Consider `broom` only if it is needed for metric extraction.
 - [ ] Clarify the “supermarket scheduling” idea before turning it into a requirement.
 - [ ] Determine whether it can run Doom.
+  - https://www.r-bloggers.com/2024/05/if-doom-runs-everywhere-it-must-run-on-shiny/
+  - https://www.reddit.com/r/programming/comments/fjk4m4/doom_runs_on_everything/
+
+### graduation dates
+
+- https://servizionline.unige.it/studenti/DOMANDALAUREA
+- https://corsi.unige.it/corsi/11964/candidates-graduation-days-committees
+
+- **14/10/2026** + 15/10/2026
+- **21/12/2026** + 22/12/2026
+- **18/02/2027** + 19/02/2027
+- **22/03/2027** + 24/03/2027
+
+- [ ] -30 calendar days from the graduation date the candidate sends the current version of their thesis to the examiner, keeping the supervisor in copy. The thesis must be nearly final at this point.
+- [ ] -30 calendar days from the graduation date (possibly, before) the candidate, with the supervisor's help, completes the degree application and fills out the AlmaLaurea form. Errors in filling them out must be solved by the candidate with the support of the supervisor and may cause the graduation date to be postponed to the next session. It is essential that the candidate, if in doubt, seeks help from the supervisor.
+- [ ] -20 calendar days from the graduation date the supervisor approves/rejects the application.
+- [ ] -15 calendar days from the graduation date (possibly, before) the candidate must have all marks registered.
+- [ ] -15 calendar days from the graduation date (possibly, before) the candidate uploads the final version of the thesis through the official service made available to students.
+- [ ] -14 calendar days from the graduation date the supervisor approves/rejects the document uploaded by the candidate.
+- [ ] -14 calendar days from the graduation date the supervisor shares their evaluation of the thesis work with the examiner and the Master Thesis Working Group by filling a form. In case of more supervisors, they must agree on a shared evaluation: only one evaluation must be inserted via the form by one of the supervisors. 
+- [ ] -14 calendar days from the graduation date the examiner (also named reviewer, or correlatore in Italian), who chairs the technical examination committee, communicates the date and place of the technical exam to the candidate, the supervisor and to the technical committee members.
+- [ ] Between -14 days and -2 days from the first date of the session: the technical exam takes place. The technical exam is required only to students enrolled from 2023/2024 onwards. Students enrolled before that academic year will prepare a longer presentation for the Thesis Committee, and will face no technical exam:
+	- the candidate defends their work: the expected duration of the exam is 20-25 minutes of presentation followed by questions and defense;
+	- once the exam has taken place, the examiner communicates the mark to the candidate and to the Master Thesis Working Group by filling a form.

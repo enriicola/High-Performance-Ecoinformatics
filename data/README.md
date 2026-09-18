@@ -1,27 +1,16 @@
 # Data storage
 
-Large files under `data/input/` and generated files under `data/output/` are intentionally excluded from Git. Input data totals several gigabytes and most source rasters exceed GitHub's 100 MB file limit; BIOMOD2 output is substantially larger. Git keeps the two small input CSV files, summary files matching `data/output/*.txt`, and the two small derived CSV summaries in `data/output/`.
+Large files under `data/input/`, generated heavy .tif files under `data/output/`, and the .sif container image are intentionally excluded from Git. 
 
-The Git repository and `container/geospatial.sif` are kept on all three computers. The container is ignored by Git.
-
-- Leonardo: `/leonardo_work/IscrC_SPECC/`, with the container and heavy data under `data/`
-- Spartaco: `F:\HPC_Leonardo\`, with the container and a copy of the heavy data under `data\`
-- Serviicola: `/home/ubuntu/tesi/`, with the container but without a copy of the heavy data
-
-`scripts/3sync.sh` copies heavy data and `container/geospatial.sif` from Leonardo to the same relative paths on Spartaco, using Serviicola as the transfer relay:
+All the computers and the heavy data are synced via `scripts/omni-sync.sh`, called from the Makefile with:
 
 ```bash
-./scripts/3sync.sh data/input
-./scripts/3sync.sh data/output
-./scripts/3sync.sh data/output_campaign_pa10
-./scripts/3sync.sh container/geospatial.sif
+make omni-sync
 ```
-
-Running it without arguments copies `data/` and `container/geospatial.sif` from Leonardo to Spartaco. Serviicola keeps its own copy of the container but does not retain an intermediate copy of the transferred data. The script does not delete destination files.
 
 ## Directory layout
 
-Large production inputs are kept on Leonardo and Spartaco, not on Serviicola. The expected input layout is:
+The expected input layout is:
 
 ```text
 data/input
@@ -85,5 +74,3 @@ data/output
     ├── proj_<gcm>_<ssp>
     └── proj_futureEM_<gcm>_<ssp>
 ```
-
-Only the root-level `.txt` files and the two derived CSV summaries in `data/output/` are versioned.
