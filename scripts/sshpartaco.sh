@@ -24,4 +24,4 @@ for req_var in SPARTACO_USERNAME SPARTACO_HOST; do
 done
 
 exec sshpass -f "$PASSWD_FILE" ssh -tt -o StrictHostKeyChecking=accept-new \
-  "$SPARTACO_USERNAME@$SPARTACO_HOST"
+  "$SPARTACO_USERNAME@$SPARTACO_HOST" wsl
