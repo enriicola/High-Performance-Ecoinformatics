@@ -1,5 +1,11 @@
 # Appunti unificati del progetto
 
+## my notes
+
+- Il MaxRSS di GNU `time` misura il processo e può escludere i worker forkati; per gli OOM va usato Slurm MaxRSS.
+- se non specificato diversamente, i valori di memoria utilizzata sono **Slurm MaxRSS**
+- usare le stesse variabili di configurazione per confrontare le run
+
 ## Scopo del documento
 
 Il 2 settembre 2026 il contenuto dei documenti presenti in `docs/work-in-progress/` è stato riunito in questo file:
@@ -256,7 +262,7 @@ Le azioni annotate erano:
 
 I commit successivi aggiunsero seed deterministici, gestione di `overwrite`, ordinamento shortest-job-first e marker di successo. La baseline di produzione fu poi ricondotta allo script sequenziale in `R/base/`.
 
-Gli stati finali di `48325677_4` e `_5` non furono registrati nelle note. L'ultima osservazione li vedeva ancora nella selezione delle pseudo-assenze.
+Le note originali non registravano gli stati finali di `48325677_4` e `_5`. L'export Slurm recuperato il 6 settembre ha poi mostrato che entrambi furono cancellati dopo 42:47:42, con MaxRSS rispettivamente di 206,69 e 206,48 GiB. L'ultimo risultato applicativo registrato era il secondo scenario futuro.
 
 ## Fase 4: array SJF del 5 luglio
 
@@ -376,18 +382,18 @@ La run F/F è una baseline valida di runtime e risorse:
 - sono presenti 127 file di modello, cioè 125 modelli individuali più due ensemble;
 - nel log non compare un errore applicativo fatale.
 
-Ripartizione del tempo e contesto di risorsa:
+Ripartizione del tempo:
 
-| Fase | Worker BIOMOD2 configurati | Secondi | Minuti | Ore | Risorse job: CPU-h / utilizzo / MaxRSS / I/O R-W / output GiB |
-|---|---:|---:|---:|---:|---:|
-| Formattazione | NA | 4.527,93 | 75,47 | 1,26 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
-| Modellazione individuale | 4 | 248,85 | 4,15 | 0,07 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
-| Modellazione ensemble | 2 | 137,30 | 2,29 | 0,04 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
-| Proiezione corrente | 4 | 7.047,56 | 117,46 | 1,96 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
-| Proiezione ensemble corrente | 2 | 1.421,92 | 23,70 | 0,40 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
-| Proiezioni future, 8 scenari | 4 / 2 | 67.818,98 | 1.130,32 | 18,84 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
+| Fase | Worker BIOMOD2 configurati | Secondi | Minuti | Ore |
+|---|---:|---:|---:|---:|
+| Formattazione | NA | 4.527,93 | 75,47 | 1,26 |
+| Modellazione individuale | 4 | 248,85 | 4,15 | 0,07 |
+| Modellazione ensemble | 2 | 137,30 | 2,29 | 0,04 |
+| Proiezione corrente | 4 | 7.047,56 | 117,46 | 1,96 |
+| Proiezione ensemble corrente | 2 | 1.421,92 | 23,70 | 0,40 |
+| Proiezioni future, 8 scenari | 4 / 2 | 67.818,98 | 1.130,32 | 18,84 |
 
-CPU-hours, utilizzo CPU medio, MaxRSS, I/O Slurm e disco finale sono misure dell'intero job `49844162_1`, non della singola fase. L'utilizzo è `TotalCPU / (Elapsed × AllocCPUS)`. I file di timing non registrano CPU-time, picco RAM o crescita del disco tra l'inizio e la fine delle fasi; tali valori restano `NA` e non vengono stimati. Le proiezioni future assorbono la maggior parte del tempo. I warning non fatali di GLM, MAXNET e delle metriche ensemble richiedono un controllo prima di usare le metriche come risultati scientifici definitivi, ma non invalidano la baseline di esecuzione.
+I file storici non misurano CPU-time, picco RAM o crescita del disco per singola fase. Le proiezioni future assorbono la maggior parte del tempo. I warning non fatali di GLM, MAXNET e delle metriche ensemble richiedono un controllo prima di usare le metriche come risultati scientifici definitivi, ma non invalidano la baseline di esecuzione.
 
 ## Fase 7: confronto tra storage T/F e numero di worker, 2 agosto
 
@@ -419,25 +425,31 @@ Ogni configurazione fu eseguita una sola volta, quindi non è disponibile una mi
 
 ### Timing per fase
 
-La colonna delle risorse usa il formato `CPU-hours Slurm / utilizzo CPU medio / MaxRSS Slurm in GiB / MaxDiskRead-MaxDiskWrite Slurm in GiB / disco finale della specie in GiB`. L'utilizzo è `TotalCPU / (Elapsed × AllocCPUS)`. Sono valori dell'intero job associato a ogni riga, non misure di singola fase.
+La tabella riunisce le run PA=5 confrontabili. I file storici non misurano CPU-time, MaxRSS o crescita del disco per singola fase.
 
-| Configurazione | Risorse job: CPU-h / utilizzo / RAM / I/O R-W / output | Formattazione | Proiezione corrente | Ensemble corrente | Ciclo futuro completo |
-|---|---:|---:|---:|---:|---:|
-| 4 worker T/F | 70,68 / 79,0% / 264,69 / 25,73-7,38 / 7,30 | 4.490,02 s, 74,83 min, 1,25 h | 6.988,68 s, 116,48 min, 1,94 h | 1.467,62 s, 24,46 min, 0,41 h | 67.139,91 s, 1.119,00 min, 18,65 h |
-| 6 worker F/F | 72,95 / 68,1% / 258,95 / 26,01-7,71 / 7,24 | 4.600,66 s, 76,68 min, 1,28 h | 5.132,52 s, 85,54 min, 1,43 h | 1.451,78 s, 24,20 min, 0,40 h | 52.735,75 s, 878,93 min, 14,65 h |
-| 8 worker F/F | 72,51 / 60,0% / 278,67 / 26,32-7,93 / 7,35 | 4.531,17 s, 75,52 min, 1,26 h | 4.057,93 s, 67,63 min, 1,13 h | 1.448,78 s, 24,15 min, 0,40 h | 43.996,87 s, 733,28 min, 12,22 h |
+| Worker/storage | Run | Formattazione | Modelli individuali | Modelli ensemble | Proiezione corrente | Ensemble corrente | Ciclo futuro | Quota futura |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| 4/F/F | `49844162_1` | 1h 15m 28s | 4m 9s | 2m 17s | 1h 57m 28s | 23m 42s | 18h 50m 19s | 83,5% |
+| 4/T/F | `51485472_1` | 1h 14m 50s | 4m 9s | 2m 17s | 1h 56m 29s | 24m 28s | 18h 39m 0s | 83,4% |
+| 6/F/F | `51494635_1` | 1h 16m 41s | 2m 56s | 2m 17s | 1h 25m 33s | 24m 12s | 14h 38m 56s | 82,1% |
+| 8/F/F | `51485581_1` | 1h 15m 31s | 2m 19s | 2m 18s | 1h 7m 38s | 24m 9s | 12h 13m 17s | 81,0% |
+| 16/F/F | `51738981_1` | 1h 14m 45s | 1m 19s | 2m 20s | 36m 26s | 25m 17s | 8h 0m 55s | 77,4% |
 
-I file di timing non contengono CPU-time, MaxRSS o crescita del disco delimitati dalle fasi; quei valori sono `NA` e non sono ripartiti artificialmente. La formattazione restò tra 4.490,02 e 4.600,66 s. L'ensemble corrente restò tra 1.448,78 e 1.467,62 s. Queste fasi non beneficiarono in modo evidente dell'aumento dei worker.
+La formattazione resta intorno a 75 minuti e l'ensemble corrente a 24-25 minuti. I modelli individuali e le proiezioni beneficiano dell'aumento dei worker; il ciclo futuro scende da 18h 50m a 8h 1m e rimane la fase dominante.
 
-### Utilizzo CPU
+### Risorse con un pattern osservabile
 
-| Worker | CPU-hours Slurm | CPU-hours allocate | Utilizzo medio in core | Percentuale dell'allocazione |
-|---:|---:|---:|---:|---:|
-| 4 | 70,68 | 89,44 | 3,16 | 79,0% |
-| 6 | 72,95 | 107,09 | 4,09 | 68,1% |
-| 8 | 72,51 | 120,74 | 4,80 | 60,0% |
+L'utilizzo CPU è `TotalCPU / (Elapsed × AllocCPUS)`; non indica RAM o disco.
 
-Nelle run osservate, a un numero maggiore di worker corrisposero wall time inferiori e percentuali medie di utilizzo delle CPU allocate più basse.
+| Run | Worker/storage | CPU-hours Slurm | Utilizzo CPU | Slurm MaxRSS (GiB) |
+|---|---:|---:|---:|---:|
+| `49844162_1` | 4/F/F | 71,15 | 78,8% | 260,94 |
+| `51485472_1` | 4/T/F | 70,68 | 79,0% | 264,69 |
+| `51494635_1` | 6/F/F | 72,95 | 68,1% | 258,95 |
+| `51485581_1` | 8/F/F | 72,51 | 60,0% | 278,67 |
+| `51738981_1` | 16/F/F | 74,75 | 45,1% | 464,77 |
+
+Nelle run PA=5 completate, le CPU-hours restano tra 70,68 e 74,75 mentre l'utilizzo dell'allocazione scende dal 78,8% al 45,1% all'aumentare dei worker. Il MaxRSS resta tra 258,95 e 278,67 GiB fino a 8 worker, poi sale a 464,77 GiB con 16 worker. Il confronto T/F-F/F a 4 worker ha una sola osservazione e non mostra un vantaggio stabile. Gli output completati occupano 7,18-7,35 GiB. I valori I/O dettagliati non mostrano un pattern chiaro e non sono riportati in questa sintesi.
 
 ### Validazione degli output
 
@@ -683,10 +695,16 @@ Nella colonna storage:
 | `48236130_1` | *A. atrata* | 1 | F/F | interrotto | Fermato prima della proiezione cambiando specie test. |
 | `48238919_3` | *A. capillaris* | 4 | F/F | interrotto, circa 22 h | Arrivò allo scenario futuro 2 di 8. |
 | `48325677_3` | *A. capillaris* | 4 | non registrato | fallito, 8,45 h | Collisione su file già esistente durante ensemble parallelo. |
-| `48325677_4` | *A. rupestris* | 1 | non registrato | esito non registrato | Ultimo stato: selezione pseudo-assenze. |
-| `48325677_5` | *A. fissa* | 1 | non registrato | esito non registrato | Ultimo stato: selezione pseudo-assenze. |
-| Array non identificato del 5 luglio | Prime 5 specie SJF | non registrato | non registrato | fallito | Con 100 GB, tutti OOM durante ensemble corrente. |
+| `48325677_4` | *A. rupestris* | 1 | F/F | cancellato, 42:47:42 | Secondo futuro; 206,69 GiB. |
+| `48325677_5` | *A. fissa* | 1 | F/F | cancellato, 42:47:42 | Secondo futuro; 206,48 GiB. |
+| `48418427_[3-5]` | Tre specie | 1 o 4 | F/F | falliti, 04:05-08:37 | File di output già esistenti. |
+| `48606158_[1-3]`, `48607206_[1-3]` | Tre specie piccole | 1 | F/F | cancellati, 00:02-00:06 | Motivo non registrato. |
+| `48607860_[1-5]` | Prime 5 specie SJF | 1 | F/F | OOM, 14:33-21:33 | Tutti falliti con richiesta di memoria da 100 GiB. |
+| `48873007_[1-5]` | Prime 5 specie SJF | 1 | F/F | 2 errori, 3 time limit | Con 250 GiB: errori di scrittura/nome e tre limiti di circa 72 ore. |
 | `49507005-49507067` | Campagna 56 onde, 167 specie | 5 | F/F | cancellata | Nessun completamento valido; MaxRSS live prima onda 261-316 GiB. |
+| `49628609_1` | *A. atrata* | 2 | non registrato | cancellato, 00:14 | Fermato prima di un risultato. |
+| `49629886` | *A. atrata* | 2 | T/T | OOM, 05:25 | Circa 478 GiB; nessun `_SUCCESS` o timing finale. |
+| `49630695_2` | *A. clusiana* | 112 | T/T | OOM, 01:35 | Circa 481 GiB; 66 OOM kill e 79 elementi su 125 non erano `SpatRaster`. |
 | `49842976_1` | *A. atrata* | 2 | F/T | fallito, 05:44:00 | Fork fallito alla prima clamping mask futura; 413,22 GiB. |
 | `49843592_1` | *A. atrata* | 4 | F/T | fallito, 03:57:25 | Stesso punto; 413,80 GiB. |
 | `49844162_1` | *A. atrata* | 4 | F/F | completato, 22:33:50 | 260,94 GiB; otto futuri e `_SUCCESS`. |
@@ -915,6 +933,46 @@ I successivi errori BIOMOD ensemble nei job OOM non sono la causa iniziale: deri
 Un tentativo di elencare direttamente i processi sui compute node fu respinto dall'autenticazione Leonardo. Nessuna affermazione sull'RSS per processo si basa su quel tentativo.
 
 `du` e `df` misurano disco, non memoria residente.
+
+## Revisione delle evidenze locali del 6 settembre 2026
+
+La revisione successiva alla campagna ha ricondotto i valori alle fonti versionate:
+
+- [`logs/sacct_r_runs_2026-09-06.csv`](../logs/sacct_r_runs_2026-09-06.csv) conserva stato, exit code, tempi, CPU allocate, `TotalCPU`, memoria e date Slurm;
+- [`logs/phase_timings_2026-09-06.csv`](../logs/phase_timings_2026-09-06.csv) conserva i tempi delle fasi e dei singoli scenari disponibili;
+- [`logs/output_validation_2026-09-06.csv`](../logs/output_validation_2026-09-06.csv) conserva conteggi, file vuoti, dimensioni e marker `_SUCCESS` degli output verificati;
+- `logs/resources_<run>.txt` conserva gli header del wrapper e i campi GNU `time -v` disponibili.
+
+Il suffisso `_N` di un array identifica il task e quindi una specie. Il wall time di `55020903_1`, per esempio, è il tempo della pipeline completa di *Achillea atrata*, mentre `55020903` identifica la campagna. La configurazione produttiva P10 usa 10 repliche da 10.000 pseudo-assenze e 5 repliche di cross-validation. Le run E5 ne usavano 5 e rimangono evidenze storiche: non vanno attribuite alla configurazione produttiva.
+
+### Warning e messaggi non fatali
+
+| Classe | Interpretazione conservata |
+|---|---|
+| Pacchetto opzionale `cito` assente | Messaggio di caricamento; nessun fallimento osservato per questa causa. |
+| `%dopar%` senza backend | Esecuzione sequenziale involontaria. |
+| `glm.fit` non converge o produce probabilità 0/1 | Richiede una verifica scientifica dei modelli e delle metriche. |
+| Fit rank-deficient | Le predizioni interessate devono essere controllate. |
+| Overflow intero, metriche mancanti o `max` senza valori | Può produrre `NA` o `-Inf`. |
+| Calibrazione GBM fallita | Alcuni modelli possono fallire mentre la run prosegue. |
+| Worker senza risultato o elementi non `SpatRaster` | Indica output parziale, spesso dopo OOM. |
+| Trasformazioni binary/filter disabilitate | Messaggio BIOMOD2 da considerare nell'interpretazione degli output ensemble. |
+
+### Errori fatali e arresti
+
+| Classe | Run rappresentative | Evidenza |
+|---|---|---|
+| OOM | `48075655_[1-5]`, `48607860_[1-5]`, `49629886`, `49630695_2`, `51739004_1`, `51739048_1` | `oom_kill` o processo ucciso. |
+| Fork senza memoria | `49842976_1`, `49843592_1` | `mcfork(): unable to fork`. |
+| Collisione con file esistente | `48325677_3`, `48418427_[3-5]` | Errore `writeRaster`. |
+| Path o filename non valido | `47574797_2`, `48873007_1`, `48873007_3` | Path assente, scrittura fallita o nome vuoto. |
+| SIGPIPE ripetuto | `47510573_2`, `47510573_3` | Errori `sendMaster` seguiti dalla cancellazione. |
+| Ensemble su output mancanti | `51739004_1`, `51739048_1` | Modelli assenti dopo la perdita dei worker. |
+| Time limit | `bc71039`, `48873007_[2,4,5]`, `51756264_1`, `51756286_1` | Arresto imposto da Slurm. |
+| Cancellazione utente | Diverse prove e campagne | Accounting Slurm e note operative. |
+| Budget esaurito prima di R | `55530303_[4-167]` | Cancellazione nel prolog amministrativo. |
+
+I campi assenti dalle fonti restano `NA`; non vengono stimati. Il successo del processo e `_SUCCESS` provano il completamento operativo, non la validità scientifica delle metriche.
 
 # Partizioni e QoS Leonardo
 
@@ -1269,7 +1327,7 @@ Elenco preparato il 9 settembre 2026 per Lucia e Gabriele. Contiene soltanto dec
 - **Motivo:** il contenuto delle directory prova cosa è disponibile, non che il set sia scientificamente completo o definitivo.
 - **Impatto:** determina il numero e il significato delle proiezioni e l'interpretazione delle variazioni future.
 - **Risposta:** da raccogliere.
-- **Fonte:** struttura dati documentata, baseline corrente e `docs/review/2.local-log-metadata.md:72-74`.
+- **Fonte:** struttura dati documentata, baseline corrente e sezione "Revisione delle evidenze locali del 6 settembre 2026" di questi appunti.
 - **Data risposta:** —
 
 ## Q11 — Output scientifici da conservare
@@ -1432,6 +1490,8 @@ Questa matrice permette di rintracciare nel documento consolidato il contenuto d
 | `run-manifest.md` | COPERTO | "Stato consolidato al 4 settembre" e "Esaurimento del budget DCGP". |
 | `session-2026-07-03.md` | COPERTO | Fasi 3-5 e "Modalità sequenziale più prudente annotata il 3 luglio". |
 | `thesis-plan.md` | COPERTO | "Contesto scientifico e obiettivo del lavoro" e "Piano della tesi". |
+| `right-now-todo/review/1.runtime-and-resource-summary.md` | COPERTO | `README.md` per il confronto pubblico E5; fasi 5-9, inventario delle run, storage e metodologia in questi appunti per il dettaglio. |
+| `right-now-todo/review/2.local-log-metadata.md` | COPERTO | Inventario delle run e "Revisione delle evidenze locali del 6 settembre 2026"; i dati grezzi restano nei CSV sotto `logs/`. |
 
 # Esaurimento del budget DCGP, 4 settembre 2026
 
