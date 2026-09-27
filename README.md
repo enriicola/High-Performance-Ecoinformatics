@@ -1,38 +1,37 @@
 # High-Performance Ecoinformatics
 
-This repository contains my MSc thesis project. The project studies how climate change may affect Alpine grassland habitats using Species Distribution Models implemented in R with BIOMOD2.
+This repository contains the work for my MSc thesis on running and measuring a Species Distribution Modelling workflow on HPC systems. The workflow uses R and BIOMOD2 to study how climate change may affect Alpine grassland habitats.
 
-The dataset contains 2,583,359 species-presence records for 167 species at 1 km resolution. For each species, the workflow calibrates 5 algorithms, builds 2 ensemble models, and projects them over the current environment and 8 future climate scenarios. The environmental rasters contain approximately 64 million cells. 
+The input dataset has 2,583,359 species-presence records for 167 species at 1 km resolution. For each species, the workflow calibrates five algorithms, builds two ensemble models, and projects them onto the current environment and eight future climate scenarios. The environmental rasters have approximately 64 million cells. *Galium anisophyllon* is the median species by occurrence count, with 5,936 records. The performance experiments use *Achillea atrata* because it has the largest set of comparable runs and validated outputs. The choice reflects the available experimental evidence; its statistical, geographical, and biological representativeness has not been assessed.
 
-My work focuses on making this workflow executable and measurable on a HPC unit. In particular, my goal is to make the complete ecology analysis much faster: it currently takes X days, and I am working to reduce its execution time to X hours without compromising the correctness or reproducibility of the results.
+The goal is to reduce the complete analysis from X days to X hours while preserving correct and reproducible results.
 
 ## Credits
 
-The input data are from:
+DISTAV supplied the occurrence CSV. The source collection combines [sPlot](https://www.idiv.de/research/projects/splot/) (Sabatini et al., 2021, [sPlotOpen version 0](https://idata.idiv.de/DDM/Data/ShowData/3474?version=0)), [Silene](https://silene.eu/), [GBIF](https://www.gbif.org/occurrence/download), and the [European Vegetation Archive](https://euroveg.org/eva-database/). The repository does not yet record the exact source versions, download dates, filtering procedure, or licence of the compiled table.
 
-- species dataset is from ... [CHELSA Climate](https://www.chelsa-climate.org). (?)
+- [ ] Confirm the occurrence-data provenance and licence.
 - climate variables are from ...
 - soil variables are from ...
 - TRI variables are from ...
 
 ## Usage
 
-This project uses a `Makefile` to simplify environment setup, compilation, and remote cluster access, see the `Makefile` for additional commands.
+The `Makefile` provides shortcuts for environment setup, compilation, and remote cluster access. See the file for the full list of commands.
 
 ```bash
-make git-setup   #enable the common git config setup
-make container   #build the container
-make thesis      #compile the thesis
-make slides      #compile the slides
-make leogin      #connect to CINECA's Leonardo
-make sshpartaco  #connect to Spartaco pc
-make unigin      #connect to UniGe cluster
-make omni-sync   #sync everything
+make git-setup   # enable the shared Git configuration
+make container   # build the container
+make thesis      # compile the thesis
+make slides      # compile the slides
+make leogin      # connect to CINECA's Leonardo
+make sshpartaco  # connect to Spartaco
+make unigin      # connect to the UniGe cluster
 ```
 
 ## TL;DR
 
-this section is an extremely brief archive of every execution (tables and related contents), showcasing the performance improvements over time.
+This table gives a short record of the runs and their performance over time.
 
 | lorem | ipsum | dolores | lorem | ipsum | dolores| lorem | ipsum |
 |---|---:|---|---:|---:|---:|---:|---|
@@ -42,34 +41,16 @@ this section is an extremely brief archive of every execution (tables and relate
 | `51738981_1` | 16 | lorem | 10:21:23 | 2,179× | 54,1% | 464,77 | notes ... |
 | `51739048_1` | 32 | OOM | 01:39:54 | NA | NA | 481,16 | notes ... |
 
-## Situationship
-
-```text
-                          GitHub ----------------------------------------+
-                             ^                                           |
-                             |                               'git pull' foreach host
-                             |                                           |
-                             v                   +--> Leonardo <---------+
- John Doe     SSH       Serviicola       SSH     |                       |
-   [pc 1] ----+-----> [orchestratore] -----------+--> Cluster UniGe <----+
-              |              |          rclone   |                       |
-   [pc 2] ----+              |                   +--> ...   <------------+
-              |              |                   |                       |
-   [pc n] ----+            output                +--> HPComputer n <-----+
-                             |                                           |
-                             v                                           |
-                         Spartaco  <-------------------------------------+
-                    [archivio finale]
-```
-
 ## TODOs
 
-### immediate
+### Immediate
+
+- [ ] Ricordare al professor D'Agostino di installare Singularity oppure Apptainer su `gpu2`.
 
 - [ ] does it make sense to have the actual biomod2 code on every non-serviicola computer? keeping in mind that i downloaded on serviicola for develpment and llm porpuses, i don't this is useful to be downloaded also on the other computers
 - [ ] rename HPC_Leonardo to High-Performance-Ecoinformatics (spartaco)
 - [ ] manage all things inside right-now-todo and delete each file after each single inside step is done 1by1
-- [ ] Comment well every .R file
+- [x] Review comments in the active R pipelines: document scientific and data contracts, resource constraints, output ownership and non-obvious tradeoffs without narrating the code line by line.
 - [ ] after having refactor the R code, add precise specifics and metrics with whom track precisely the progress, performances, hotspot, i/o, and whatnot
 - [ ] add also resource (cpu/ram/disk) used to the tables 
 - [ ] send a whatsapp msg as soon as the tables got updated telling the tables got updated with resources consumption
@@ -88,7 +69,7 @@ this section is an extremely brief archive of every execution (tables and relate
 - [ ] check if have to use biomod2 fron cran registry or source code
 - [ ] add prof dell'amico as a collaborator to the repo
 
-### performance hw issue (OOM, fork errors, etc)
+### Performance and hardware issues
 
 - [ ] Controllare se alcuni problemi per cui non riesco a fare i test Run su Leonardo sono dovuti al container rocker e non alla ram
 - [ ] Review the fatal failures catalogued in `docs/review/2.local-log-metadata.md#errori-fatali-e-arresti` against the current workflow; reproduce those still applicable, fix them at their source and add focused regression checks.
@@ -174,7 +155,7 @@ this section is an extremely brief archive of every execution (tables and relate
   - https://www.r-bloggers.com/2024/05/if-doom-runs-everywhere-it-must-run-on-shiny/
   - https://www.reddit.com/r/programming/comments/fjk4m4/doom_runs_on_everything/
 
-### graduation dates
+### Graduation dates
 
 - https://servizionline.unige.it/studenti/DOMANDALAUREA
 - https://corsi.unige.it/corsi/11964/candidates-graduation-days-committees

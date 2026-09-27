@@ -2,7 +2,7 @@
 
 ## Scopo del documento
 
-Questo file riunisce il contenuto di tutti i documenti che si trovavano in `docs/work-in-progress/` il 2 settembre 2026:
+Il 2 settembre 2026 il contenuto dei documenti presenti in `docs/work-in-progress/` è stato riunito in questo file:
 
 - `README.md`
 - `campaign-snapshot.md`
@@ -16,14 +16,26 @@ Questo file riunisce il contenuto di tutti i documenti che si trovavano in `docs
 - `session-2026-07-03.md`
 - `thesis-plan.md`
 
-L'ordine seguito è prima cronologico e poi tematico. Le ripetizioni sono state accorpate, ma sono stati conservati numeri, identificativi dei job, configurazioni, osservazioni, interpretazioni, dubbi, TODO, riferimenti operativi e discrepanze tra documenti. Quando due note descrivono momenti diversi, entrambe restano nel testo con la relativa data.
+Il testo segue prima l'ordine cronologico e poi quello tematico. Le ripetizioni sono state accorpate senza eliminare numeri, identificativi dei job, configurazioni, osservazioni, interpretazioni, dubbi, TODO, riferimenti operativi o discrepanze tra documenti. Le note che descrivono momenti diversi conservano la rispettiva data.
 
-Il materiale è un quaderno di lavoro, non un insieme di risultati scientifici già definitivi. Occorre continuare a distinguere tra:
+Questo è un quaderno di lavoro. Ogni voce appartiene a una delle seguenti categorie:
 
 1. ciò che è stato osservato;
 2. l'interpretazione dell'osservazione;
 3. un'ipotesi ancora da verificare;
 4. una decisione operativa presa in un momento specifico.
+
+## Decisione operativa del 23 settembre 2026
+
+- `gpu2` diventa l'ambiente di sviluppo: la copia di lavoro di Serviicola viene trasferita con `rsync` in `/nethome/pezzanoe/High-Performance-Ecoinformatics/`. La home NFS rende la stessa copia disponibile anche da `intel2`.
+- Zed su Omarchy apre il progetto NFS su `gpu2` tramite il ProxyJump Serviicola → front-end UniGe.
+- Leonardo resta l'origine dei dati di calcolo; Spartaco (`F:/data_old/`) è l'archivio. Alle 23:40 CEST è iniziato un `scp -3 -pr` da `/leonardo_work/IscrC_SPECC/data/.` a `F:/data_old/`, con Serviicola come relay in memoria: nessun file dati è scritto su Serviicola.
+- GitHub conterrà codice, documentazione e i soli TIFF di *Achillea atrata* convertiti lossless in `.zstd.tif`; gli originali restano nell'archivio. Ogni `.zstd.tif` oltre 95 MiB sarà spezzato in chunk da 95 MiB, con checksum e istruzioni di ricomposizione, così che ogni file Git resti sotto il limite GitHub di 100 MB.
+- Le copie sorgenti non vengono cancellate finché entrambi i trasferimenti non sono verificati.
+- Nei giorni successivi Enrico ha completato manualmente le verifiche dei trasferimenti e l'ultimo riallineamento della documentazione su `gpu2`. Per *Achillea atrata* sono presenti i `.zstd.tif`; le prove `split-byte-check` e `split-zstd-byte-check` contengono parti da 95 MiB, checksum e file ricomposti con hash coincidente con l'originale.
+- Codice, documentazione, input selezionati e output compressi selezionati passano tramite Git e GitHub. `omni-sync` è stato dismesso; dati massivi e container vengono gestiti manualmente fuori da GitHub.
+- La versione di R è determinata dall'immagine Rocker pinnata, quindi non occorre clonare R durante la build. BIOMOD2 deve essere installato da una release o da un commit esplicito, con le dipendenze registrate. Il `geospatial.def` corrente lo installa da CRAN senza specificare la versione; questo pin resta da completare.
+- Non è stata aggiunta ad `AGENTS.md` una regola generica che imponga screenshot con Chrome: Pi non espone un tool browser/screenshot e su `gpu2` non risultano installati Chrome, Chromium o Playwright. La regola avrebbe senso solo insieme a uno strumento browser concreto e per attività con un output visivo da verificare.
 
 ## Come è stata ricostruita la cronologia
 
@@ -61,7 +73,7 @@ Git registra l'archiviazione congiunta degli undici file in `docs/work-in-progre
 - `prompt.md` fu aggiornato il 2 settembre alle 14:04 nel commit `9a65203`, che rinominò il target di sincronizzazione in `3sync`.
 - `prompt.md` e `run-manifest.md` furono aggiornati di nuovo il 5 settembre nel commit `b37e227`, dopo la diagnosi del 4 settembre. Le date nella tabella precedente descrivono le copie archiviate inizialmente; le versioni eliminate al termine di questo consolidamento includono anche l'aggiornamento successivo.
 
-La cronologia degli eventi, ricostruita sotto, è quindi più affidabile dell'ordine alfabetico o della sola data materiale dei file.
+Per ricostruire gli eventi va usata la cronologia seguente, perché l'ordine alfabetico e la data materiale dei file non bastano.
 
 ## Mappa dei riferimenti e dei nomi
 
@@ -77,7 +89,7 @@ I documenti furono scritti durante un riordino del repository. Alcuni percorsi c
 | `docs/session-2026-07-03.md` | Copia archiviata in `docs/work-in-progress/session-2026-07-03.md`. |
 | `docs/thesis-plan.md` | Copia archiviata in `docs/work-in-progress/thesis-plan.md`. |
 | `docs/campaign-snapshot.md` | Copia archiviata in `docs/work-in-progress/campaign-snapshot.md`. |
-| `make sync` | Nome presente in una nota precedente. Il comando aggiornato è `make 3sync`. |
+| `make sync`, `make 3sync` e `make omni-sync` | Comandi storici di sincronizzazione, ora dismessi in favore di Git e GitHub. |
 
 Gli hash brevi `52004b2`, `354e415`, `bc71039`, `e622491`, `b26fbd3`, `434b6a8`, `6c36715`, `88e03c0` e `49cfdb0` compaiono nel quaderno come riferimenti a revisioni storiche. Non sono risolvibili nell'attuale insieme di oggetti Git locale. Devono essere trattati come identificatori registrati nelle note, non come commit già riverificati nel clone corrente.
 
@@ -364,18 +376,18 @@ La run F/F è una baseline valida di runtime e risorse:
 - sono presenti 127 file di modello, cioè 125 modelli individuali più due ensemble;
 - nel log non compare un errore applicativo fatale.
 
-Ripartizione del tempo:
+Ripartizione del tempo e contesto di risorsa:
 
-| Fase | Secondi | Minuti | Ore |
-|---|---:|---:|---:|
-| Formattazione | 4.527,93 | 75,47 | 1,26 |
-| Modellazione individuale | 248,85 | 4,15 | 0,07 |
-| Modellazione ensemble | 137,30 | 2,29 | 0,04 |
-| Proiezione corrente | 7.047,56 | 117,46 | 1,96 |
-| Proiezione ensemble corrente | 1.421,92 | 23,70 | 0,40 |
-| Proiezioni future | 67.818,98 | 1.130,32 | 18,84 |
+| Fase | Worker BIOMOD2 configurati | Secondi | Minuti | Ore | Risorse job: CPU-h / utilizzo / MaxRSS / I/O R-W / output GiB |
+|---|---:|---:|---:|---:|---:|
+| Formattazione | NA | 4.527,93 | 75,47 | 1,26 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
+| Modellazione individuale | 4 | 248,85 | 4,15 | 0,07 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
+| Modellazione ensemble | 2 | 137,30 | 2,29 | 0,04 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
+| Proiezione corrente | 4 | 7.047,56 | 117,46 | 1,96 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
+| Proiezione ensemble corrente | 2 | 1.421,92 | 23,70 | 0,40 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
+| Proiezioni future, 8 scenari | 4 / 2 | 67.818,98 | 1.130,32 | 18,84 | 71,15 / 78,8% / 260,94 / 25,47-7,25 / 7,18 |
 
-La maggior parte del tempo è quindi nelle proiezioni future. I warning non fatali GLM, MAXNET e sulle metriche ensemble devono essere controllati prima di considerare scientificamente definitive le metriche di valutazione. Non invalidano la baseline di esecuzione.
+CPU-hours, utilizzo CPU medio, MaxRSS, I/O Slurm e disco finale sono misure dell'intero job `49844162_1`, non della singola fase. L'utilizzo è `TotalCPU / (Elapsed × AllocCPUS)`. I file di timing non registrano CPU-time, picco RAM o crescita del disco tra l'inizio e la fine delle fasi; tali valori restano `NA` e non vengono stimati. Le proiezioni future assorbono la maggior parte del tempo. I warning non fatali di GLM, MAXNET e delle metriche ensemble richiedono un controllo prima di usare le metriche come risultati scientifici definitivi, ma non invalidano la baseline di esecuzione.
 
 ## Fase 7: confronto tra storage T/F e numero di worker, 2 agosto
 
@@ -407,13 +419,15 @@ Ogni configurazione fu eseguita una sola volta, quindi non è disponibile una mi
 
 ### Timing per fase
 
-| Configurazione | Formattazione | Proiezione corrente | Ensemble corrente | Ciclo futuro completo |
-|---|---:|---:|---:|---:|
-| 4 worker T/F | 4.490,02 s, 74,83 min, 1,25 h | 6.988,68 s, 116,48 min, 1,94 h | 1.467,62 s, 24,46 min, 0,41 h | 67.139,91 s, 1.119,00 min, 18,65 h |
-| 6 worker F/F | 4.600,66 s, 76,68 min, 1,28 h | 5.132,52 s, 85,54 min, 1,43 h | 1.451,78 s, 24,20 min, 0,40 h | 52.735,75 s, 878,93 min, 14,65 h |
-| 8 worker F/F | 4.531,17 s, 75,52 min, 1,26 h | 4.057,93 s, 67,63 min, 1,13 h | 1.448,78 s, 24,15 min, 0,40 h | 43.996,87 s, 733,28 min, 12,22 h |
+La colonna delle risorse usa il formato `CPU-hours Slurm / utilizzo CPU medio / MaxRSS Slurm in GiB / MaxDiskRead-MaxDiskWrite Slurm in GiB / disco finale della specie in GiB`. L'utilizzo è `TotalCPU / (Elapsed × AllocCPUS)`. Sono valori dell'intero job associato a ogni riga, non misure di singola fase.
 
-La formattazione restò tra 4.490,02 e 4.600,66 s. L'ensemble corrente restò tra 1.448,78 e 1.467,62 s. Queste fasi non beneficiarono in modo evidente dell'aumento dei worker.
+| Configurazione | Risorse job: CPU-h / utilizzo / RAM / I/O R-W / output | Formattazione | Proiezione corrente | Ensemble corrente | Ciclo futuro completo |
+|---|---:|---:|---:|---:|---:|
+| 4 worker T/F | 70,68 / 79,0% / 264,69 / 25,73-7,38 / 7,30 | 4.490,02 s, 74,83 min, 1,25 h | 6.988,68 s, 116,48 min, 1,94 h | 1.467,62 s, 24,46 min, 0,41 h | 67.139,91 s, 1.119,00 min, 18,65 h |
+| 6 worker F/F | 72,95 / 68,1% / 258,95 / 26,01-7,71 / 7,24 | 4.600,66 s, 76,68 min, 1,28 h | 5.132,52 s, 85,54 min, 1,43 h | 1.451,78 s, 24,20 min, 0,40 h | 52.735,75 s, 878,93 min, 14,65 h |
+| 8 worker F/F | 72,51 / 60,0% / 278,67 / 26,32-7,93 / 7,35 | 4.531,17 s, 75,52 min, 1,26 h | 4.057,93 s, 67,63 min, 1,13 h | 1.448,78 s, 24,15 min, 0,40 h | 43.996,87 s, 733,28 min, 12,22 h |
+
+I file di timing non contengono CPU-time, MaxRSS o crescita del disco delimitati dalle fasi; quei valori sono `NA` e non sono ripartiti artificialmente. La formattazione restò tra 4.490,02 e 4.600,66 s. L'ensemble corrente restò tra 1.448,78 e 1.467,62 s. Queste fasi non beneficiarono in modo evidente dell'aumento dei worker.
 
 ### Utilizzo CPU
 
@@ -547,7 +561,7 @@ Questa fase è successiva alla frase del quaderno "nessuna campagna è attualmen
 
 `R/base/base_sequential_analysis_campaign_49cfdb0.R` era la copia congelata dello script usato dalla campagna di produzione. Fu archiviata nel commit locale `bd135b2` e in seguito rimossa dall'albero corrente perché resta recuperabile con `git show bd135b2:R/base_sequential_analysis_campaign_49cfdb0.R`.
 
-Non era uno snapshot Git speciale, un worktree o un clone, ma un artefatto materializzato il cui nome conservava il riferimento sorgente Leonardo `49cfdb0`. Lo SHA-256 verificato era:
+Era un artefatto materializzato, non uno snapshot Git, un worktree o un clone. Il nome conservava il riferimento sorgente Leonardo `49cfdb0` e lo SHA-256 verificato era:
 
 ```text
 11faf284ac01e00aeee16e48fc8938855edc624d956e5859330cc9b0625c9c7a
@@ -577,30 +591,32 @@ Negli identificativi delle campagne array, il suffisso indica il task: `55020903
 
 I log forniscono un riscontro diretto:
 
-| Run/task | Specie | Occorrenze | Wall time |
-|---|---|---:|---:|
-| `55020903_1` | *Achillea atrata* | 1.475 | 25:36:36 |
-| `55020903_2` | *Achillea clusiana* | 174 | 21:26:42 |
-| `55020903_3` | *Agrostis capillaris* | 170.701 | 33:58:34 |
+| Run/task | Specie | Occorrenze | Wall time | TotalCPU Slurm | Utilizzo CPU medio | MaxRSS Slurm | MaxDiskRead/Write Slurm | Disco finale specie |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| `55020903_1` | *Achillea atrata* | 1.475 | 25:36:36 | 5-20:39:00 | 68,6% | 316,16 GiB | 42,66 / 14,91 GiB | 13,98 GiB |
+| `55020903_2` | *Achillea clusiana* | 174 | 21:26:42 | 4-14:27:34 | 64,4% | 315,78 GiB | 40,91 / 14,47 GiB | 13,36 GiB |
+| `55020903_3` | *Agrostis capillaris* | 170.701 | 33:58:34 | 8-06:02:47 | 72,9% | 291,42 GiB | 154,11 / 60,94 GiB | 59,13 GiB |
 
-La somma dei tre wall time, 81:01:52, non è il runtime di una singola run. Per `_1`, le fasi registrate sommano 92.176,47 s, cioè 25:36:16; i circa 20 s rispetto al wall time sono overhead del wrapper.
+L'utilizzo CPU medio è `TotalCPU / (Elapsed × AllocCPUS)`. La somma dei tre wall time, 81:01:52, non è il runtime di una singola run. Per `_1`, le fasi registrate sommano 92.176,47 s, cioè 25:36:16; i circa 20 s rispetto al wall time sono overhead del wrapper.
 
 Il tempo Futuro somma gli otto scenari della stessa specie. CPU-hours e TotalCPU accumulano il lavoro dei processi paralleli, mentre le CPU-hours allocate corrispondono al wall time moltiplicato per le CPU assegnate. Nessuna di queste misure somma automaticamente specie diverse.
 
-Evidenze: snapshot `R/base_sequential_analysis_campaign_49cfdb0.R` nel commit `bd135b2`, `scripts/sbatch.sh`, `logs/job_55020903_[1-3].log` e `logs/phase_timings_2026-09-06.csv`.
+Una verifica diretta su Leonardo con `sacct` ha restituito per le run analizzate soltanto gli step del job, `.batch` e `.extern`, senza step distinti per le chiamate R. `AcctGatherProfileType` è disabilitato; `sstat` non restituisce campioni per i job conclusi e `seff`, `jobstats` e `ssacct` non sono disponibili. CPU, RAM e I/O delle singole fasi non possono quindi essere ricostruiti retroattivamente da Slurm: devono essere campionati durante una nuova run o prodotti eseguendo ogni fase come step separato.
+
+Evidenze: snapshot `R/base_sequential_analysis_campaign_49cfdb0.R` nel commit `bd135b2`, `scripts/sbatch.sh`, `logs/job_55020903_[1-3].log`, `logs/phase_timings_2026-09-06.csv` e interrogazione Slurm del 14 settembre 2026.
 
 ### Stato rilevato il 31 agosto
 
 | Run o output | Stato al 31 agosto | Riferimento annotato |
 |---|---|---|
-| `data/output` | Trasferito a `F:\HPC_Leonardo\data\output\`; archivio corrente 135 GB. | `scripts/3sync.sh`; verifica Spartaco. |
+| `data/output` | Trasferito a `F:\HPC_Leonardo\data\output\`; archivio corrente 135 GB. | `scripts/omni-sync.sh`; verifica Spartaco. |
 | `55020903_1`, *Achillea atrata* | Completato; `_SUCCESS`; 2.614 file. | `logs/leonardo-raw/`. |
 | `55020903_2`, *Achillea clusiana* | Completato; `_SUCCESS`; 2.614 file. | `logs/leonardo-raw/`. |
 | `55020903_3`, *Agrostis capillaris* | Ancora in esecuzione; nessun `_SUCCESS`. | `logs/leonardo-raw/`. |
 | Benchmark `output_*` | Conservati su Leonardo e Spartaco; circa 54 GB. | Quaderno e note della sessione del 3 luglio. |
 | Snapshot dello script | Archiviato e verificato. | Nota sullo snapshot. |
 
-Leonardo e Spartaco mantengono gli stessi percorsi relativi rispetto alla root del repository. I file pesanti vengono trasferiti con `scripts/3sync.sh`.
+Leonardo e Spartaco mantengono gli stessi percorsi relativi rispetto alla root del repository. I file pesanti vengono trasferiti con `scripts/omni-sync.sh`.
 
 ### Stato aggiornato il 2 settembre
 
@@ -624,7 +640,7 @@ Il manifest aggiornato dopo la manutenzione registra:
 
 | Run o output | Stato al 4 settembre | Riferimento storico |
 |---|---|---|
-| `data/output` | Trasferito in `F:\HPC_Leonardo\data\output\`; archivio corrente 135 GB. | `scripts/3sync.sh`; verifica Spartaco. |
+| `data/output` | Trasferito in `F:\HPC_Leonardo\data\output\`; archivio corrente 135 GB. | `scripts/omni-sync.sh`; verifica Spartaco. |
 | `55020903_1`, `Achillea.atrata` | Completato; `_SUCCESS`; 2.614 file. | `logs/leonardo-raw/`. |
 | `55020903_2`, `Achillea.clusiana` | Completato; `_SUCCESS`; 2.614 file. | `logs/leonardo-raw/`. |
 | `55020903_3`, `Agrostis.capillaris` | Completato il 2 settembre 2026 alle 03:52:58; `_SUCCESS`; 2.614 file. | `logs/leonardo-raw/`. |
@@ -632,7 +648,7 @@ Il manifest aggiornato dopo la manutenzione registra:
 | Benchmark `output_*` | Conservati su Leonardo e Spartaco; circa 54 GB. | Quaderno sperimentale e note della sessione del 3 luglio. |
 | Snapshot dello script | Archiviato e verificato. | Nota sullo snapshot della campagna. |
 
-Serviicola, Leonardo e Spartaco mantengono ciascuno un clone Git e `container/geospatial.sif`, escluso da Git. I dati pesanti sotto `data/` restano su Leonardo e Spartaco. `make 3sync` trasferisce dati e container da Leonardo a Spartaco attraverso Serviicola senza cancellare file a destinazione. Per un solo percorso, il comando storico esatto è `make 3sync ARGS="<relative-path>"`.
+Serviicola, Leonardo e Spartaco mantengono ciascuno un clone Git e `container/geospatial.sif`, escluso da Git. I dati pesanti sotto `data/` restano su Leonardo e Spartaco. `make omni-sync` trasferisce dati e container da Leonardo a Spartaco attraverso Serviicola senza cancellare file a destinazione. Per un solo percorso si usa `make omni-sync ARGS="<relative-path>"`.
 
 # Inventario cronologico completo delle run
 
@@ -852,7 +868,7 @@ Rimuovere i raster individuali:
 
 Non è stata applicata alcuna politica automatica di cancellazione.
 
-# Occorrenze, specie e raster blocking
+# Occorrenze e raster blocking
 
 ## Distribuzione delle specie nel dataset completo
 
@@ -867,49 +883,13 @@ Il file `data/input/full_1km_EUNIS.csv` contiene 2.583.359 record per 167 specie
 | Terzo quartile | 14.633 |
 | Massimo | 170.701 |
 
-*Galium anisophyllon* è la specie mediana per numerosità delle occorrenze: ha esattamente 5.936 record ed è la 84ª specie nella graduatoria ordinata per conteggio. È quindi il candidato rappresentativo per una prova basata sulla distribuzione dei conteggi delle occorrenze per specie. Le specie più vicine sono *Dichodon cerastoides* (5.912), *Festuca filiformis* (5.992), *Fumana procumbens* (6.098) e *Sagina saginoides* (5.238).
+Il conteggio completo resta in [`data/output/full_species_counts.csv`](../data/output/full_species_counts.csv) per descrivere il dataset e supportare eventuali stime aggregate. *Galium anisophyllon* è la specie mediana per numerosità, con 5.936 record. I benchmark usano *Achillea atrata* perché dispone di più dati sperimentali sulle run, confronti e output validati. La scelta riflette la quantità di evidenza sperimentale disponibile; la rappresentatività numerica, geografica e biologica della specie non è stata valutata.
 
-La specie più frequente è invece *Agrostis capillaris* (170.701 record), seguita da *Potentilla erecta* (167.345), *Galium verum* (112.708), *Knautia arvensis* (92.894) e *Luzula campestris* (77.960). Questa è una scelta diversa dalla specie mediana e non va usata come rappresentativa della dimensione tipica senza una motivazione specifica.
+Il controllo eseguito su Leonardo nel container di produzione il 2026-09-08 ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali. Tutte le 2.583.359 coordinate rientrano nell'estensione e coincidono con i centri delle celle entro una tolleranza di `1e-9` gradi; non serve quindi riproiettarle. Comandi e output sono conservati in [`logs/crs_validation_2026-09-08.txt`](../logs/crs_validation_2026-09-08.txt).
 
-Il conteggio completo è conservato in [`data/output/full_species_counts.csv`](../data/output/full_species_counts.csv); la sintesi e le specie candidate sono in [`docs/review/1.runtime-and-resource-summary.md`](review/1.runtime-and-resource-summary.md#distribuzione-delle-occorrenze-e-specie-candidate).
-
-Un secondo confronto ha considerato la distribuzione spaziale. Lo script `scripts/find_representative_species.py` assume che `x` e `y` siano longitudine e latitudine WGS84. Le proietta con una Lambert azimutale equivalente sferica centrata sull'Europa, aggrega le occorrenze su griglie di 5, 10 e 20 km e assegna lo stesso peso a ogni specie. Il medoid spaziale è la specie con la minore divergenza media di Jensen-Shannon dalle altre specie. Il confronto con la distribuzione media è usato come controllo. Il controllo eseguito su Leonardo nel container di produzione il 2026-09-08 ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali. Tutte le 2.583.359 coordinate rientrano nell'estensione e coincidono con i centri delle celle entro una tolleranza di `1e-9` gradi; non serve quindi riproiettarle. Comandi e output sono conservati in [`logs/crs_validation_2026-09-08.txt`](../logs/crs_validation_2026-09-08.txt).
-
-Per controllare rapidamente la sintassi dello script si può usare:
-
-```bash
-python3 -m py_compile scripts/find_representative_species.py
-```
-
-`py_compile` è un modulo della libreria standard, richiamato con l'opzione `-m`, non un flag. Compila il file senza eseguire `main()` e segnala gli errori di sintassi, ma non verifica la logica. Il comando crea un file `.pyc` sotto `scripts/__pycache__/`; la directory è temporanea e non va committata. Il comportamento dello script va controllato separatamente con `python3 scripts/find_representative_species.py --self-test` e, quando serve, con un'esecuzione completa sui dati.
-
-*Phyteuma orbiculare* è prima con celle da 10 e 20 km e seconda con celle da 5 km; è anche prima rispetto alla distribuzione media a 10 e 20 km e seconda a 5 km. È quindi la candidata più solida quando si considera soltanto la geometria spaziale. *Galium anisophyllon* ha invece il conteggio mediano ed è 7ª per distanza spaziale media a tutte e tre le risoluzioni. Questi due criteri non sono combinati in un unico punteggio. Il ranking non misura runtime o memoria e non sostituisce il criterio per numerosità richiesto dalla proiezione preliminare. I risultati completi sono versionati in `data/output/spatial_species_representativeness.csv`.
-
-Dividere le righe di occorrenza di una stessa specie cambierebbe:
-
-- selezione delle pseudo-assenze;
-- cross-validation;
-- modelli calibrati.
-
-I risultati parziali non ricostruirebbero quindi l'analisi esistente.
-
-Raggruppare più specie complete nello stesso task conserverebbe l'analisi, ma:
-
-- non ridurrebbe la memoria richiesta dalla proiezione di una specie;
-- ridurrebbe l'isolamento dei fallimenti per specie.
+Dividere le righe di occorrenza di una stessa specie cambierebbe la selezione delle pseudo-assenze, la cross-validation e i modelli calibrati; i risultati parziali non ricostruirebbero quindi l'analisi esistente.
 
 Il raster blocking è diverso. Un modello già calibrato predice intervalli di righe o tile spaziali consecutivi, scrive ogni blocco e li combina nello stesso raster finale. Cambia la pianificazione della memoria, non i dati di occorrenza o il modello.
-
-## Specie rappresentativa da scegliere
-
-Il medoid è la specie reale con la distanza media minore dalle distribuzioni spaziali delle altre specie. Non è stato definito un punteggio che combini numerosità e distribuzione spaziale, quindi le candidate restano separate per criterio:
-
-- *Phyteuma orbiculare*: distribuzione spaziale più simile alle altre a 10 e 20 km, con 13.877 occorrenze;
-- *Scabiosa lucida*: 6ª per vicinanza alla mediana e tra la 4ª e la 6ª posizione nello spazio, con 6.175 occorrenze;
-- *Galium anisophyllon*: mediana esatta di 5.936 occorrenze e 7ª per distanza spaziale media;
-- *Agrostis capillaris*: massimo di 170.701 occorrenze, come caso limite.
-
-La scelta dipende dal criterio ritenuto rilevante e va concordata con i collaboratori.
 
 # Metodologia di misura e interpretazione
 
@@ -956,6 +936,76 @@ La RAM di nodi separati non viene combinata in modo trasparente. Un'esecuzione m
 
 # Workflow tra i tre host
 
+## Cluster DIBRIS: `it`, `intel2` e `gpu2` (verificati l'11 e 16 settembre 2026)
+
+Queste macchine sono distinte da Serviicola, Leonardo e Spartaco. L'accesso avviene in due passaggi: prima il front-end `it`, poi i nodi interni `intel2` o `gpu2`. Le credenziali non sono riportate qui.
+
+### `it`: front-end del cluster
+
+Il nome completo è `it.unige.dibris.lsccluster.front`. Il file `/etc/hosts` del front-end elenca inoltre `node0`--`node9`, `intel1`, `intel2`, `gpu1`, `gpu2` e `storage`: `it` è quindi il nodo di accesso, non una macchina destinata ai calcoli pesanti. L'espansione letterale dell'abbreviazione `it` non è stata documentata dal sistema; il suo ruolo di front-end è invece confermato dal nome completo.
+
+La rete interna è organizzata così:
+
+```text
+front / it     -> accesso
+node0..node9   -> nodi del cluster
+intel1,intel2  -> nodi CPU
+gpu1,gpu2      -> nodi GPU
+storage        -> storage
+```
+
+| Risorsa | Informazione osservata |
+|---|---|
+| Sistema operativo | CentOS Linux 7, kernel `3.10.0-1160.119.1.el7.x86_64` |
+| CPU | Intel Xeon E5520 a 2,27 GHz; 1 socket, 4 core, 4 thread |
+| RAM | 11 GiB totali; circa 9,0 GiB disponibili al controllo |
+| Disco di sistema | RAID1 da due dischi da 698,7 GiB; `/` da 50 GiB, con 29 GiB disponibili |
+| Home | volume XFS da 642 GiB, con 251 GiB disponibili |
+| GPU | Nessuna GPU NVIDIA utilizzabile: `nvidia-smi` non comunica con un driver NVIDIA; `lspci` non è installato |
+
+### `intel2`: nodo CPU
+
+Il 16 settembre 2026, `intel2` risultava un nodo CPU con 62 GiB di RAM visibili. Segue l'indicazione del professore: va usato per prove che richiedono al massimo 64 GiB di RAM.
+
+| Risorsa | Informazione osservata |
+|---|---|
+| Sistema operativo | Ubuntu 24.04.1 LTS, kernel `6.8.0-137-generic` |
+| CPU | Intel Xeon Gold 6430; 1 socket, 32 core, 64 thread |
+| RAM | 62 GiB totali; circa 55 GiB disponibili al controllo |
+| Swap | 8 GiB |
+| Disco di sistema | volume LVM ext4 da 877 GiB (`/`), con 820 GiB disponibili |
+| Disco aggiuntivo | `sdb`, ext4 da 894,3 GiB, non montato |
+| Storage di rete | `/nethome`, NFS da 200 TiB, con 173 TiB disponibili |
+| Storage dati locale | `/data` non esiste |
+
+### `gpu2`: secondo nodo GPU
+
+`gpu2` è il secondo nodo nominato della categoria GPU, accanto a `gpu1`. Il suffisso `2` identifica quindi il nodo, non il numero di GPU; il nodo ha comunque due GPU. È una macchina di calcolo con molta RAM e storage locale, da usare entro il limite comunicato di 32 core e un esperimento alla volta.
+
+| Risorsa | Informazione osservata |
+|---|---|
+| Sistema operativo | Ubuntu 24.04.3 LTS, kernel `6.8.0-90-generic` |
+| CPU | 2 × Intel Xeon 6952P; 96 core e 192 thread per socket, 192 core e 384 thread totali |
+| Topologia | 6 nodi NUMA esposti dal sistema operativo |
+| RAM | 1,5 TiB totali; circa 1,3 TiB disponibili al controllo |
+| Swap | 15 GiB |
+| Disco di sistema | RAID1 NVMe; `/` da 861 GiB, con 279 GiB disponibili |
+| Storage dati locale | `/data`, XFS da 14 TiB, con 8,4 TiB disponibili |
+| Storage di rete | `/nethome`, NFS da 200 TiB, con 174 TiB disponibili |
+| GPU | 2 × NVIDIA H200 NVL; 143.771 MiB (circa 140,4 GiB) di memoria per GPU |
+| Driver e CUDA | Driver NVIDIA `580.95.05`; CUDA `13.0` riportata da `nvidia-smi` |
+| Stato GPU al controllo | Nessun processo di calcolo; solo Xorg e GNOME usavano pochi MiB |
+
+Gli spazi liberi e l'uso RAM sono istantanee: vanno ricontrollati prima di ogni esperimento. I dati sono stati raccolti con `hostname`, `hostname -f`, `cat /etc/os-release`, `uname`, `lscpu`, `free -h`, `lsblk`, `df -hT`, `getent hosts`, `/etc/hosts`, `lspci` e `nvidia-smi`, senza installare software o modificare le macchine.
+
+Il controllo del 16 settembre 2026 conferma che `intel2` e `gpu2` condividono lo stesso mount NFS per `/nethome`. La home e il clone `High-Performance-Ecoinformatics` sono scrivibili dall'utente su entrambi i nodi. Non è stata trovata una directory scrivibile assegnata all'utente sotto `/data` su `gpu2`; `intel2` non ha `/data`.
+
+Su entrambi i nodi Git è `2.43.0`. `R`, `Rscript`, BIOMOD2, rclone, Singularity, Apptainer e comandi di scheduler (`sbatch`, `squeue`, `qsub`, `qstat`, `bsub`, `bjobs`) non sono nel `PATH`; non è stato installato nulla.
+
+`step-cli` 0.31.0 è stato installato senza privilegi amministrativi in `$HOME/.local/bin/step` dall'archivio ufficiale Linux `amd64`; il digest SHA-256 pubblicato da GitHub è stato verificato prima dell'installazione.
+`$HOME/.local/bin` era già nel `PATH` e `step version` ha confermato `Smallstep CLI/0.31.0 (linux/amd64)`. Fonte: [documentazione ufficiale](https://smallstep.com/docs/step-cli/installation/).
+Il login CINECA usa ora `scripts/totp.py`, basato soltanto sulla libreria standard Python, per generare il TOTP SHA-1 a sei cifre dal secret esistente. Il helper sostituisce `oathtool` e include un self-test sul vettore ufficiale RFC 6238.
+
 ## Serviicola
 
 - Clone di lavoro in `/home/ubuntu/tesi`.
@@ -965,14 +1015,17 @@ La RAM di nodi separati non viene combinata in modo trasparente. Un'esecuzione m
 ## Leonardo
 
 - Root: `/leonardo_work/IscrC_SPECC`.
-- Contiene dati pesanti, log e `container/geospatial.sif`.
-- I vecchi metadati Git devono essere sostituiti da un clone fresco soltanto dopo la manutenzione, preservando `data/`, `logs/` e il container.
+- Il 16 settembre 2026 il clone divergente è stato sostituito con un clone pulito di `origin/main` al commit `66ed61d292060b0081691af7d2a9d8941113ea61`.
+- Prima della sostituzione, i 29.523 file sotto `data/` sono stati confrontati per dimensione con Spartaco; tutti risultavano presenti. I 129 log di Leonardo e l'inventario Git sono stati copiati in `/home/ubuntu/leonardo-backup-20260916/` su Serviicola. Il container è stato verificato e ripristinato nel nuovo clone; i dati pesanti restano archiviati su Spartaco finché non servono a Leonardo.
+- I 152 commit locali e i metadati Git del clone precedente sono stati intenzionalmente scartati dopo l'inventario, perché non erano modifiche di codice da conservare.
 - Per i comandi operativi, l'handoff richiede `tmux send-keys` sulla finestra `tesi:1:leo`, controllo preventivo dello stato del pane e ripristino del monitoraggio log dopo il comando.
 
 ## Spartaco
 
 - Clone in `F:\HPC_Leonardo`.
 - File pesanti sotto `data\` e `container\geospatial.sif`.
+- Nei giorni successivi è stato installato WSL. Da allora Enrico lo usa per tutte le attività su Spartaco, perché è più comodo di Git Bash e degli strumenti Windows.
+- Il 16 settembre 2026 il clone risultava accessibile. `HEAD` e il suo `origin/main` locale erano entrambi `4ede75f2564d819ebd1f6d892b4fb86c3bf71f39`, ma il worktree aveva 252 modifiche tracciate. `core.autocrlf=true` è configurato e il confronto che ignora le sole terminazioni di riga segnala comunque differenze sostanziali: non eseguire `git pull` finché non sarà riallineato con una procedura reversibile.
 
 ## Git e file pesanti
 
@@ -986,18 +1039,7 @@ La RAM di nodi separati non viene combinata in modo trasparente. Un'esecuzione m
 
 ## Sincronizzazione
 
-`make 3sync` copia per default:
-
-- `data/`;
-- `container/geospatial.sif`.
-
-Per un percorso specifico:
-
-```bash
-make 3sync ARGS="<percorso-relativo>"
-```
-
-Lo script `scripts/3sync.sh` usa gli stessi percorsi relativi su Leonardo e Spartaco. Copia dati e container da Leonardo a Spartaco passando per Serviicola. Prova prima `rclone`; se fallisce usa `scp -3`. Non cancella i file già presenti a destinazione.
+Il precedente comando `make omni-sync`, che trasferiva dati e container da Leonardo a Spartaco tramite Serviicola, è stato dismesso. Il flusso corrente usa Git e GitHub; dati massivi e container non tracciati vengono gestiti manualmente quando necessario.
 
 # Modello operativo worktree, tmux e agent
 
@@ -1015,7 +1057,11 @@ branch
               └── agent
 ```
 
-L'implementazione dell'articolo è specifica per le preferenze dell'autore, ma l'idea generale è considerata più importante dello script. Un minimo di orchestrazione rende naturale creare un workspace pulito per ogni attività, evitando che lavori non correlati condividano branch, directory o contesto del terminale.
+Gli script dell'articolo riflettono le preferenze dell'autore; qui interessa soprattutto il modello operativo. Una piccola quantità di orchestrazione permette di creare un workspace pulito per ogni attività e impedisce a lavori non correlati di condividere branch, directory o contesto del terminale.
+
+Dal video di Salvatore Sanfilippo sull'osservabilità dei coding agent è stata ricavata una regola operativa: dare all'agente un controllo eseguibile e accesso agli errori, allo stato e agli output necessari per correggere il proprio lavoro.
+
+La regola è ora in `AGENTS.md`. I moduli attivi in `R/base/` e `R/poc/` sono stati controllati e commentano i contratti che non emergono dalla sintassi: configurazione scientifica, ordine dei raster, ownership degli output, seed e cross-validation, limiti delle misure, significato di `_SUCCESS` e provenienza delle run. Gli script storici e i prototipi dichiarano il proprio ruolo per evitare che vengano scambiati per entry point correnti. La pipeline dispone già di log, timing per fase, campionamento RSS, configurazione risolta, revisioni, test sintetici e confronti degli output; non è stata aggiunta una seconda infrastruttura di osservabilità.
 
 Riferimento Leonardo annotato:
 
@@ -1066,6 +1112,22 @@ Il pre-prompt associato richiedeva di leggere prima `prompt.md`, il quaderno LaT
 
 # Proof of concept delle varianti R
 
+Il POC usa un solo branch e un'unica implementazione R divisa in fasi. `R/poc/main.R` le orchestra attraverso la configurazione e i tre launcher selezionano i profili: I/O e modelli sequenziali, I/O sequenziale e modelli paralleli, oppure I/O e modelli paralleli. Questa scelta evita di duplicare la pipeline e di far divergere parametri scientifici e correzioni tra varianti.
+
+## Esecuzione e test del POC
+
+```bash
+R/poc/test-dry-run.sh
+
+singularity exec --pwd /work --bind "$PWD:/work" container/geospatial.sif \
+  /work/R/poc/test-dry-run.sh
+
+singularity exec --pwd /work --bind "$PWD:/work" container/geospatial.sif \
+  Rscript /work/R/poc/test-smoke.R
+```
+
+`test-dry-run.sh` verifica i tre launcher, gli alias e gli override della configurazione, compreso il rifiuto delle richieste oltre `SLURM_CPUS_PER_TASK`. Non carica pacchetti scientifici e non legge gli input. `test-smoke.R` genera raster e presenze sintetici, esegue i tre profili e confronta la cross-validation, le metriche e gli output.
+
 Durante la preparazione dei tre profili in `R/poc/` sono stati eseguiti dry-run e smoke test sintetici nel container di produzione. Le prime esecuzioni sequenziale e parallela terminavano correttamente e scrivevano `_SUCCESS`. I TIFF avevano gli stessi nomi relativi, geometria e maschere `NA`, ma i valori differivano fino a circa 831. Le differenze comparivano già nelle metriche, nelle soglie e nei coefficienti GLM, quindi non erano dovute alla copia parallela degli output.
 
 Anche due ripetizioni completamente sequenziali producevano risultati diversi. Il confronto con I/O parallelo e modelli sequenziali ha escluso lo staging concorrente. L'ispezione della versione BIOMOD2 4.3-4-5 nel container ha mostrato che `BIOMOD_Modeling(seed.val)` non determina la partizione casuale: `bm_CrossValidation()` non riceve il seed e la funzione interna `.sample_num()` esegue `set.seed(NULL)`. Chiamare `set.seed()` prima della funzione non basta, perché il generatore viene reinizializzato al suo interno.
@@ -1076,15 +1138,15 @@ Dopo la correzione, le ripetizioni sequenziali e parallele e i confronti tra I/O
 
 ### Spiegazione semplice del test smoke e di Snowfall
 
-`R/poc/test-smoke.R` è una prova piccola e veloce. Crea raster e presenze fittizie, poi fa girare la stessa pipeline con i tre profili POC. Infine confronta i risultati. È come dare la stessa mappa a tre bambini che colorano in modi diversi e controllare che i disegni finali siano uguali. Il test cerca errori di collegamento tra le fasi, seed casuali applicati male, file mancanti, geometrie diverse e valori raster diversi.
+`R/poc/test-smoke.R` è una prova piccola e veloce. Crea raster e presenze fittizie, esegue la stessa pipeline con i tre profili POC e confronta i risultati. Cerca errori nel collegamento tra le fasi, nell'uso dei seed, nei file prodotti, nella geometria e nei valori raster.
 
 Il test non dimostra che il workflow completo funzionerà per 167 specie e raster grandi: controlla soltanto che i pezzi principali siano coerenti su un esempio piccolo. Non è neppure un benchmark di velocità. Se passa, `_SUCCESS`, le metriche, i file TIFF, la geometria, le celle `NA` e i valori devono coincidere tra i profili confrontati.
 
 Snowfall è un livello diverso di parallelismo. Distribuisce specie diverse a processi diversi: per esempio, un processo elabora la specie A e un altro la specie B. Non è semplicemente un'opzione che rende più veloce una singola specie. BIOMOD2 può inoltre usare più worker per i modelli di ogni specie. Con due worker Snowfall e quattro worker BIOMOD2, il picco teorico è `2 × 4 = 8` worker; il POC rifiuta la configurazione se supera `SLURM_CPUS_PER_TASK`.
 
-Nel POC Snowfall è opzionale, non appartiene alle tre varianti principali e richiede il pacchetto R `snowfall`, che non è presente nel container di produzione. È quindi documentato come possibilità futura, non come modalità già validata. La decisione tecnica di usarlo resta aperta soltanto se i test del backend interno BIOMOD2 mostreranno che serve davvero.
+Nel POC Snowfall è opzionale e richiede il pacchetto R `snowfall`, assente dal container di produzione. Non fa parte delle tre varianti principali e non è stato validato. Verrà considerato solo se i test del backend interno BIOMOD2 ne mostreranno la necessità.
 
-La sezione `Stato della validazione full-raster` in `docs/review/3.r-poc.md` viene mantenuta, ma in forma breve: serve a ricordare che lo smoke test non autorizza ancora l'uso produttivo. La checklist dei benchmark resta nel `README.md`, per evitare di duplicarla nei documenti di review. Progettazione, comandi, limiti e verifiche sono raccolti in [`docs/review/3.r-poc.md`](review/3.r-poc.md).
+Lo smoke test non autorizza ancora l'uso produttivo. Prima di sostituire la baseline occorre eseguire i tre profili su un task Slurm per *Achillea atrata*, mantenendo fissi container, commit, seed e input, e confrontarne risultati, output e risorse. La checklist dei benchmark resta nel `README.md`.
 
 # Questions for the ecologists / Domande per gli ecologi
 
@@ -1203,7 +1265,7 @@ Elenco preparato il 9 settembre 2026 per Lucia e Gabriele. Contiene soltanto dec
 - **Stato:** `OPEN`
 - **Domanda:** Confermate i cinque predittori `PC1_clim`, `PC2_clim`, `tri`, `PC1_soil` e `PC2_soil` e l'uso degli stessi raster per calibrazione e proiezione corrente? Quali GCM, SSP e orizzonti temporali costituiscono il set futuro definitivo, e TRI e suolo devono restare invariati in ogni scenario?
 - **Contesto:** la baseline corrente riusa il raster di calibrazione per la proiezione corrente, mentre i due script storici caricavano directory separate. La struttura dati contiene quattro GCM (`gfdl.esm4`, `ipsl.cm6a.lr`, `mpi.esm1.2.hr` e `mri.esm2.0`), ciascuno con `ssp370` e `ssp585`, per otto scenari. I commenti della baseline parlano ancora di cinque GCM e dieci proiezioni. Il ciclo aggiunge a ogni coppia di raster climatici futuri gli stessi raster TRI e suolo correnti; l'orizzonte temporale non è documentato nel repository.
-- **File e riga:** `data/README.md:32-61`; `R/base/config.R:30-33`; `R/base/baseline.R:43-52,59,222-223,245-246`; `R/performance/old.ensamble_modelling_parallel.R:33-50`; `R/performance/old.ensamble_modelling_snowfall.R:30-47`.
+- **File e riga:** `R/base/config.R:30-33`; `R/base/baseline.R:43-52,59,222-223,245-246`; `R/performance/old.ensamble_modelling_parallel.R:33-50`; `R/performance/old.ensamble_modelling_snowfall.R:30-47`.
 - **Motivo:** il contenuto delle directory prova cosa è disponibile, non che il set sia scientificamente completo o definitivo.
 - **Impatto:** determina il numero e il significato delle proiezioni e l'interpretazione delle variazioni future.
 - **Risposta:** da raccogliere.
@@ -1215,7 +1277,7 @@ Elenco preparato il 9 settembre 2026 per Lucia e Gabriele. Contiene soltanto dec
 - **Stato:** `OPEN`
 - **Domanda:** Qual è il set minimo di output da conservare per analisi, revisione e pubblicazione: modelli salvati, metriche, importanza delle variabili, `EMmean`, `EMcv`, trasformazioni binarie o filtrate, clamping mask e quali raster dei modelli individuali?
 - **Contesto:** la baseline proietta tutti i modelli, produce tutte le trasformazioni richieste e costruisce le clamping mask, ma non richiede il calcolo dell'importanza delle variabili. Per una sola specie validata, le proiezioni individuali occupano circa 6,6 GiB contro circa 700 MiB degli ensemble; eliminare file senza una regola scientifica potrebbe impedire controlli o rianalisi.
-- **File e riga:** `R/base/config.R:57`; `R/base/baseline.R:185-213,255-277`; `data/README.md:71-89`.
+- **File e riga:** `R/base/config.R:57`; `R/base/baseline.R:185-213,255-277`.
 - **Motivo:** BIOMOD2 definisce gli artefatti, ma non quali siano necessari per gli obiettivi DISTAV e per la riproducibilità dello studio.
 - **Impatto:** determina spazio richiesto, trasferimenti, possibilità di ricalcolare gli ensemble e verificabilità dei risultati.
 - **Risposta:** da raccogliere.
@@ -1325,7 +1387,8 @@ La tesi riguarda l'esecuzione e la misurazione su HPC di un workflow R/BIOMOD2 p
 - Non riempire il testo con riferimenti non collegati al progetto.
 - Mantenere la tesi concisa e assertiva quando si passerà dagli appunti alla stesura.
 - Non promettere il completamento della campagna prima della validazione.
-- Scrivere e revisionare i capitoli usando risultati verificati.
+- Scrivere e revisionare i capitoli usando risultati verificati; il prossimo checkpoint LaTeX segue almeno un esperimento UniGe con configurazione, output e risorse controllati.
+- Non attribuire all'infrastruttura capacità hardware non ancora usate sperimentalmente.
 - Confermare titolo, struttura, abstract e contenuto scientifico con i relatori.
 - Sostituire i placeholder per relatore, correlatore, esaminatore e dedica.
 - Decidere se l'abstract resta nel main o in `Chapters/abstract.tex`.
@@ -1382,7 +1445,7 @@ Il commento di accounting di Slurm riporta per le task esaminate:
 prolog controller: insufficient or expired budget
 ```
 
-La cancellazione è quindi avvenuta nel prolog amministrativo, prima dell'esecuzione di Singularity, R o `scripts/sbatch.sh`. L'exit code zero non indica il completamento dell'analisi: nessun processo applicativo è partito e non ha quindi restituito un errore. La verifica dell'output ha trovato soltanto tre directory di specie e tre marker `_SUCCESS`, relativi alle task `55020903_1`, `_2` e `_3`. Nessuna specie con indice 4-167 è stata completata dall'array sostitutivo.
+La cancellazione è avvenuta nel prolog amministrativo, prima dell'esecuzione di Singularity, R o `scripts/sbatch.sh`. L'exit code zero non indica il completamento dell'analisi: nessun processo applicativo è partito, quindi nessuno ha restituito un errore. La verifica dell'output ha trovato soltanto tre directory di specie e tre marker `_SUCCESS`, relativi alle task `55020903_1`, `_2` e `_3`. L'array sostitutivo non ha completato alcuna specie con indice 4-167.
 
 Le notifiche ricevute dipendono da `--mail-type=ARRAY_TASKS`: Slurm ha inviato una mail per ciascun elemento cancellato. Il vecchio array `55020903_[4-167%3]`, che era rimasto in `JobHeldUser`, è stato cancellato manualmente il 4 settembre dopo questa diagnosi.
 
@@ -1391,8 +1454,8 @@ Le notifiche ricevute dipendono da `--mail-type=ARRAY_TASKS`: Slurm ha inviato u
 I comandi usati su Leonardo sono:
 
 ```bash
-saldo -b -u REDACTED_USERNAME --dcgp
-saldo -r -u REDACTED_USERNAME -y 2026 --dcgp
+saldo -b -u <username> --dcgp
+saldo -r -u <username> -y 2026 --dcgp
 ```
 
 Il primo ha riportato:
@@ -1404,7 +1467,7 @@ consumo:             103.448 ore locali
 percentuale:         103,4%
 ```
 
-Il report giornaliero attribuisce tutte le 103.448:48:42 ore locali a 158 job dell'utente `REDACTED_USERNAME` sull'account `IscrC_SPECC`. Il progetto non era scaduto per data; aveva superato il budget assegnato.
+Il report giornaliero attribuisce tutte le 103.448:48:42 ore locali a 158 job dell'utente del progetto sull'account `IscrC_SPECC`. Il progetto non era scaduto per data; aveva superato il budget assegnato.
 
 ## Come CINECA contabilizza le ore
 
@@ -1524,7 +1587,7 @@ origin/master:         0392260ceff329b6df1ecd7d67629eac6479eedd
 divergenza:            0 0
 ```
 
-Non c'erano quindi modifiche da pullare e `make biomod2sync` non è stato eseguito. Il puntatore `0392260c` è già registrato anche in `origin/main` del repository principale, nel commit:
+Il repository locale non aveva modifiche da scaricare, quindi `make biomod2sync` non è stato eseguito. Il puntatore `0392260c` è già registrato anche in `origin/main` del repository principale, nel commit:
 
 ```text
 93956c1 chore(thesis): update build and BIOMOD2
@@ -1561,26 +1624,14 @@ Il file `R/base/baseline.R` esiste e sia il file blockwise sia lo script batch s
 
 ## Dichiarazioni `readonly`
 
-In `scripts/3sync.sh` sono stati sostituiti soltanto i default autoriferiti con valori fissi:
-
-```bash
-readonly LEO_HOST="REDACTED_USERNAME@login.leonardo.cineca.it"
-readonly LEO_ROOT="/leonardo_work/IscrC_SPECC"
-readonly SPARTACO_HOST="user@REDACTED_HOST"
-readonly SPARTACO_ROOT="F:/HPC_Leonardo"
-readonly LEO_REMOTE="leo"
-readonly SPARTACO_REMOTE="spartaco"
-readonly SSH_AUTH_SOCK="$HOME/.ssh/cineca-agent.sock"
-```
-
-Non è stato cambiato il comportamento di trasferimento di `scripts/3sync.sh`. In particolare, non è stata aggiunta alcuna copia automatica del container nel clone locale di Serviicola.
+Gli script di accesso e `scripts/omni-sync.sh` leggono nomi utente e host da `secrets/cineca.env`, `secrets/unige.env` e `secrets/spartaco.env`. I file sono ignorati da Git e hanno permessi `600`. Le password e il segreto TOTP restano in file separati. Il comportamento di trasferimento non copia automaticamente il container nel clone locale di Serviicola.
 
 ## Documentazione aggiornata
 
 Sono stati aggiornati:
 
 - `README.md`;
-- `data/README.md`;
+- il successivamente rimosso `data/README.md`;
 - `docs/work-in-progress/prompt.md`;
 - `docs/work-in-progress/run-manifest.md`.
 
@@ -1590,8 +1641,8 @@ La documentazione ora registra che:
 - `container/geospatial.sif` è presente sui tre computer ma è ignorato da Git;
 - i dati pesanti sotto `data/` sono ignorati da Git;
 - i dati pesanti sono conservati su Leonardo e Spartaco, non su Serviicola;
-- `make 3sync` copia dati e container da Leonardo a Spartaco usando Serviicola come relay;
-- i file di destinazione non vengono cancellati da `3sync`.
+- `make omni-sync` copia dati e container da Leonardo a Spartaco usando Serviicola come relay;
+- i file di destinazione non vengono cancellati da `omni-sync`.
 
 La tabella di `docs/work-in-progress/run-manifest.md` è stata aggiornata al 4 settembre 2026. Registra i tre task completati della campagna `55020903`, incluso `Agrostis.capillaris`, e l'assenza di job attivi dopo l'esaurimento del saldo ore.
 
@@ -1627,23 +1678,30 @@ Il SIF locale occupa circa 1,5 GiB. Dopo la pulizia, nella home resta soltanto `
 
 ## Controllo Git su Leonardo e Spartaco
 
-Su Leonardo, usando la finestra tmux prevista per i comandi remoti, è stato fatto un fetch di `origin/main` e un confronto read-only. Il risultato è:
+Il 16 settembre 2026 il clone divergente di Leonardo è stato sostituito con un clone pulito di `origin/main`, dopo aver copiato i log su Serviicola e verificato su Spartaco tutti i 29.523 file dati. Il container è stato ripristinato nel nuovo clone. Spartaco era accessibile, ma il suo clone aveva 252 modifiche tracciate e non è stato aggiornato.
 
-```text
-HEAD Leonardo:  88e03c004bb9c45d9607ab76e4dbda1f6a6612e0
-origin/main:    ff8991bcd56353cf25602c6259a11a0945ed2438
-divergenza:     152 commit locali soltanto, 192 commit remoti soltanto
-```
+## Riallineamento del 18 settembre 2026
 
-Leonardo contiene inoltre numerosi log non tracciati. Non sono stati eseguiti pull, reset, checkout, commit o cancellazioni su Leonardo.
+Dopo le redazioni della cronologia, il repository GitHub è stato reso pubblico. Dopo gli aggiornamenti successivi di Enrico, Serviicola, Leonardo, Spartaco e il clone UniGe su `gpu2` puntano a `063f4b1996a734baded6be771d0dcbeb56364191`. I tre clone remoti sono puliti; Serviicola conserva le modifiche locali R e documentali, senza includerle nei commit del riallineamento. `intel2` condivide la home NFS di `gpu2`, quindi non richiede un secondo clone. `docs/new_bm2.pdf` è tracciato e `secrets/` è ignorata.
 
-Il controllo SSH diretto verso Spartaco (`user@REDACTED_HOST`) è stato rifiutato dalle credenziali disponibili:
+| Computer | Root del clone | Stato verificato |
+|---|---|---|
+| Serviicola | `/home/ubuntu/tesi` | HEAD allineato; modifiche locali conservate con backup e confronto SHA-256. |
+| Leonardo | `/leonardo_work/IscrC_SPECC` | Clone pulito; dati conservati durante il riallineamento Git. |
+| Spartaco | `F:\HPC_Leonardo` | Clone nuovo da HTTPS pubblico, senza credenziali GitHub personali. |
+| UniGe | `$HOME/High-Performance-Ecoinformatics` | Clone pulito nella home condivisa da `gpu2` e `intel2`. |
 
-```text
-Permission denied (publickey,password,keyboard-interactive)
-```
+Il submodule `docs/biomod2` è inizializzato al commit `0392260ceff329b6df1ecd7d67629eac6479eedd`. Su Spartaco, `scripts/git-setup.sh` è stato eseguito inizialmente da Git Bash: `core.filemode=false`, `core.autocrlf=false`, `core.hooksPath=.githooks`, tutti locali al clone. `--replace-all` elimina eventuali valori duplicati; `python3 tests/test_git_setup.py` verifica questo caso e la ripetizione del setup. In quella fase non fu installato altro software. Nei giorni successivi Enrico ha installato WSL e ha iniziato a usarlo per tutte le attività su Spartaco, trovandolo molto più comodo. Il comando `git --no-pager config` riguardava la precedente sessione Windows con pager incompatibile con `tmux-256color`.
 
-Non è quindi stato possibile stabilire da questa sessione se il clone Git di Spartaco abbia commit locali o modifiche in ingresso. Non sono state eseguite operazioni su Spartaco.
+La regola `data/output_*/` copre le directory degli esperimenti generati. Il flusso scelto usa Git e `git pull --ff-only` per codice e documentazione, rclone per dati e container; non si trasferisce `.git` con rclone e non si salvano credenziali GitHub nell'account Windows condiviso.
+
+Prima del nuovo ripristino su Spartaco, il controllo Spartaco→Leonardo ha trovato 24.390 TIFF corrispondenti per percorso e dimensione, senza differenze. SHA-256 del CSV completo: `733a4c01bf6bac60c9ff8994480ad1f70fadad9af5697b596e30956fea4f1e7b`; SHA-256 del SIF: `4c1e1265cf41fc2c59459e74fa3e3e9088f7721b8c92730790cc4518975303c5`, uguali sui due host. I TIFF non sono stati confrontati tramite hash.
+
+Il dry-run e la copia Leonardo→nuovo Spartaco hanno riguardato 24.392 file (24.390 TIFF, CSV completo e SIF), per 250,455 GiB. La copia è terminata il 18 settembre alle 15:20:42; alle 15:21:00 `rclone check --size-only` ha confermato tutti i 24.392 percorsi e le dimensioni, senza differenze. Un controllo successivo con `sha256sum` su Leonardo e `certutil -hashfile` su Spartaco ha confermato anche gli hash del CSV e del SIF ripristinati. I TIFF sono verificati per percorso e dimensione, non per hash. Filtri espliciti e `--ignore-existing` hanno escluso cancellazioni, sovrascritture e copie intermedie sul disco di Serviicola. I risultati dei controlli sono riportati qui; i log temporanei di trasferimento sono stati eliminati con i backup dopo l'approvazione di Enrico.
+
+Il confronto del vecchio backup di log di Leonardo con `logs/` ha classificato 129 file: 104 identici per SHA-256, 14 TSV equivalenti ai CSV attuali, 10 tabelle di fase equivalenti dopo la rimozione della colonna dei numeri di riga prodotta da R, e il puntatore al job `55530303`, già presente in `logs/sacct_r_runs_2026-09-06.csv`.
+
+Dopo la verifica del ripristino, Enrico ha autorizzato la cancellazione di quattro directory: `/home/ubuntu/git-redaction-vkV3Ouvw`, `/home/ubuntu/leonardo-backup-20260916`, `/home/ubuntu/publication-audit-pakg7o5c` e `F:\HPC_Leonardo-preserved-20260916`. La cancellazione comprende la cronologia originale nei backup, le prove temporanee e gli output non TIFF esclusi dal ripristino, senza presumere che questi ultimi fossero tutti duplicati. L'assenza delle quattro directory è stata verificata. Il clone attivo `F:\HPC_Leonardo` è rimasto pulito a `063f4b1`; conserva 24.390 TIFF (267.257.379.309 byte), il CSV completo (161.130.742 byte) e il SIF (1.505.341.440 byte). I clone attivi, i dati di Leonardo e le modifiche locali di Serviicola non sono stati cancellati.
 
 ## Stato Git lasciato dalla sessione
 
