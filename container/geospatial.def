@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: rocker/geospatial:latest
+From: rocker/geospatial:4.5.3
 
 %labels
     Author Enrico Pezzano
