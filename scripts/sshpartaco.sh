@@ -16,6 +16,11 @@ done
 # shellcheck disable=SC1090
 source "$CONNECTION_FILE"
 
+if [[ $(hostname) == "gpu2" ]]; then
+  echo "Accessing Spartaco through the UNIGE network..."
+  SPARTACO_HOST="${SPARTACO_UNIGE_HOST:-}"
+fi
+
 for req_var in SPARTACO_USERNAME SPARTACO_HOST; do
   if [[ -z "${!req_var:-}" ]]; then
     echo "Missing $req_var in $CONNECTION_FILE" >&2
@@ -23,5 +28,10 @@ for req_var in SPARTACO_USERNAME SPARTACO_HOST; do
   fi
 done
 
-exec sshpass -f "$PASSWD_FILE" ssh -tt -o StrictHostKeyChecking=accept-new \
+if command -v sshpass >/dev/null; then
+  exec sshpass -f "$PASSWD_FILE" ssh -tt -o StrictHostKeyChecking=accept-new \
+    "$SPARTACO_USERNAME@$SPARTACO_HOST" wsl
+fi
+
+exec ssh -tt -o StrictHostKeyChecking=accept-new \
   "$SPARTACO_USERNAME@$SPARTACO_HOST" wsl

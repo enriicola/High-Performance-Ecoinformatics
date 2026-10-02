@@ -72,7 +72,7 @@ TOKEN_ENDPOINT="$(curl --fail --silent --show-error "$DISCOVERY_URL" | jq -r '.t
 readonly TOKEN_ENDPOINT
 
 PASSWORD=$(<"$PASSWORD_FILE")
-if ! OTP=$(python3 "$(dirname "$0")/totp.py" "$TOTP_SECRET_FILE"); then
+if ! OTP=$(python3 -B "$(dirname "$0")/totp.py" "$TOTP_SECRET_FILE"); then
     unset PASSWORD CLIENT_SECRET
     exit 1
 fi
