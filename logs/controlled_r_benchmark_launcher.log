@@ -1,3 +1,0 @@
-srun: no gres/tmpfs specified, using default: gres/tmpfs:10g
-srun: job 49303754 queued and waiting for resources
-srun: job 49303754 has been allocated resources
