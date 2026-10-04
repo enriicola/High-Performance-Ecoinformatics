@@ -16,6 +16,24 @@ library(profvis)
 
 npcpu <- 1
 
+# BIOMOD2 writes the files it needs during projection. Compress only after the
+# workflow finishes, retaining the originals so its saved file references stay valid.
+compress_geotiffs <- function(root = ".") {
+  sources <- list.files(root, pattern = "\\.tif$", recursive = TRUE, full.names = TRUE)
+  sources <- sources[!endsWith(sources, ".zstd.tif")]
+  for (source in sources) {
+    raster <- terra::rast(source)
+    predictor <- if (any(grepl("^FLT", terra::datatype(raster)))) "PREDICTOR=3" else "PREDICTOR=2"
+    terra::writeRaster(
+      raster,
+      sub("\\.tif$", ".zstd.tif", source),
+      overwrite = TRUE,
+      gdal = c("COMPRESS=ZSTD", predictor, "TILED=YES",
+               "BLOCKXSIZE=256", "BLOCKYSIZE=256", "BIGTIFF=IF_SAFER")
+    )
+  }
+}
+
 
 ####################################
 # loading species occurrences data
@@ -288,6 +306,7 @@ time <- data.frame(
   cur_projection_EM = time.cur_proj_EM, fut_projection = time.fut_proj
 )
 write.table(time, "C:/Users/User/Desktop/SDM_Alps/time_Agrostis capillaris_10cpu.txt", sep = "\t")
+compress_geotiffs()
 
 # save.image(file="SDM_praterie.RData")
 
