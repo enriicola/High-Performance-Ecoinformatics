@@ -1,3 +1,6 @@
+# Experimental override for diagnosing MAXNET full-raster memory use. The active
+# production pipeline does not source this file; validate numerical equivalence
+# before using it beyond the dedicated blockwise test.
 library(biomod2)
 library(terra)
 

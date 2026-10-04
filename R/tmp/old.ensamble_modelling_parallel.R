@@ -1,4 +1,5 @@
-# last script used by lucia and gabriele
+# Historical Windows-specific reference from Lucia and Gabriele.
+# It is not sourced by the current pipeline; keep its body unchanged for comparison.
 
 library(biomod2)
 library(raster)

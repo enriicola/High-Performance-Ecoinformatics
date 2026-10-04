@@ -1,3 +1,4 @@
+# Historical Snowfall/Windows reference; it is not sourced by the current pipeline.
 # https://cran.r-project.org/web/packages/snowfall/snowfall.pdf
 
 library(biomod2)
