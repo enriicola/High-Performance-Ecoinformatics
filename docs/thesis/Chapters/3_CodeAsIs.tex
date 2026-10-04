@@ -5,7 +5,7 @@
 
 \comment{BEGIN TODO: Container, workflow and Leonardo}
 
-The workflow received from DISTAV was a single R script written for a Windows workstation. It used absolute paths, loaded both \texttt{raster} and \texttt{terra}, and created a ten-worker \texttt{doParallel} cluster. The filename \nolinkurl{ensamble_modelling_no_parallel.R} is therefore misleading: model fitting and projection both used \texttt{nb.cpu = 10}. The script selected one species by a fixed index and limited that species to 100,000 occurrence rows. It also contained path-dependent parsing and a syntax error in the future ensemble call. The historical file is preserved without correction so that it remains a record of the received code.
+The workflow received from DISTAV was a single R script written for a Windows workstation. It used absolute paths, loaded both \texttt{raster} and \texttt{terra}, and created a ten-worker \texttt{doParallel} cluster. The filename \nolinkurl{ensamble_modelling_no_parallel.R} did not describe that version: model fitting and projection both used \texttt{nb.cpu = 10}. The script selected one species by a fixed index and limited that species to 100,000 occurrence rows. It also contained path-dependent parsing and a syntax error in the future ensemble call. The received version remains available in Git at commit \texttt{890f4c5}. The working copy has since been converted into a sequential reference by disabling the explicit cluster and setting every BIOMOD2 \texttt{nb.cpu} argument to one.
 
 \section{BIOMOD2}
 
@@ -17,7 +17,7 @@ The workflow handles large objects at several stages. Each environmental raster 
 
 The original pipeline loads the occurrence table and all calibration rasters, selects one species, formats its data, calibrates the individual models and builds the ensembles. It writes model evaluations before projecting the individual and ensemble models over the current environment. A loop then loads each future climate directory, adds the static terrain and soil layers, and repeats both projection stages. The script records one duration for each main phase at the end.
 
-All stages share one R process, one working directory and a set of mutable objects. Species selection, file paths, worker counts and scientific parameters are embedded in the script. There is no scheduler-level isolation between species and no completion marker that distinguishes a finished analysis from a directory left by a failed run.
+All stages run from one long-lived R driver process, one working directory and a set of mutable objects. In the received version, this driver created temporary R worker processes through \texttt{doParallel} and BIOMOD2. Species selection, file paths, worker counts and scientific parameters were embedded in the script. There was no scheduler-level isolation between species and no completion marker that distinguished a finished analysis from a directory left by a failed run.
 
 \section{Original execution times}
 

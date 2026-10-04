@@ -3,7 +3,7 @@
 
 \comment{New draft for supervisor review}
 
-% Working evidence: docs/tables/1.runtime-and-resource-summary.md and docs/tables/2.local-log-metadata.md.
+% Working evidence: docs/appunti.md and the run evidence CSV files under logs/.
 \comment{Convert the approved results to numbered LaTeX tables after supervisor review.}
 
 \section{Leonardo}
@@ -20,11 +20,11 @@ The first validated full-raster reference used the experimental E5 configuration
 
 The F/T configurations used stacked projections and failed during the first future scenario. The two-worker run stopped after 5 hours and 44 minutes. The four-worker run stopped after 3 hours and 57 minutes. In both cases, \texttt{mcfork()} could not allocate memory. Their Slurm MaxRSS values were 413.22 and 413.80 GiB.
 
-Among the validated F/F runs, elapsed time was lower at higher worker counts. Six workers completed in 17.85 hours, with an observed wall-time ratio of 1.264 relative to the four-worker reference. Eight workers completed in 15.09 hours, with a ratio of 1.495. Sixteen workers completed in 10 hours and 21 minutes, with a ratio of 2.179. The accounting, timing files, output structure, and success marker of the 16-worker run were validated. The exact code revision of the four-worker reference was not recorded, so these ratios describe the observed runs but do not isolate the effect of worker count.
+Among the validated F/F runs, elapsed time was lower at higher worker counts. These counts apply to individual modelling and projection; all ensemble phases were capped at two workers. Six individual-model and projection workers completed in 17.85 hours, with an observed wall-time ratio of 1.264 relative to the four-worker reference. Eight completed in 15.09 hours, with a ratio of 1.495. Sixteen completed in 10 hours and 21 minutes, with a ratio of 2.179. The accounting, timing files, output structure, and success marker of the 16-worker run were validated. The exact code revision of the four-worker reference was not recorded, so these ratios describe the observed runs but do not isolate the effect of worker count.
 
 Slurm MaxRSS was 258.95 GiB with six workers and 278.67 GiB with eight workers. It rose to 464.77 GiB with sixteen workers. CPU allocation efficiency fell from 68.1\% to 60.0\% and then 45.1\%. A 32-worker F/F run reached 481.16 GiB. It was killed during the current projection after 1 hour and 40 minutes.
 
-Future projections accounted for 77.4\% to 83.5\% of wall time in the validated runs. Formatting remained between 4,485 and 4,601 seconds. The current ensemble projection remained between 1,422 and 1,517 seconds. Neither phase showed a clear benefit from additional workers. The future loop fell from 67,819 seconds with four workers to 28,855 seconds with sixteen workers.
+The complete future loop accounted for 77.4\% to 83.5\% of wall time in the validated runs. Formatting remained between 4,485 and 4,601 seconds and did not use the configurable model-worker count. The current ensemble projection remained between 1,422 and 1,517 seconds while its worker count stayed fixed at two. Among the F/F runs with separate scenario records, future individual projections fell from 41,093 seconds with six workers to 17,227 seconds with sixteen. The corresponding future ensemble totals remained close to 11,630 seconds because those calls stayed at two workers. The four-worker F/F reference retained only the combined future time, so it cannot be used for this split comparison.
 
 A separate controlled benchmark compared split and monolithic R implementations on the same node. Five runs of each version used a fixed seed, one worker, a small input, and no future projections. The split version averaged 26 minutes and 10 seconds with 47.09 GiB MaxRSS. The monolithic version averaged 26 minutes and 28 seconds with 47.63 GiB MaxRSS. The observed differences were 18 seconds and 0.54 GiB in favour of the split version. These results do not establish equivalence between the implementations. They also do not establish effects on parallelism or reproducibility.
 

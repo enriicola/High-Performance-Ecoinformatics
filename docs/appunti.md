@@ -1,28 +1,19 @@
 # Appunti unificati del progetto
 
-## my notes
+## appunti orfani da immagazzinare correttamente in questo file
+
+- ogni nodo leonardo ha 2 cpu, ogni cpu ha 56 core, + eventuali thread hw
+- se OMP_NUM_THREADS=1, allora 1 worker -> 1 core; altrimenti, runtime OMP decide quante thread creare, li crea, e poi scheduler linux li assegna
+
+## Regole di lettura delle misure
 
 - Il MaxRSS di GNU `time` misura il processo e può escludere i worker forkati; per gli OOM va usato Slurm MaxRSS.
-- se non specificato diversamente, i valori di memoria utilizzata sono **Slurm MaxRSS**
-- usare le stesse variabili di configurazione per confrontare le run
+- Se non specificato diversamente, i valori di memoria utilizzata sono **Slurm MaxRSS**.
+- Per confrontare le run vanno usate le stesse variabili di configurazione.
 
 ## Scopo del documento
 
-Il 2 settembre 2026 il contenuto dei documenti presenti in `docs/work-in-progress/` è stato riunito in questo file:
-
-- `README.md`
-- `campaign-snapshot.md`
-- `new-prompt.txt`
-- `notes.md`
-- `notes.tex`
-- `notes.tex.bak`
-- `pre-prompt.txt`
-- `prompt.md`
-- `run-manifest.md`
-- `session-2026-07-03.md`
-- `thesis-plan.md`
-
-Il testo segue prima l'ordine cronologico e poi quello tematico. Le ripetizioni sono state accorpate senza eliminare numeri, identificativi dei job, configurazioni, osservazioni, interpretazioni, dubbi, TODO, riferimenti operativi o discrepanze tra documenti. Le note che descrivono momenti diversi conservano la rispettiva data.
+Il documento è organizzato principalmente per argomenti: dati e decisioni scientifiche, pipeline e memoria, misure ed esperimenti, infrastruttura e pianificazione. Un registro cronologico separato conserva la sequenza delle run e le rispettive date. Le ripetizioni sono state accorpate senza eliminare numeri, identificativi dei job, configurazioni, osservazioni, interpretazioni, dubbi, TODO, riferimenti operativi o discrepanze tra documenti.
 
 Questo è un quaderno di lavoro. Ogni voce appartiene a una delle seguenti categorie:
 
@@ -145,9 +136,473 @@ Questa misura deve includere:
 
 Il makespan con tre nodi concorrenti non va confuso con il tempo aggregato che le stesse specie richiederebbero in sequenza.
 
-# Timeline degli appunti e degli esperimenti
+# Occorrenze e raster blocking
 
-## Fase 1: test storici precedenti alla campagna completa
+## Distribuzione delle specie nel dataset completo
+
+Il file `data/input/full_1km_EUNIS.csv` contiene 2.583.359 record per 167 specie. Il conteggio è stato ottenuto raggruppando il campo `sp_name` e contando le righe, esclusa l'intestazione. Il risultato descrive quindi il numero di record assegnati a ciascuna specie nel dataset, non una nuova stima delle presenze biologiche.
+
+| Statistica | Record per specie |
+|---|---:|
+| Minimo | 43 |
+| Primo quartile | 2.026 |
+| Mediana | 5.936 |
+| Media | 15.469,2 |
+| Terzo quartile | 14.633 |
+| Massimo | 170.701 |
+
+Il conteggio completo resta in [`data/output/full_species_counts.csv`](../data/output/full_species_counts.csv) per descrivere il dataset e supportare eventuali stime aggregate. *Galium anisophyllon* è la specie mediana per numerosità, con 5.936 record. I benchmark usano *Achillea atrata* perché dispone di più dati sperimentali sulle run, confronti e output validati. La scelta riflette la quantità di evidenza sperimentale disponibile; la rappresentatività numerica, geografica e biologica della specie non è stata valutata.
+
+Il controllo eseguito su Leonardo nel container di produzione il 2026-09-08 ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali. Tutte le 2.583.359 coordinate rientrano nell'estensione e coincidono con i centri delle celle entro una tolleranza di `1e-9` gradi; non serve quindi riproiettarle. Comandi e output sono conservati in [`logs/crs_validation_2026-09-08.txt`](../logs/crs_validation_2026-09-08.txt).
+
+Dividere le righe di occorrenza di una stessa specie cambierebbe la selezione delle pseudo-assenze, la cross-validation e i modelli calibrati; i risultati parziali non ricostruirebbero quindi l'analisi esistente.
+
+Il raster blocking è diverso. Un modello già calibrato predice intervalli di righe o tile spaziali consecutivi, scrive ogni blocco e li combina nello stesso raster finale. Cambia la pianificazione della memoria, non i dati di occorrenza o il modello.
+
+# Questions for the ecologists / Domande per gli ecologi
+
+Elenco preparato il 9 settembre 2026 per Lucia e Gabriele. Contiene soltanto decisioni che non possono essere risolte leggendo il codice o la documentazione di BIOMOD2. Le fonti BIOMOD2 locali corrispondono alla versione 4.3-4-7, mentre i log di produzione riportano la 4.3-4-5; sono state usate per chiarire il significato dei parametri, non per attribuire una motivazione scientifica alle scelte del progetto. `OPEN` indica che manca una risposta definitiva; un elemento passa ad `ANSWERED` solo quando sono registrate risposta, fonte e data.
+
+## Q1 — Provenienza e perimetro dei dati di presenza
+
+- **Stato:** `OPEN`
+- **Domanda:** Quali provenienza, periodo di osservazione, criteri di qualità e copertura geografica definiscono il dataset finale? Dobbiamo usare tutte le 2.583.359 righe delle 167 specie senza il limite storico di 100.000 occorrenze per specie, e la colonna `pseudo-absences` va interpretata come un semplice indicatore di presenza?
+- **Contesto:** la colonna `pseudo-absences` contiene soltanto il valore 1. La baseline la ignora e ricostruisce una risposta composta solo da presenze usando l'intero CSV. Lo script parallelo storico limitava invece la specie selezionata alle prime 100.000 righe. Il codice non documenta se le righe escluse fossero ridondanti, ordinate o meno affidabili.
+- **File e riga:** `data/input/full_1km_EUNIS.csv:1`; `R/base/baseline.R:29-30,72,90-92`; `R/performance/old.ensamble_modelling_parallel.R:22,83-84`.
+- **Motivo:** dimensione e selezione del campione devono derivare dal protocollo ecologico, non da un limite introdotto per ragioni computazionali.
+- **Impatto:** cambia il campione di calibrazione e può modificare modelli, metriche, tempi e memoria.
+- **Risposta:** da raccogliere.
+- **Fonte:** CSV corrente, script corrente e script parallelo storico.
+- **Data risposta:** —
+
+## Q2 — Occorrenze multiple nella stessa cella
+
+- **Stato:** `OPEN`
+- **Domanda:** Le occorrenze multiple nella stessa cella da 1 km devono essere mantenute oppure ridotte a una sola osservazione per specie e cella? Esistono correzioni concordate per autocorrelazione spaziale o bias di campionamento?
+- **Contesto:** la configurazione corrente e lo script parallelo usano `filter.raster = FALSE`, mentre lo script Snowfall usa `TRUE`. BIOMOD2 chiarisce che `TRUE` filtra più osservazioni nella stessa cella e invita a decidere il trattamento in base alla risoluzione e al disegno di campionamento.
+- **File e riga:** `R/base/config.R:41`; `R/performance/old.ensamble_modelling_parallel.R:111`; `R/performance/old.ensamble_modelling_snowfall.R:113`.
+- **Motivo:** il codice descrive due comportamenti incompatibili ma non conserva la decisione scientifica che li giustifica.
+- **Impatto:** cambia il peso delle aree campionate più intensamente e può influire su pseudo-assenze, calibrazione e validazione.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_FormatingData.R:93-100`; `docs/biomod2/vignettes/vignette_dataPreparation.Rmd:128-134`; tre script in esame.
+- **Data risposta:** —
+
+## Q3 — Dati indipendenti di valutazione
+
+- **Stato:** `OPEN`
+- **Domanda:** Esiste un dataset indipendente, distinto dalle occorrenze usate per calibrare i modelli, che debba essere impiegato per la valutazione finale?
+- **Contesto:** la baseline non passa gli argomenti `eval.*`; lo script Snowfall li imposta esplicitamente a `NULL`. Le metriche disponibili derivano quindi dalla calibrazione e dalla cross-validation, non da osservazioni indipendenti.
+- **File e riga:** `R/base/baseline.R:103-113`; `R/performance/old.ensamble_modelling_snowfall.R:98-105`.
+- **Motivo:** solo Lucia e Gabriele possono confermare se tali dati esistono e se sono confrontabili con il dataset di calibrazione.
+- **Impatto:** determina quali metriche possono essere interpretate come valutazione indipendente della capacità predittiva e di trasferimento.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_FormatingData.R:42-56`; `docs/biomod2/vignettes/vignette_crossValidation.Rmd:50-88`; script in esame.
+- **Data risposta:** —
+
+## Q4 — Strategia e quantità delle pseudo-assenze
+
+- **Stato:** `CLOSED`
+- **Domanda:** La configurazione scientifica definitiva deve usare selezione casuale, 10.000 pseudo-assenze per replica e quante repliche: 5 o 10? La stessa quantità deve valere per tutti gli algoritmi e per specie con numerosità diverse, mantenendo il bilanciamento predefinito tra presenze e pseudo-assenze?
+- **Contesto:** le note della riunione del 24 giugno e lo snapshot della campagna di produzione fissano 10 repliche e 10.000 pseudo-assenze per replica. Il commit `ed6837d`, scritto il 29 agosto e registrato il 1 settembre, applicò questi valori alla baseline. Il successivo refactoring `53950ba` introdusse per errore `pa_nb_rep <- 5L` nel nuovo `R/base/config.R`, lo stesso valore usato dalla configurazione sperimentale E5. Il POC ereditò lo stesso valore nel commit `a3c97ad`. Le configurazioni correnti sono state riallineate allo snapshot produttivo. Gli script sotto `R/performance/old.*` e il riferimento storico `R/base/ensamble_modelling_no_parallel.R` conservano invece i valori originari e non sono configurazioni di produzione.
+- **File e riga:** `R/base/config.R:39-41`; `R/poc/config.R:22-24`; `bd135b2:R/base_sequential_analysis_campaign_49cfdb0.R:142-144`; `R/performance/old.ensamble_modelling_parallel.R:107-109`.
+- **Motivo:** 10 repliche sono il requisito produttivo documentato. Le run E5 restano valide come esperimenti storici, ma non definiscono la configurazione scientifica corrente.
+- **Impatto:** la configurazione produttiva genera fino a 250 modelli individuali per specie, contro i 125 delle run E5. Tempi e memoria dei due gruppi non sono direttamente confrontabili.
+- **Risposta:** usare `PA.nb.rep = 10`, `PA.nb.absences = 10000`, `CV.nb.rep = 5` e `CV.perc = 0.7` nelle configurazioni correnti.
+- **Fonte:** sezione "Snapshot dello script" di questi appunti; commit `ab7f01c`, `ed6837d`, `53950ba`, `a3c97ad` e snapshot `bd135b2:R/base_sequential_analysis_campaign_49cfdb0.R`; log `55020903_[1-3]`.
+- **Data risposta:** 9 settembre 2026
+
+## Q5 — Disegno della cross-validation
+
+- **Stato:** `OPEN`
+- **Domanda:** Confermate cinque ripetizioni con partizione casuale 70%/30%, oppure la dipendenza spaziale delle occorrenze richiede una validazione `block`, `strat`, `env` o una partizione definita dal gruppo? Dopo la validazione servono anche modelli calibrati sull'intero dataset?
+- **Contesto:** la baseline corrente e lo script parallelo usano cinque ripetizioni casuali con il 70% dei dati per la calibrazione e disabilitano i modelli sull'intero dataset; lo script Snowfall usa dieci ripetizioni e non esplicita quest'ultima scelta. BIOMOD2 offre partizioni spaziali e ambientali per valutare overfitting e trasferibilità.
+- **File e riga:** `R/base/config.R:44-49`; `R/performance/old.ensamble_modelling_parallel.R:135-141`; `R/performance/old.ensamble_modelling_snowfall.R:124-130`.
+- **Motivo:** la scelta dipende dalla distribuzione spaziale dei dati e dall'obiettivo inferenziale, non dalle sole API.
+- **Impatto:** cambia i modelli addestrati, la comparabilità delle metriche e la stima della capacità di trasferimento nello spazio e nel clima futuro.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_Modeling.R:24-54`; `docs/biomod2/vignettes/vignette_crossValidation.Rmd:13-47`; script in esame.
+- **Data risposta:** —
+
+## Q6 — Algoritmi e opzioni di modellazione
+
+- **Stato:** `OPEN`
+- **Domanda:** La combinazione definitiva è GLM, GBM, ANN, FDA e MAXNET con opzioni `bigboss` per tutti gli algoritmi? Perché MAXNET ha sostituito MARS rispetto allo script Snowfall, e questa sostituzione vale per tutte le specie?
+- **Contesto:** la baseline e lo script parallelo usano MAXNET e `bigboss`; lo script Snowfall usa MARS e le vecchie opzioni predefinite. La documentazione BIOMOD2 spiega le implementazioni disponibili e che `bigboss` è un preset del team, ma non stabilisce quale combinazione sia adatta a questo studio.
+- **File e riga:** `R/base/config.R:37,43`; `R/performance/old.ensamble_modelling_parallel.R:76,117-141`; `R/performance/old.ensamble_modelling_snowfall.R:119-130`.
+- **Motivo:** il passaggio MARS/MAXNET non è motivato nei materiali del repository.
+- **Impatto:** cambia la composizione dell'ensemble, i requisiti software, gli errori osservabili e il costo di modellazione e proiezione.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_Modeling.R:120-182`; `docs/biomod2/R/BIOMOD_Modeling.R:184-199`; script e configurazione in esame.
+- **Data risposta:** —
+
+## Q7 — Composizione e interpretazione degli ensemble
+
+- **Stato:** `OPEN`
+- **Domanda:** Devono essere prodotti un unico `EMmean` e un unico `EMcv` combinando tutti gli algoritmi, le pseudo-assenze e le ripetizioni con `em.by = "all"`? `EMcv` va trattato esplicitamente come misura di incertezza anziché come probabilità di presenza?
+- **Contesto:** tutti gli script richiedono `EMmean` ed `EMcv`; la baseline corrente combina tutti i modelli. BIOMOD2 definisce `EMmean` come media delle probabilità ed `EMcv` come coefficiente di variazione, su scala e con interpretazione diverse. Con `em.by = "all"`, fold di calibrazione differenti vengono fusi e la valutazione ensemble non conserva una colonna di validazione separata.
+- **File e riga:** `R/base/config.R:52`; `R/base/baseline.R:151-159`; `R/performance/old.ensamble_modelling_parallel.R:154-161`; `R/performance/old.ensamble_modelling_snowfall.R:135-142`.
+- **Motivo:** l'API descrive il calcolo, ma la scelta dell'aggregazione e l'uso scientifico dei due prodotti devono essere confermati.
+- **Impatto:** determina quanti ensemble vengono costruiti, quali modelli vengono combinati e come devono essere interpretati raster e metriche.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_EnsembleModeling.R:19-24,105-154,159-228`; `docs/biomod2/vignettes/vignette_crossValidation.Rmd:70-88`.
+- **Data risposta:** —
+
+## Q8 — Metriche, soglia e trasformazioni delle proiezioni
+
+- **Stato:** `OPEN`
+- **Domanda:** Confermate AUC-ROC come criterio di selezione, la soglia 0,6 per escludere i modelli e TSS, AUC-ROC e Kappa come metriche ensemble? Quali trasformazioni binarie e filtrate devono essere considerate risultati scientifici, anziché semplici output diagnostici?
+- **Contesto:** i modelli calcolano TSS, AUC-ROC, Kappa, POD e FAR; l'ensemble seleziona con `AUCroc >= 0.6`; le proiezioni ensemble richiedono `metric.binary = "all"` e `metric.filter = "all"`. BIOMOD2 conferma che la soglia esclude i modelli con punteggio inferiore, ma non giustifica il valore 0,6 per questo studio.
+- **File e riga:** `R/base/config.R:47,53-55`; `R/base/baseline.R:156-158,210-211,274-275`; `R/performance/old.ensamble_modelling_parallel.R:159-161,217-218`.
+- **Motivo:** la selezione delle metriche e delle soglie dipende dagli obiettivi ecologici e dal compromesso tra errori di omissione e commissione.
+- **Impatto:** cambia quali modelli entrano nell'ensemble, quali raster vengono prodotti e quali risultati possono essere confrontati e pubblicati.
+- **Risposta:** da raccogliere.
+- **Fonte:** `docs/biomod2/R/BIOMOD_Modeling.R:68-77,184-249`; `docs/biomod2/R/BIOMOD_EnsembleModeling.R:26-52,127-154`; `docs/biomod2/R/BIOMOD_EnsembleForecasting.R:37-52`.
+- **Data risposta:** —
+
+## Q9 — Politica dei semi casuali
+
+- **Stato:** `OPEN`
+- **Domanda:** Le esecuzioni definitive devono usare un seme fisso? In caso affermativo, deve essere lo stesso per specie e fase oppure devono essere conservati più semi indipendenti per misurare la variabilità delle pseudo-assenze e della cross-validation?
+- **Contesto:** né la baseline corrente né i due script storici passano `seed.val`. Il commit `ed748218` introdusse temporaneamente il seme 42 nelle fasi BIOMOD2, ma la scelta non è presente nella configurazione corrente. BIOMOD2 permette di impostare il seme in formattazione, modellazione, ensemble e proiezione.
+- **File e riga:** `R/base/baseline.R:103-112,129-140,151-160,185-195`; `R/performance/old.ensamble_modelling_parallel.R:102-111,132-142`; `R/performance/old.ensamble_modelling_snowfall.R:98-113,121-131`.
+- **Motivo:** la riproducibilità tecnica non stabilisce da sola se un unico campionamento casuale sia sufficiente per l'analisi scientifica.
+- **Impatto:** determina la ripetibilità esatta delle run e la possibilità di quantificare la variabilità dovuta al campionamento.
+- **Risposta:** da raccogliere.
+- **Fonte:** commit `ed748218`; `docs/biomod2/R/BIOMOD_FormatingData.R:99-100`; `docs/biomod2/R/BIOMOD_Modeling.R:92-93`; `docs/biomod2/R/BIOMOD_EnsembleModeling.R:69-70`.
+- **Data risposta:** —
+
+## Q10 — Scenari climatici e variabili statiche
+
+- **Stato:** `OPEN`
+- **Domanda:** Confermate i cinque predittori `PC1_clim`, `PC2_clim`, `tri`, `PC1_soil` e `PC2_soil` e l'uso degli stessi raster per calibrazione e proiezione corrente? Quali GCM, SSP e orizzonti temporali costituiscono il set futuro definitivo, e TRI e suolo devono restare invariati in ogni scenario?
+- **Contesto:** la baseline corrente riusa il raster di calibrazione per la proiezione corrente, mentre i due script storici caricavano directory separate. La struttura dati contiene quattro GCM (`gfdl.esm4`, `ipsl.cm6a.lr`, `mpi.esm1.2.hr` e `mri.esm2.0`), ciascuno con `ssp370` e `ssp585`, per otto scenari. I commenti della baseline parlano ancora di cinque GCM e dieci proiezioni. Il ciclo aggiunge a ogni coppia di raster climatici futuri gli stessi raster TRI e suolo correnti; l'orizzonte temporale non è documentato nel repository.
+- **File e riga:** `R/base/config.R:30-33`; `R/base/baseline.R:43-52,59,222-223,245-246`; `R/performance/old.ensamble_modelling_parallel.R:33-50`; `R/performance/old.ensamble_modelling_snowfall.R:30-47`.
+- **Motivo:** il contenuto delle directory prova cosa è disponibile, non che il set sia scientificamente completo o definitivo.
+- **Impatto:** determina il numero e il significato delle proiezioni e l'interpretazione delle variazioni future.
+- **Risposta:** da raccogliere.
+- **Fonte:** struttura dati documentata, baseline corrente e sezione "Revisione delle evidenze locali del 6 settembre 2026" di questi appunti.
+- **Data risposta:** —
+
+## Q11 — Output scientifici da conservare
+
+- **Stato:** `OPEN`
+- **Domanda:** Qual è il set minimo di output da conservare per analisi, revisione e pubblicazione: modelli salvati, metriche, importanza delle variabili, `EMmean`, `EMcv`, trasformazioni binarie o filtrate, clamping mask e quali raster dei modelli individuali?
+- **Contesto:** la baseline proietta tutti i modelli, produce tutte le trasformazioni richieste e costruisce le clamping mask, ma non richiede il calcolo dell'importanza delle variabili. Per una sola specie validata, le proiezioni individuali occupano circa 6,6 GiB contro circa 700 MiB degli ensemble; eliminare file senza una regola scientifica potrebbe impedire controlli o rianalisi.
+- **File e riga:** `R/base/config.R:57`; `R/base/baseline.R:185-213,255-277`.
+- **Motivo:** BIOMOD2 definisce gli artefatti, ma non quali siano necessari per gli obiettivi DISTAV e per la riproducibilità dello studio.
+- **Impatto:** determina spazio richiesto, trasferimenti, possibilità di ricalcolare gli ensemble e verificabilità dei risultati.
+- **Risposta:** da raccogliere.
+- **Fonte:** sezione "Spazio disco, output e politiche di conservazione" di questi appunti; `docs/biomod2/R/BIOMOD_Modeling.R:75-77`; `docs/biomod2/R/BIOMOD_Projection.R:32-56`; `docs/biomod2/R/BIOMOD_EnsembleForecasting.R:37-52`.
+- **Data risposta:** —
+
+# Significato delle modalità di storage
+
+BIOMOD2 usa come default:
+
+```text
+keep.in.memory = TRUE
+do.stack = TRUE
+```
+
+## T/T
+
+Con `do.stack=TRUE`, le proiezioni dei modelli individuali vengono combinate in un raster multilayer. Con `keep.in.memory=TRUE`, l'oggetto di proiezione rimane anche nell'oggetto R restituito da BIOMOD2.
+
+Le prime run T/T riuscivano con circa 30-35 modelli, ma le configurazioni da 125-250 modelli hanno raggiunto il limite di memoria del nodo.
+
+## F/F, disk-backed
+
+Con entrambi i valori a `FALSE`:
+
+- ogni proiezione di modello viene scritta in un file separato;
+- l'oggetto BIOMOD2 conserva collegamenti ai file invece dello stack completo;
+- i layer completati non si accumulano tutti in memoria;
+- aumenta l'I/O sul filesystem.
+
+F/F non significa assenza di uso della RAM. Restano in memoria raster ambientali, modelli, processi worker, clamping mask e buffer temporanei. La baseline F/F da quattro worker ha comunque usato 260,94 GiB.
+
+## F/T, ibrido
+
+Con `keep.in.memory=FALSE` e `do.stack=TRUE`, l'oggetto finale non conserva lo stack, ma BIOMOD2 deve comunque costruire il raster multilayer durante la proiezione. I due test controllati sono falliti alla prima clamping mask futura con circa 413 GiB e un errore di fork.
+
+## T/F
+
+Con file separati e `keep.in.memory=TRUE`, l'ispezione del codice BIOMOD2 mostra che il ramo che conserva i valori è interno al ramo `do.stack`. Con `do.stack=FALSE`, il guadagno osservato di T/F rispetto a F/F è stato minimo: 0,9% su una sola run da quattro worker, con 3,75 GiB di picco in più.
+
+Con file separati, impostare anche `keep.in.memory=FALSE` libera inoltre l'oggetto di proiezione restituito. Nessuna delle due opzioni elimina la memoria temporanea usata dentro ogni predizione concorrente.
+
+## Modalità sequenziale più prudente annotata il 3 luglio
+
+Per una proiezione realmente sequenziale e disk-backed si usa un solo core Slurm e la configurazione F/F fissata nel codice:
+
+```bash
+sbatch --cpus-per-task=1 --array=1 scripts/sbatch.sh
+```
+
+Significato:
+
+- `--cpus-per-task=1`: un solo worker BIOMOD2;
+- `keep.in.memory=FALSE`: niente stack trattenuto nell'oggetto R;
+- `do.stack=FALSE`: una proiezione su disco per modello.
+
+Gli OOM storici avvenivano durante `mclapply` o `%dopar%` nelle proiezioni. Con più worker, il fork parte con copy-on-write, ma cache Terra/GDAL, modelli e buffer di predizione diventano memoria privata per worker. Non esiste un meccanismo affidabile che aspetti la disponibilità di RAM. Al limite del cgroup, Slurm fa intervenire il kernel e il processo viene ucciso, non è Leonardo a sospendere il job finché si libera memoria. La modalità sequenziale riduce il picco, ma non garantisce il successo se un singolo modello supera la memoria disponibile.
+
+# Meccanismo di memoria e MAXNET blockwise
+
+Il container usa:
+
+- BIOMOD2 4.3.4.5;
+- Terra 1.9.11.
+
+Terra riportava:
+
+- `memfrac` predefinito 0,5;
+- nessun massimo assoluto di memoria;
+- directory temporanea sotto `/tmp`.
+
+Il limite Terra è per processo. Non impone un limite aggregato unico a tutti i worker BIOMOD2.
+
+## Percorso specifico MAXNET
+
+L'ispezione del codice ha distinto MAXNET dagli altri quattro algoritmi:
+
+- i 100 modelli GLM, GBM, ANN e FDA delegano la predizione raster a Terra, che può lavorare per blocchi;
+- i 25 modelli MAXNET convertono l'intero raster prima con `as.points()` e poi con `as.data.frame()`;
+- ogni raster ha 63.951.097 celle e cinque predittori;
+- più worker MAXNET concorrenti possono materializzare contemporaneamente coordinate, cinque colonne di predittori e intermedi di predizione.
+
+L'evidenza restringe quindi il collo di bottiglia a rappresentazioni complete del raster concorrenti, non al solo numero nominale di CPU.
+
+## Diagnostica locale
+
+Un test locale usò:
+
+- un modello MAXNET già salvato;
+- un crop di 230.509 celle;
+- 226.775 celle complete e confrontabili;
+- gli stessi raster predittori;
+- il percorso BIOMOD2 esistente;
+- un percorso Terra capace di elaborazione blockwise.
+
+Risultati verificati:
+
+- posizioni dei valori mancanti identiche;
+- differenza assoluta massima pari a zero;
+- valori scalati interi identici, ottenuti arrotondando la predizione moltiplicata per 1.000;
+- comportamento della predizione su `data.frame` invariato.
+
+Il test è passato localmente nel container di produzione senza consumare un nodo Leonardo.
+
+Non verifica ancora:
+
+- il raster completo;
+- tutti e 25 i modelli MAXNET;
+- tutti gli scenari;
+- runtime completo;
+- MaxRSS;
+- identità di tutti i file di output.
+
+## Variante sperimentale
+
+L'entry point storico `R/tmp/base_sequential_analysis_blockwise.R`, oggi `R/tmp/baseline_blockwise.R`, carica `R/tmp/maxnet_blockwise_override.R` prima della baseline non modificata.
+
+L'override:
+
+- registra un metodo `predict()` più specifico per `MAXNET_biomod2_model`;
+- per `SpatRaster` delega la predizione numerica a `terra::predict`;
+- lascia invariato il percorso su `data.frame`;
+- rifiuta raster categorici;
+- rifiuta modelli scalati;
+- supporta `filename`, `overwrite`, `seedval` e output 0-1000;
+- usa `clamp=FALSE` e predizione logistica;
+- scrive `INT2S` con `NAflag=-9999` quando è richiesto l'output 0-1000.
+
+Raster categorici e modelli scalati non sono usati dal workflow corrente. La baseline originale rimase invariata. La variante è una diagnosi e non una modifica di produzione. Nessuna campagna da 167 specie fu lanciata sulla base del solo prototipo blockwise.
+
+# Guardrail OOM studiati e non ancora validati
+
+La sessione dedicata agli OOM non modificò codice né job Slurm. Raccolse possibili guardrail da provare in ordine, senza considerarli soluzioni già verificate. La configurazione F/F a otto worker resta il riferimento produttivo storico: le run P10 concluse usarono circa 291-316 GiB. La run E5 a 16 worker raggiunse 464,77 GiB sui circa 494 GB del nodo, mentre quella a 32 worker terminò in OOM a 481,16 GiB. Sedici worker non sono quindi un default prudente senza una nuova misura dopo il refactor.
+
+## Budget Terra per processo
+
+All'avvio di R si possono impostare `terraOptions(memmax, memfrac, threads, tempdir)`. Nella versione esaminata, Terra riportava `memfrac = 0.5`, nessun `memmax` assoluto e un limite predefinito di 16 thread. `memmax` limita i GiB usati da Terra per elaborare un raster, `memfrac` limita la frazione di RAM rilevata, `threads` limita i thread nativi e `tempdir` sceglie lo spazio temporaneo.
+
+Il budget vale per singolo processo. Otto worker BIOMOD2 non condividono un unico limite Terra: ciascuno può usare il proprio budget e creare thread nativi. Un valore misurato di `memmax`, un `memfrac` più basso e `threads = 1` o `2` possono ridurre il picco, ma aumentano elaborazione a blocchi, file temporanei e I/O. Occorre cambiare una sola impostazione per run e misurare runtime, MaxRSS e output. Fonte primaria: <https://rspatial.github.io/terra/reference/terraOptions.html>.
+
+## Limite dell'heap vettoriale R
+
+Su Linux, `R_MAX_VSIZE` e `mem.maxVSize()` possono limitare l'heap vettoriale di R. Il superamento produce un errore di allocazione R, potenzialmente intercettabile, invece di lasciare crescere senza limite quella parte della memoria. Il limite non comprende tutta la memoria nativa usata da Terra, GDAL e altre librerie, quindi non sostituisce il budget Terra e va provato soltanto dopo averlo misurato. `ulimit -v` limita l'intero spazio di indirizzamento e può interferire con i raster memory-mapped; non va adottato senza un test dedicato. Fonti: <https://search.r-project.org/R/refmans/base/html/Memory.html> e <https://search.r-project.org/R/refmans/base/html/Memory-limits.html>.
+
+## Contenimento degli errori e ripresa
+
+Il disegno una specie per task e le directory di output isolate contengono già il danno tra specie. Un futuro refactor può aggiungere `tryCatch()` attorno a proiezioni ed ensemble e scrivere `_FAIL` con specie, scenario, worker, modalità di storage ed errore per i fallimenti intercettabili. `_SUCCESS` deve essere scritto soltanto dopo i controlli finali previsti.
+
+Un worker terminato dal kernel con `SIGKILL` non può essere intercettato da R. I marker servono comunque a distinguere un output parziale da uno completo. La ripresa di scenari già verificati richiede prima seed documentati e una politica esplicita per `overwrite`; riusare file obsoleti può mescolare configurazioni diverse. Se il picco resta eccessivo, l'alternativa da valutare è eseguire gli scenari in processi o task indipendenti, invece di aumentare i fork dentro un unico processo principale.
+
+## Monitoraggio e configurazione Slurm
+
+`sstat` può fornire MaxRSS durante una run e `sacct` conserva il MaxRSS finale del batch step. Una soglia sotto la RAM allocata può generare un avviso, ma il monitor non deve cancellare o reinviare job senza approvazione esplicita.
+
+Con `ConstrainRAMSpace`, il kernel può uccidere uno o più processi del cgroup mentre lo step resta attivo; questo comportamento corrisponde ai worker persi e agli errori ensemble secondari osservati. `OverMemoryKill` può invece cancellare l'intero step, ma è una configurazione amministrativa basata sul polling di `JobAcctGather`, non un'opzione del singolo script. Va chiesto a CINECA se sia appropriata e se il cluster esponga un limite cgroup-v2 `memory.high` prima di `memory.max`. Fonti: <https://slurm.schedmd.com/cgroup.conf.html> e <https://slurm.schedmd.com/slurm.conf.html>.
+
+## Ordine delle prove
+
+1. Ripetere il confronto MAXNET blockwise sul raster completo e verificare valori, file, runtime e Slurm MaxRSS.
+2. Revalidare F/F a otto worker dopo il refactor.
+3. Provare il budget Terra modificando una sola impostazione per job.
+4. Aggiungere `_FAIL` e gestione degli errori intercettabili.
+5. Provare un limite dell'heap R soltanto dopo Terra.
+6. Se il picco resta troppo alto, isolare gli scenari in processi o task separati.
+
+# Spazio disco, output e politiche di conservazione
+
+Al momento della misura il filesystem riportava:
+
+- circa 1,0 TiB totali;
+- 225 GiB usati;
+- 800 GiB disponibili.
+
+Un output completo di *Achillea atrata* da otto worker occupava circa 7,4 GiB:
+
+| Componente | Spazio |
+|---|---:|
+| Directory di proiezione dei modelli individuali, correnti e future | 6,6 GiB |
+| Directory di proiezione ensemble | 700 MiB |
+| Modelli e metadati BIOMOD2 | 148 MiB |
+
+Un GeoTIFF individuale campionato risultava compresso con LZW secondo `gdalinfo`.
+
+Se tutte le 167 specie avessero la stessa dimensione di *A. atrata*, conservare ogni file richiederebbe circa 1,21 TiB. È una stima, non una misura su più specie. Conservare soltanto i 700 MiB di ensemble e i 148 MiB di modelli e metadati richiederebbe circa 138 GiB, prima dei piccoli file top-level.
+
+Le clamping mask si trovano nella struttura delle proiezioni individuali. Conservarle eliminando gli altri raster richiede una regola selettiva e una nuova misura.
+
+Il numero di righe di occorrenza non permette di scalare direttamente i 6,6 GiB per specie:
+
+- ogni specie completata richiede comunque 125 proiezioni individuali sul raster corrente e sugli otto futuri nella baseline controllata;
+- la compressione GeoTIFF dipende dai valori predetti e dai pattern di dati mancanti;
+- serve una regressione dimensione/occorrenze basata su più specie completate con gli stessi modelli, raster e storage;
+- il confronto controllato disponibile riguarda una sola specie.
+
+`_SUCCESS` dimostra che lo script R ha raggiunto la scrittura finale. Non dimostra da solo che tutti gli output siano stati validati in modo indipendente o che i raster individuali collegati non servano più.
+
+Rimuovere i raster individuali:
+
+- impedirebbe l'ispezione successiva delle mappe per singolo modello;
+- invaliderebbe gli oggetti BIOMOD2 che li referenziano;
+- richiederebbe un ricalcolo per cambiare ensemble o soglie.
+
+Non è stata applicata alcuna politica automatica di cancellazione.
+
+# Proof of concept delle varianti R
+
+Il POC usa un solo branch e un'unica implementazione R divisa in fasi. `R/poc/main.R` le orchestra attraverso la configurazione e i tre launcher selezionano i profili: I/O e modelli sequenziali, I/O sequenziale e modelli paralleli, oppure I/O e modelli paralleli. Questa scelta evita di duplicare la pipeline e di far divergere parametri scientifici e correzioni tra varianti.
+
+## Esecuzione e test del POC
+
+```bash
+R/poc/test-dry-run.sh
+
+singularity exec --pwd /work --bind "$PWD:/work" container/geospatial.sif \
+  /work/R/poc/test-dry-run.sh
+
+singularity exec --pwd /work --bind "$PWD:/work" container/geospatial.sif \
+  Rscript /work/R/poc/test-smoke.R
+```
+
+`test-dry-run.sh` verifica i tre launcher, gli alias e il rifiuto delle richieste oltre `SLURM_CPUS_PER_TASK`. Non carica pacchetti scientifici e non legge gli input. `test-smoke.R` genera raster e presenze sintetici, esegue i tre profili e confronta la cross-validation, le metriche e gli output.
+
+Durante la preparazione dei tre profili in `R/poc/` sono stati eseguiti dry-run e smoke test sintetici nel container di produzione. Le prime esecuzioni sequenziale e parallela terminavano correttamente e scrivevano `_SUCCESS`. I TIFF avevano gli stessi nomi relativi, geometria e maschere `NA`, ma i valori differivano fino a circa 831. Le differenze comparivano già nelle metriche, nelle soglie e nei coefficienti GLM, quindi non erano dovute alla copia parallela degli output.
+
+Anche due ripetizioni completamente sequenziali producevano risultati diversi. Il confronto con I/O parallelo e modelli sequenziali ha escluso lo staging concorrente. L'ispezione della versione BIOMOD2 4.3-4-5 nel container ha mostrato che `BIOMOD_Modeling(seed.val)` non determina la partizione casuale: `bm_CrossValidation()` non riceve il seed e la funzione interna `.sample_num()` esegue `set.seed(NULL)`. Chiamare `set.seed()` prima della funzione non basta, perché il generatore viene reinizializzato al suo interno.
+
+Il POC costruisce ora una tabella casuale deterministica con la stessa proporzione di calibrazione, la salva come `CV_<specie>.csv` e la passa a BIOMOD2 tramite `CV.user.table`. Usa anche un `modeling.id` stabile. Durante le prove è emerso inoltre che BIOMOD2 4.3-4-5 fallisce con pseudo-assenze e una sola colonna CV definita dall'utente, perché una matrice viene ridotta a vettore prima della chiamata a `ncol()`. Il POC richiede quindi almeno due colonne CV per questo percorso di compatibilità.
+
+Dopo la correzione, le ripetizioni sequenziali e parallele e i confronti tra I/O sequenziale e parallelo hanno prodotto tabelle CV, metriche, struttura, geometria, maschere `NA` e valori raster identici. Il test versionato è `R/poc/test-smoke.R`. Queste prove verificano il funzionamento su dati sintetici, non le prestazioni o la validità scientifica della configurazione reale.
+
+### Spiegazione semplice del test smoke e di Snowfall
+
+`R/poc/test-smoke.R` è una prova piccola e veloce. Crea raster e presenze fittizie, esegue la stessa pipeline con i tre profili POC e confronta i risultati. Cerca errori nel collegamento tra le fasi, nell'uso dei seed, nei file prodotti, nella geometria e nei valori raster.
+
+Il test non dimostra che il workflow completo funzionerà per 167 specie e raster grandi: controlla soltanto che i pezzi principali siano coerenti su un esempio piccolo. Non è neppure un benchmark di velocità. Se passa, `_SUCCESS`, le metriche, i file TIFF, la geometria, le celle `NA` e i valori devono coincidere tra i profili confrontati.
+
+Snowfall è un livello diverso di parallelismo. Distribuisce specie diverse a processi diversi: per esempio, un processo elabora la specie A e un altro la specie B. Non è semplicemente un'opzione che rende più veloce una singola specie. BIOMOD2 può inoltre usare più worker per i modelli di ogni specie. Con due worker Snowfall e quattro worker BIOMOD2, il picco teorico è `2 × 4 = 8` worker; il POC rifiuta la configurazione se supera `SLURM_CPUS_PER_TASK`.
+
+Nel POC Snowfall è opzionale e richiede il pacchetto R `snowfall`, assente dal container di produzione. Non fa parte delle tre varianti principali e non è stato validato. Verrà considerato solo se i test del backend interno BIOMOD2 ne mostreranno la necessità.
+
+Lo smoke test non autorizza ancora l'uso produttivo. Prima di sostituire la baseline occorre eseguire i tre profili su un task Slurm per *Achillea atrata*, mantenendo fissi container, commit, seed e input, e confrontarne risultati, output e risorse. La checklist dei benchmark resta nel `README.md`.
+
+# Metodologia di misura e interpretazione
+
+Sono stati usati:
+
+- `sacct` per stato finale, exit code, elapsed e memoria dei job e dei batch step;
+- `squeue` per stato live e scadenze;
+- `sstat` per MaxRSS live;
+- `/usr/bin/time -v` per il massimo per processo o per il comando osservato;
+- `du` per blocchi occupati su disco;
+- `df` per capacità del filesystem;
+- `gdalinfo` per la compressione del GeoTIFF;
+- `singularity exec` per versioni BIOMOD2/Terra e `terraOptions()`.
+
+I valori Slurm con suffisso `K` furono convertiti in GiB dividendo per 1.048.576.
+
+Nei job a singolo task, il MaxRSS del batch step include il processo R e i discendenti forkati. Per questo è preferito al massimo più basso del singolo processo riportato da GNU `time`.
+
+Le code dei log hanno permesso di individuare l'operazione precedente al fallimento. Le righe di debug hanno verificato la corrispondenza tra allocazione Slurm, worker R e storage. I marker degli scenari hanno verificato l'avanzamento negli otto futuri.
+
+I successivi errori BIOMOD ensemble nei job OOM non sono la causa iniziale: derivano dalle proiezioni mancanti dopo la perdita dei worker.
+
+Un tentativo di elencare direttamente i processi sui compute node fu respinto dall'autenticazione Leonardo. Nessuna affermazione sull'RSS per processo si basa su quel tentativo.
+
+`du` e `df` misurano disco, non memoria residente.
+
+## Revisione delle evidenze locali del 6 settembre 2026
+
+La revisione successiva alla campagna ha ricondotto i valori alle fonti versionate:
+
+- [`logs/sacct_r_runs_2026-09-06.csv`](../logs/sacct_r_runs_2026-09-06.csv) conserva stato, exit code, tempi, CPU allocate, `TotalCPU`, memoria e date Slurm;
+- [`logs/phase_timings_2026-09-06.csv`](../logs/phase_timings_2026-09-06.csv) conserva i tempi delle fasi e dei singoli scenari disponibili;
+- [`logs/output_validation_2026-09-06.csv`](../logs/output_validation_2026-09-06.csv) conserva conteggi, file vuoti, dimensioni e marker `_SUCCESS` degli output verificati;
+- `logs/resources_<run>.txt` conserva gli header del wrapper e i campi GNU `time -v` disponibili.
+
+Il suffisso `_N` di un array identifica il task e quindi una specie. Il wall time di `55020903_1`, per esempio, è il tempo della pipeline completa di *Achillea atrata*, mentre `55020903` identifica la campagna. La configurazione produttiva P10 usa 10 repliche da 10.000 pseudo-assenze e 5 repliche di cross-validation. Le run E5 ne usavano 5 e rimangono evidenze storiche: non vanno attribuite alla configurazione produttiva.
+
+### Warning e messaggi non fatali
+
+| Classe | Interpretazione conservata |
+|---|---|
+| Pacchetto opzionale `cito` assente | Messaggio di caricamento; nessun fallimento osservato per questa causa. |
+| `%dopar%` senza backend | Esecuzione sequenziale involontaria. |
+| `glm.fit` non converge o produce probabilità 0/1 | Richiede una verifica scientifica dei modelli e delle metriche. |
+| Fit rank-deficient | Le predizioni interessate devono essere controllate. |
+| Overflow intero, metriche mancanti o `max` senza valori | Può produrre `NA` o `-Inf`. |
+| Calibrazione GBM fallita | Alcuni modelli possono fallire mentre la run prosegue. |
+| Worker senza risultato o elementi non `SpatRaster` | Indica output parziale, spesso dopo OOM. |
+| Trasformazioni binary/filter disabilitate | Messaggio BIOMOD2 da considerare nell'interpretazione degli output ensemble. |
+
+### Errori fatali e arresti
+
+| Classe | Run rappresentative | Evidenza |
+|---|---|---|
+| OOM | `48075655_[1-5]`, `48607860_[1-5]`, `49629886`, `49630695_2`, `51739004_1`, `51739048_1` | `oom_kill` o processo ucciso. |
+| Fork senza memoria | `49842976_1`, `49843592_1` | `mcfork(): unable to fork`. |
+| Collisione con file esistente | `48325677_3`, `48418427_[3-5]` | Errore `writeRaster`. |
+| Path o filename non valido | `47574797_2`, `48873007_1`, `48873007_3` | Path assente, scrittura fallita o nome vuoto. |
+| SIGPIPE ripetuto | `47510573_2`, `47510573_3` | Errori `sendMaster` seguiti dalla cancellazione. |
+| Ensemble su output mancanti | `51739004_1`, `51739048_1` | Modelli assenti dopo la perdita dei worker. |
+| Time limit | `bc71039`, `48873007_[2,4,5]`, `51756264_1`, `51756286_1` | Arresto imposto da Slurm. |
+| Cancellazione utente | Diverse prove e campagne | Accounting Slurm e note operative. |
+| Budget esaurito prima di R | `55530303_[4-167]` | Cancellazione nel prolog amministrativo. |
+
+I campi assenti dalle fonti restano `NA`; non vengono stimati. Il successo del processo e `_SUCCESS` provano il completamento operativo, non la validità scientifica delle metriche.
+
+# Registro cronologico degli esperimenti
+
+## Fase 1: preparazione e test storici precedenti alla campagna completa
+
+Tra il 12 febbraio e il 28 maggio 2026 furono preparati e corretti container, dipendenze R, login CINECA, script Slurm, percorsi, coordinate, metriche e gestione dei dati. Le date provengono soprattutto dalla cronologia Git e non dimostrano che in quei giorni sia stato eseguito un job identificabile.
+
+Dal 9 al 24 giugno furono normalizzate l'esecuzione Singularity/Slurm e le API BIOMOD2. Le prove passarono progressivamente dal nodo intero a 16 worker e poi a un solo worker per limitare i fork OOM; il wall time massimo passò da 12 a 72 ore. Un mini-dataset completò il 15 giugno. Le prove successive corressero il riuso di `bm.proj`, aumentarono le pseudo-assenze a 10.000 e confrontarono specie di dimensioni diverse. La riunione del 24 giugno fissò per la produzione 10 repliche di pseudo-assenze e 5 repliche di cross-validation; registrò inoltre il limite della quota Git LFS per i raster. Le configurazioni precedenti restano evidenze storiche, non baseline direttamente confrontabili con la produzione.
 
 > **Ricordo non verificato di Enrico:** anche al DISTAV alcune esecuzioni terminavano con errori OOM e/o `fork()`.
 
@@ -260,7 +715,14 @@ Le azioni annotate erano:
 - confrontare in `BIOMOD_Projection` `overwrite=FALSE`, che può riusare proiezioni esistenti e risparmiare tempo, con `overwrite=TRUE`, più sicuro dopo modifiche a codice, input o modelli;
 - preparare l'array 1-167 soltanto dopo i test.
 
-I commit successivi aggiunsero seed deterministici, gestione di `overwrite`, ordinamento shortest-job-first e marker di successo. La baseline di produzione fu poi ricondotta allo script sequenziale in `R/base/`.
+I commit successivi aggiunsero seed deterministici, gestione di `overwrite`, ordinamento shortest-job-first e marker di successo. La baseline di produzione fu poi ricondotta allo script principale in `R/base/`.
+
+La cronologia Git e il codice BIOMOD2 chiariscono quattro punti sul parallelismo:
+
+1. Il file DISTAV originale `ensamble_modelling_no_parallel.R` era incoerente con il nome: creava un cluster da 10 worker e passava `nb.cpu = 10`. La copia di lavoro è stata resa sequenziale; la versione ricevuta resta nel commit `890f4c5`.
+2. La baseline Leonardo era intenzionalmente parallela. `SLURM_CPUS_PER_TASK` registrava i core fisici assegnati al task e determinava il numero di worker usati da modellazione e proiezioni. Nelle run osservate i valori erano 2, 4, 6, 8, 16 e 32. Sul backend multicore Linux, BIOMOD2 passa attraverso `doParallel` e `parallel`: R crea i worker con `mcfork()`, che chiama `fork()` del sistema operativo.
+3. Le fasi ensemble restavano a due worker. Modellazione e proiezione registrano globalmente il proprio backend `foreach`; `BIOMOD_EnsembleForecasting` usa `%dopar%` senza registrarne uno nuovo. Il reset esplicito a due worker impediva quindi di riutilizzare il backend precedente da 4-32 worker. Poiché `source()` non crea una nuova sessione R, `foreach::registerDoSEQ()` serve prima di una fase che deve tornare sequenziale dopo una fase parallela; non serve all'avvio se l'intera esecuzione usa già un solo worker. Il limite a due è una protezione deliberata, ma la cronologia non lo collega con certezza a uno specifico crash.
+4. La pipeline modulare usa un solo processo R principale persistente, ma BIOMOD2 può generare processi R worker temporanei e il monitoraggio usa un processo separato. Le modalità T/T, F/T, T/F e F/F regolano invece la rappresentazione dei raster e sono indipendenti dal numero di worker.
 
 Le note originali non registravano gli stati finali di `48325677_4` e `_5`. L'export Slurm recuperato il 6 settembre ha poi mostrato che entrambi furono cancellati dopo 42:47:42, con MaxRSS rispettivamente di 206,69 e 206,48 GiB. L'ultimo risultato applicativo registrato era il secondo scenario futuro.
 
@@ -296,7 +758,9 @@ Medie:
 
 La quarta run split usò 3,9 GiB meno della corrispondente monolitica e l'RSS split variò da 40,3 a 48,3 GiB. `ctx` era un ambiente R passato per riferimento, non una copia dei dati del workflow.
 
-### Benchmark controllato, dieci run
+### Benchmark controllato `49303754`, dieci run
+
+L'harness storico e le due implementazioni confrontate sono recuperabili dal commit `3825368`.
 
 Condizioni:
 
@@ -346,11 +810,11 @@ Il backup sintetico annota inoltre:
 
 Furono occupati i tre nodi disponibili con output isolati e 494.000 MB per job:
 
-| Job | Nodo | Worker | Storage | Output o scopo |
-|---|---|---:|---|---|
-| `49842976_1` | `lrdn4717` | 2 | F/T | Test ibrido su *Achillea atrata*. |
-| `49843592_1` | `lrdn4682` | 4 | F/T | Test ibrido sulla stessa specie. |
-| `49844162_1` | `lrdn4376` | 4 | F/F | Controllo più sicuro, output `data/output_disk_sp1_4cpu`. |
+| Job | Nodo | Core Slurm / worker modelli-proiezioni | Worker ensemble | Storage | Output o scopo |
+|---|---|---:|---:|---|---|
+| `49842976_1` | `lrdn4717` | 2 | 2 | F/T | Test ibrido su *Achillea atrata*. |
+| `49843592_1` | `lrdn4682` | 4 | 2 | F/T | Test ibrido sulla stessa specie. |
+| `49844162_1` | `lrdn4376` | 4 | 2 | F/F | Controllo più sicuro, output `data/output_disk_sp1_4cpu`. |
 
 Con `--exclusive` rimosso, `--mem=0` riservava 494.000 MB, mentre allocazione CPU e contabilizzazione seguivano i due o quattro worker richiesti. La precedente contabilizzazione di 112 CPU proveniva da uno script remoto obsoleto che conteneva ancora `--exclusive`.
 
@@ -377,7 +841,7 @@ La run F/F è una baseline valida di runtime e risorse:
 - `_SUCCESS` registra task 1, quattro worker BIOMOD e completamento il 20 luglio 2026 alle 18:37:21;
 - esistono entrambi i file di timing;
 - sono elencati tutti gli otto scenari futuri;
-- la directory della specie contiene 1.364 file non vuoti e occupa circa 7,2 GB;
+- la directory della specie contiene 1.364 file non vuoti e occupa circa 7,2 GB; nella root sono presenti altri quattro riepiloghi non vuoti;
 - sono presenti tutte le directory di proiezione individuali ed ensemble, correnti e future;
 - sono presenti 127 file di modello, cioè 125 modelli individuali più due ensemble;
 - nel log non compare un errore applicativo fatale.
@@ -391,9 +855,9 @@ Ripartizione del tempo:
 | Modellazione ensemble | 2 | 137,30 | 2,29 | 0,04 |
 | Proiezione corrente | 4 | 7.047,56 | 117,46 | 1,96 |
 | Proiezione ensemble corrente | 2 | 1.421,92 | 23,70 | 0,40 |
-| Proiezioni future, 8 scenari | 4 / 2 | 67.818,98 | 1.130,32 | 18,84 |
+| Ciclo futuro aggregato, 8 scenari | 4 per le proiezioni / 2 per gli ensemble | 67.818,98 | 1.130,32 | 18,84 |
 
-I file storici non misurano CPU-time, picco RAM o crescita del disco per singola fase. Le proiezioni future assorbono la maggior parte del tempo. I warning non fatali di GLM, MAXNET e delle metriche ensemble richiedono un controllo prima di usare le metriche come risultati scientifici definitivi, ma non invalidano la baseline di esecuzione.
+Per questa run il dettaglio temporale tra proiezioni ed ensemble futuri non è presente negli artefatti archiviati; il totale non va interpretato come una fase eseguita con un unico conteggio di worker. I file storici non misurano CPU-time, picco RAM o crescita del disco per singola fase. Il ciclo futuro assorbe la maggior parte del tempo. I warning non fatali di GLM, MAXNET e delle metriche ensemble richiedono un controllo prima di usare le metriche come risultati scientifici definitivi, ma non invalidano la baseline di esecuzione.
 
 ## Fase 7: confronto tra storage T/F e numero di worker, 2 agosto
 
@@ -404,11 +868,11 @@ Tre run dal riferimento `88e03c0` completarono il 2 agosto 2026. Ognuna:
 - usò una directory di output isolata;
 - limitò le fasi ensemble a due worker.
 
-| Job | Nodo | Worker | Storage | Tempo | MaxRSS | File |
+| Job | Nodo | Worker | Storage | Tempo | MaxRSS | File specie + riepiloghi root |
 |---|---|---:|---|---:|---:|---:|
-| `51485472_1` | `lrdn4939` | 4 | T/F | 80.500 s, 1.341,67 min, 22,36 h | 264,69 GiB | 1.368 non vuoti |
-| `51494635_1` | `lrdn4454` | 6 | F/F | 64.256 s, 1.070,93 min, 17,85 h | 258,95 GiB | 1.368 non vuoti |
-| `51485581_1` | `lrdn4946` | 8 | F/F | 54.335 s, 905,58 min, 15,09 h | 278,67 GiB | 1.368 non vuoti |
+| `51485472_1` | `lrdn4939` | 4 | T/F | 80.500 s, 1.341,67 min, 22,36 h | 264,69 GiB | 1.364 + 4, non vuoti |
+| `51494635_1` | `lrdn4454` | 6 | F/F | 64.256 s, 1.070,93 min, 17,85 h | 258,95 GiB | 1.364 + 4, non vuoti |
+| `51485581_1` | `lrdn4946` | 8 | F/F | 54.335 s, 905,58 min, 15,09 h | 278,67 GiB | 1.364 + 4, non vuoti |
 
 I job da quattro e otto worker erano stati inviati con limite di quattro giorni. Restavano pendenti nonostante 127 nodi DCGP apparentemente liberi, perché la manutenzione iniziava il 3 agosto alle 08:00 e terminava il 17 agosto alle 18:00. Con approvazione esplicita, il limite fu ridotto a 30 ore. Entrambi partirono circa alle 16:50. Il job da sei worker fu inviato direttamente con 30 ore e partì alle 16:54:58. Tutti terminarono prima della manutenzione con stato `COMPLETED` ed exit code zero.
 
@@ -427,35 +891,45 @@ Ogni configurazione fu eseguita una sola volta, quindi non è disponibile una mi
 
 La tabella riunisce le run PA=5 confrontabili. I file storici non misurano CPU-time, MaxRSS o crescita del disco per singola fase.
 
-| Worker/storage | Run | Formattazione | Modelli individuali | Modelli ensemble | Proiezione corrente | Ensemble corrente | Ciclo futuro | Quota futura |
-|---|---|---:|---:|---:|---:|---:|---:|---:|
-| 4/F/F | `49844162_1` | 1h 15m 28s | 4m 9s | 2m 17s | 1h 57m 28s | 23m 42s | 18h 50m 19s | 83,5% |
-| 4/T/F | `51485472_1` | 1h 14m 50s | 4m 9s | 2m 17s | 1h 56m 29s | 24m 28s | 18h 39m 0s | 83,4% |
-| 6/F/F | `51494635_1` | 1h 16m 41s | 2m 56s | 2m 17s | 1h 25m 33s | 24m 12s | 14h 38m 56s | 82,1% |
-| 8/F/F | `51485581_1` | 1h 15m 31s | 2m 19s | 2m 18s | 1h 7m 38s | 24m 9s | 12h 13m 17s | 81,0% |
-| 16/F/F | `51738981_1` | 1h 14m 45s | 1m 19s | 2m 20s | 36m 26s | 25m 17s | 8h 0m 55s | 77,4% |
+| Core Slurm / worker modelli-proiezioni / storage | Worker ensemble | Run | Formattazione | Modelli individuali | Modelli ensemble | Proiezione corrente | Ensemble corrente |
+|---|---:|---|---:|---:|---:|---:|---:|
+| 4 / 4 / F/F | 2 | `49844162_1` | 1h 15m 28s | 4m 9s | 2m 17s | 1h 57m 28s | 23m 42s |
+| 4 / 4 / T/F | 2 | `51485472_1` | 1h 14m 50s | 4m 9s | 2m 17s | 1h 56m 29s | 24m 28s |
+| 6 / 6 / F/F | 2 | `51494635_1` | 1h 16m 41s | 2m 56s | 2m 17s | 1h 25m 33s | 24m 12s |
+| 8 / 8 / F/F | 2 | `51485581_1` | 1h 15m 31s | 2m 19s | 2m 18s | 1h 7m 38s | 24m 9s |
+| 16 / 16 / F/F | 2 | `51738981_1` | 1h 14m 45s | 1m 19s | 2m 20s | 36m 26s | 25m 17s |
 
-La formattazione resta intorno a 75 minuti e l'ensemble corrente a 24-25 minuti. I modelli individuali e le proiezioni beneficiano dell'aumento dei worker; il ciclo futuro scende da 18h 50m a 8h 1m e rimane la fase dominante.
+Il ciclo futuro cambia numero di worker tra proiezione individuale ed ensemble e va quindi letto separatamente. I valori sommano gli otto scenari. `Loop overhead` è la parte misurata dal timer esterno del ciclo ma non dai timer delle due chiamate BIOMOD2: apertura e composizione dei raster dello scenario, costruzione dei nomi, selezione del backend ensemble, registrazione dei tempi, rimozione degli oggetti temporanei, garbage collection e gestione del ciclo. Per `49844162_1` resta soltanto il totale aggregato, quindi la ripartizione non è ricostruibile.
+
+| Core Slurm / worker modelli-proiezioni / storage | Worker ensemble | Run | Proiezioni future | Ensemble futuri | Loop overhead | Totale futuro | Quota futura |
+|---|---:|---|---:|---:|---:|---:|---:|
+| 4 / 4 / F/F | 2 | `49844162_1` | NA | NA | NA | 18h 50m 19s | 83,5% |
+| 4 / 4 / T/F | 2 | `51485472_1` | 15h 24m 16s | 3h 14m 35s | 8s | 18h 39m 0s | 83,4% |
+| 6 / 6 / F/F | 2 | `51494635_1` | 11h 24m 52s | 3h 13m 56s | 8s | 14h 38m 56s | 82,1% |
+| 8 / 8 / F/F | 2 | `51485581_1` | 8h 58m 26s | 3h 14m 42s | 8s | 12h 13m 17s | 81,0% |
+| 16 / 16 / F/F | 2 | `51738981_1` | 4h 47m 7s | 3h 13m 39s | 8s | 8h 0m 55s | 77,4% |
+
+La formattazione resta intorno a 75 minuti. Aumentando i worker, le proiezioni correnti e future accelerano; gli ensemble correnti e futuri, sempre limitati a due worker, restano quasi costanti. La run F/F da quattro worker non dispone del dettaglio futuro necessario per un confronto separato.
 
 ### Risorse con un pattern osservabile
 
 L'utilizzo CPU è `TotalCPU / (Elapsed × AllocCPUS)`; non indica RAM o disco.
 
-| Run | Worker/storage | CPU-hours Slurm | Utilizzo CPU | Slurm MaxRSS (GiB) |
-|---|---:|---:|---:|---:|
-| `49844162_1` | 4/F/F | 71,15 | 78,8% | 260,94 |
-| `51485472_1` | 4/T/F | 70,68 | 79,0% | 264,69 |
-| `51494635_1` | 6/F/F | 72,95 | 68,1% | 258,95 |
-| `51485581_1` | 8/F/F | 72,51 | 60,0% | 278,67 |
-| `51738981_1` | 16/F/F | 74,75 | 45,1% | 464,77 |
+| Run | Core Slurm / worker modelli-proiezioni / worker ensemble / storage | CPU-hours Slurm | Utilizzo CPU | Slurm MaxRSS (GiB) |
+|---|---|---:|---:|---:|
+| `49844162_1` | 4 / 4 / 2 / F/F | 71,15 | 78,8% | 260,94 |
+| `51485472_1` | 4 / 4 / 2 / T/F | 70,68 | 79,0% | 264,69 |
+| `51494635_1` | 6 / 6 / 2 / F/F | 72,95 | 68,1% | 258,95 |
+| `51485581_1` | 8 / 8 / 2 / F/F | 72,51 | 60,0% | 278,67 |
+| `51738981_1` | 16 / 16 / 2 / F/F | 74,75 | 45,1% | 464,77 |
 
 Nelle run PA=5 completate, le CPU-hours restano tra 70,68 e 74,75 mentre l'utilizzo dell'allocazione scende dal 78,8% al 45,1% all'aumentare dei worker. Il MaxRSS resta tra 258,95 e 278,67 GiB fino a 8 worker, poi sale a 464,77 GiB con 16 worker. Il confronto T/F-F/F a 4 worker ha una sola osservazione e non mostra un vantaggio stabile. Gli output completati occupano 7,18-7,35 GiB. I valori I/O dettagliati non mostrano un pattern chiaro e non sono riportati in questa sintesi.
 
 ### Validazione degli output
 
-Tutte e tre le directory:
+Tutti e tre gli output:
 
-- contengono 1.368 file;
+- contengono 1.364 file nella directory della specie e quattro riepiloghi nella root;
 - non contengono file vuoti;
 - contengono entrambe le tabelle di timing;
 - contengono `_SUCCESS` non vuoto;
@@ -465,7 +939,7 @@ Tutte e tre le directory:
 - mostrano tutti gli otto scenari futuri;
 - registrano 1.143 scritture di proiezione, corrispondenti a 125 modelli individuali più due ensemble per l'ambiente corrente e gli otto futuri.
 
-Il worker elimina l'intera directory della specie prima della formattazione. Nessuno dei 1.368 file precede l'avvio del relativo job e nessun log segnala skip o file preesistenti. Le circa 71-73 CPU-hours per run sono un'ulteriore evidenza di ricalcolo completo.
+Il worker elimina l'intera directory della specie prima della formattazione. Nessuno dei 1.364 file di specie o dei quattro riepiloghi precede l'avvio del relativo job e nessun log segnala skip o file preesistenti. Le circa 71-73 CPU-hours per run sono un'ulteriore evidenza di ricalcolo completo.
 
 Restano warning ripetuti sulle probabilità GLM, overflow interi, metriche mancanti e il pacchetto opzionale `cito`. Sono questioni di revisione scientifica, non fallimenti di esecuzione.
 
@@ -591,7 +1065,7 @@ La copia congelata documenta, tra le altre cose:
 - 5 ripetizioni di cross-validation;
 - 5 algoritmi;
 - storage di default della campagna F/F;
-- numero di worker letto da `BIOMOD_NCPU` o `SLURM_CPUS_PER_TASK`;
+- numero di worker derivato dall'allocazione `SLURM_CPUS_PER_TASK`;
 - al massimo due worker per le fasi ensemble;
 - pulizia della directory della specie prima dell'esecuzione;
 - timing in secondi;
@@ -609,11 +1083,23 @@ I log forniscono un riscontro diretto:
 | `55020903_2` | *Achillea clusiana* | 174 | 21:26:42 | 4-14:27:34 | 64,4% | 315,78 GiB | 40,91 / 14,47 GiB | 13,36 GiB |
 | `55020903_3` | *Agrostis capillaris* | 170.701 | 33:58:34 | 8-06:02:47 | 72,9% | 291,42 GiB | 154,11 / 60,94 GiB | 59,13 GiB |
 
+Timing delle fasi della run produttiva di *Achillea atrata*:
+
+| Run | Core Slurm / worker modelli-proiezioni | Worker ensemble | Formattazione | Modelli individuali | Modelli ensemble | Proiezione corrente | Ensemble corrente |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `55020903_1` | 8 / 8 | 2 | 2h 29m 32s | 4m 28s | 9m 35s | 2h 0m 54s | 33m 29s |
+
+| Run | Proiezioni future | Ensemble futuri | Loop overhead | Totale futuro |
+|---|---:|---:|---:|---:|
+| `55020903_1` | 16h 1m 21s | 4h 16m 47s | 9s | 20h 18m 17s |
+
+La validazione dell'output di `55020903_1` ha contato 2.614 file non vuoti nella directory della specie e quattro riepiloghi non vuoti nella root, con timing e `_SUCCESS` presenti.
+
 L'utilizzo CPU medio è `TotalCPU / (Elapsed × AllocCPUS)`. La somma dei tre wall time, 81:01:52, non è il runtime di una singola run. Per `_1`, le fasi registrate sommano 92.176,47 s, cioè 25:36:16; i circa 20 s rispetto al wall time sono overhead del wrapper.
 
 Il tempo Futuro somma gli otto scenari della stessa specie. CPU-hours e TotalCPU accumulano il lavoro dei processi paralleli, mentre le CPU-hours allocate corrispondono al wall time moltiplicato per le CPU assegnate. Nessuna di queste misure somma automaticamente specie diverse.
 
-Una verifica diretta su Leonardo con `sacct` ha restituito per le run analizzate soltanto gli step del job, `.batch` e `.extern`, senza step distinti per le chiamate R. `AcctGatherProfileType` è disabilitato; `sstat` non restituisce campioni per i job conclusi e `seff`, `jobstats` e `ssacct` non sono disponibili. CPU, RAM e I/O delle singole fasi non possono quindi essere ricostruiti retroattivamente da Slurm: devono essere campionati durante una nuova run o prodotti eseguendo ogni fase come step separato.
+Una verifica diretta su Leonardo con `sacct` ha restituito per le run analizzate soltanto gli step del job, `.batch` e `.extern`, senza step distinti per le chiamate R. Il cluster usa `JobAcctGatherType=jobacct_gather/cgroup` con `JobAcctGatherFrequency=10,energy=1,task=60`, ma `AcctGatherProfileType` è disabilitato. `sstat` non restituisce campioni per i job conclusi e `seff`, `jobstats` e `ssacct` non sono disponibili. CPU, RAM e I/O delle singole fasi non possono quindi essere ricostruiti retroattivamente da Slurm: devono essere campionati durante una nuova run o prodotti eseguendo ogni fase come step separato.
 
 Evidenze: snapshot `R/base_sequential_analysis_campaign_49cfdb0.R` nel commit `bd135b2`, `scripts/sbatch.sh`, `logs/job_55020903_[1-3].log`, `logs/phase_timings_2026-09-06.csv` e interrogazione Slurm del 14 settembre 2026.
 
@@ -708,9 +1194,9 @@ Nella colonna storage:
 | `49842976_1` | *A. atrata* | 2 | F/T | fallito, 05:44:00 | Fork fallito alla prima clamping mask futura; 413,22 GiB. |
 | `49843592_1` | *A. atrata* | 4 | F/T | fallito, 03:57:25 | Stesso punto; 413,80 GiB. |
 | `49844162_1` | *A. atrata* | 4 | F/F | completato, 22:33:50 | 260,94 GiB; otto futuri e `_SUCCESS`. |
-| `51485472_1` | *A. atrata* | 4 | T/F | completato, 22:21:40 | 264,69 GiB; 1.368 file non vuoti. |
-| `51494635_1` | *A. atrata* | 6 | F/F | completato, 17:50:56 | 258,95 GiB; 1.368 file non vuoti. |
-| `51485581_1` | *A. atrata* | 8 | F/F | completato, 15:05:35 | 278,67 GiB; 1.368 file non vuoti. |
+| `51485472_1` | *A. atrata* | 4 | T/F | completato, 22:21:40 | 264,69 GiB; 1.364 file di specie + 4 riepiloghi, non vuoti. |
+| `51494635_1` | *A. atrata* | 6 | F/F | completato, 17:50:56 | 258,95 GiB; 1.364 file di specie + 4 riepiloghi, non vuoti. |
+| `51485581_1` | *A. atrata* | 8 | F/F | completato, 15:05:35 | 278,67 GiB; 1.364 file di specie + 4 riepiloghi, non vuoti. |
 | `51738981_1` | *A. atrata* | 16 | F/F | completato, 10:21:30 | 464,77 GiB; accounting, output, timing e `_SUCCESS` validati. |
 | `51739004_1` | *A. atrata* | 16 | T/F | OOM, 02:57:18 | Un `oom_kill` al primo futuro; 472,57 GiB. |
 | `51739048_1` | *A. atrata* | 32 | F/F | OOM, 01:39:58 | 12 `oom_kill` nella proiezione corrente; 481,16 GiB. |
@@ -722,261 +1208,19 @@ Nella colonna storage:
 | `55020903_[4-167]` | Resto vecchio array | configurazione snapshot | F/F | in hold al 2 settembre | Non rilasciare. |
 | `55530303_[4-167%3]` | Array sostitutivo | configurazione snapshot | F/F | pending al 2 settembre | In attesa per manutenzione; massimo 3 concorrenti. |
 
-# Significato delle modalità di storage
-
-BIOMOD2 usa come default:
-
-```text
-keep.in.memory = TRUE
-do.stack = TRUE
-```
-
-## T/T
-
-Con `do.stack=TRUE`, le proiezioni dei modelli individuali vengono combinate in un raster multilayer. Con `keep.in.memory=TRUE`, l'oggetto di proiezione rimane anche nell'oggetto R restituito da BIOMOD2.
-
-Le prime run T/T riuscivano con circa 30-35 modelli, ma le configurazioni da 125-250 modelli hanno raggiunto il limite di memoria del nodo.
-
-## F/F, disk-backed
-
-Con entrambi i valori a `FALSE`:
-
-- ogni proiezione di modello viene scritta in un file separato;
-- l'oggetto BIOMOD2 conserva collegamenti ai file invece dello stack completo;
-- i layer completati non si accumulano tutti in memoria;
-- aumenta l'I/O sul filesystem.
-
-F/F non significa assenza di uso della RAM. Restano in memoria raster ambientali, modelli, processi worker, clamping mask e buffer temporanei. La baseline F/F da quattro worker ha comunque usato 260,94 GiB.
-
-## F/T, ibrido
-
-Con `keep.in.memory=FALSE` e `do.stack=TRUE`, l'oggetto finale non conserva lo stack, ma BIOMOD2 deve comunque costruire il raster multilayer durante la proiezione. I due test controllati sono falliti alla prima clamping mask futura con circa 413 GiB e un errore di fork.
-
-## T/F
-
-Con file separati e `keep.in.memory=TRUE`, l'ispezione del codice BIOMOD2 mostra che il ramo che conserva i valori è interno al ramo `do.stack`. Con `do.stack=FALSE`, il guadagno osservato di T/F rispetto a F/F è stato minimo: 0,9% su una sola run da quattro worker, con 3,75 GiB di picco in più.
-
-Con file separati, impostare anche `keep.in.memory=FALSE` libera inoltre l'oggetto di proiezione restituito. Nessuna delle due opzioni elimina la memoria temporanea usata dentro ogni predizione concorrente.
-
-## Modalità sequenziale più prudente annotata il 3 luglio
-
-Per una proiezione realmente sequenziale e disk-backed del vecchio `R/base/base_sequential_analysis.R` era stato annotato:
-
-```bash
-sbatch --export=ALL,BIOMOD_NCPU=1,PROJ_KEEP_IN_MEMORY=false,PROJ_DO_STACK=false \
-  --array=1 scripts/sbatch.sh
-```
-
-Significato:
-
-- `BIOMOD_NCPU=1`: nessun worker parallelo;
-- `keep.in.memory=false`: niente stack trattenuto nell'oggetto R;
-- `do.stack=false`: una proiezione su disco per modello.
-
-Gli OOM storici avvenivano durante `mclapply` o `%dopar%` nelle proiezioni. Con più worker, il fork parte con copy-on-write, ma cache Terra/GDAL, modelli e buffer di predizione diventano memoria privata per worker. Non esiste un meccanismo affidabile che aspetti la disponibilità di RAM. Al limite del cgroup, Slurm fa intervenire il kernel e il processo viene ucciso, non è Leonardo a sospendere il job finché si libera memoria. La modalità sequenziale riduce il picco, ma non garantisce il successo se un singolo modello supera la memoria disponibile.
-
-# Meccanismo di memoria e MAXNET blockwise
-
-Il container usa:
-
-- BIOMOD2 4.3.4.5;
-- Terra 1.9.11.
-
-Terra riportava:
-
-- `memfrac` predefinito 0,5;
-- nessun massimo assoluto di memoria;
-- directory temporanea sotto `/tmp`.
-
-Il limite Terra è per processo. Non impone un limite aggregato unico a tutti i worker BIOMOD2.
-
-## Percorso specifico MAXNET
-
-L'ispezione del codice ha distinto MAXNET dagli altri quattro algoritmi:
-
-- i 100 modelli GLM, GBM, ANN e FDA delegano la predizione raster a Terra, che può lavorare per blocchi;
-- i 25 modelli MAXNET convertono l'intero raster prima con `as.points()` e poi con `as.data.frame()`;
-- ogni raster ha 63.951.097 celle e cinque predittori;
-- più worker MAXNET concorrenti possono materializzare contemporaneamente coordinate, cinque colonne di predittori e intermedi di predizione.
-
-L'evidenza restringe quindi il collo di bottiglia a rappresentazioni complete del raster concorrenti, non al solo numero nominale di CPU.
-
-## Diagnostica locale
-
-Un test locale usò:
-
-- un modello MAXNET già salvato;
-- un crop di 230.509 celle;
-- 226.775 celle complete e confrontabili;
-- gli stessi raster predittori;
-- il percorso BIOMOD2 esistente;
-- un percorso Terra capace di elaborazione blockwise.
-
-Risultati verificati:
-
-- posizioni dei valori mancanti identiche;
-- differenza assoluta massima pari a zero;
-- valori scalati interi identici, ottenuti arrotondando la predizione moltiplicata per 1.000;
-- comportamento della predizione su `data.frame` invariato.
-
-Il test è passato localmente nel container di produzione senza consumare un nodo Leonardo.
-
-Non verifica ancora:
-
-- il raster completo;
-- tutti e 25 i modelli MAXNET;
-- tutti gli scenari;
-- runtime completo;
-- MaxRSS;
-- identità di tutti i file di output.
-
-## Variante sperimentale
-
-L'entry point storico `R/tmp/base_sequential_analysis_blockwise.R`, oggi `R/tmp/baseline_blockwise.R`, carica `R/tmp/maxnet_blockwise_override.R` prima della baseline non modificata.
-
-L'override:
-
-- registra un metodo `predict()` più specifico per `MAXNET_biomod2_model`;
-- per `SpatRaster` delega la predizione numerica a `terra::predict`;
-- lascia invariato il percorso su `data.frame`;
-- rifiuta raster categorici;
-- rifiuta modelli scalati;
-- supporta `filename`, `overwrite`, `seedval` e output 0-1000;
-- usa `clamp=FALSE` e predizione logistica;
-- scrive `INT2S` con `NAflag=-9999` quando è richiesto l'output 0-1000.
-
-Raster categorici e modelli scalati non sono usati dal workflow corrente. La baseline originale rimase invariata. La variante è una diagnosi e non una modifica di produzione. Nessuna campagna da 167 specie fu lanciata sulla base del solo prototipo blockwise.
-
-# Spazio disco, output e politiche di conservazione
-
-Al momento della misura il filesystem riportava:
-
-- circa 1,0 TiB totali;
-- 225 GiB usati;
-- 800 GiB disponibili.
-
-Un output completo di *Achillea atrata* da otto worker occupava circa 7,4 GiB:
-
-| Componente | Spazio |
-|---|---:|
-| Directory di proiezione dei modelli individuali, correnti e future | 6,6 GiB |
-| Directory di proiezione ensemble | 700 MiB |
-| Modelli e metadati BIOMOD2 | 148 MiB |
-
-Un GeoTIFF individuale campionato risultava compresso con LZW secondo `gdalinfo`.
-
-Se tutte le 167 specie avessero la stessa dimensione di *A. atrata*, conservare ogni file richiederebbe circa 1,21 TiB. È una stima, non una misura su più specie. Conservare soltanto i 700 MiB di ensemble e i 148 MiB di modelli e metadati richiederebbe circa 138 GiB, prima dei piccoli file top-level.
-
-Le clamping mask si trovano nella struttura delle proiezioni individuali. Conservarle eliminando gli altri raster richiede una regola selettiva e una nuova misura.
-
-Il numero di righe di occorrenza non permette di scalare direttamente i 6,6 GiB per specie:
-
-- ogni specie completata richiede comunque 125 proiezioni individuali sul raster corrente e sugli otto futuri nella baseline controllata;
-- la compressione GeoTIFF dipende dai valori predetti e dai pattern di dati mancanti;
-- serve una regressione dimensione/occorrenze basata su più specie completate con gli stessi modelli, raster e storage;
-- il confronto controllato disponibile riguarda una sola specie.
-
-`_SUCCESS` dimostra che lo script R ha raggiunto la scrittura finale. Non dimostra da solo che tutti gli output siano stati validati in modo indipendente o che i raster individuali collegati non servano più.
-
-Rimuovere i raster individuali:
-
-- impedirebbe l'ispezione successiva delle mappe per singolo modello;
-- invaliderebbe gli oggetti BIOMOD2 che li referenziano;
-- richiederebbe un ricalcolo per cambiare ensemble o soglie.
-
-Non è stata applicata alcuna politica automatica di cancellazione.
-
-# Occorrenze e raster blocking
-
-## Distribuzione delle specie nel dataset completo
-
-Il file `data/input/full_1km_EUNIS.csv` contiene 2.583.359 record per 167 specie. Il conteggio è stato ottenuto raggruppando il campo `sp_name` e contando le righe, esclusa l'intestazione. Il risultato descrive quindi il numero di record assegnati a ciascuna specie nel dataset, non una nuova stima delle presenze biologiche.
-
-| Statistica | Record per specie |
-|---|---:|
-| Minimo | 43 |
-| Primo quartile | 2.026 |
-| Mediana | 5.936 |
-| Media | 15.469,2 |
-| Terzo quartile | 14.633 |
-| Massimo | 170.701 |
-
-Il conteggio completo resta in [`data/output/full_species_counts.csv`](../data/output/full_species_counts.csv) per descrivere il dataset e supportare eventuali stime aggregate. *Galium anisophyllon* è la specie mediana per numerosità, con 5.936 record. I benchmark usano *Achillea atrata* perché dispone di più dati sperimentali sulle run, confronti e output validati. La scelta riflette la quantità di evidenza sperimentale disponibile; la rappresentatività numerica, geografica e biologica della specie non è stata valutata.
-
-Il controllo eseguito su Leonardo nel container di produzione il 2026-09-08 ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali. Tutte le 2.583.359 coordinate rientrano nell'estensione e coincidono con i centri delle celle entro una tolleranza di `1e-9` gradi; non serve quindi riproiettarle. Comandi e output sono conservati in [`logs/crs_validation_2026-09-08.txt`](../logs/crs_validation_2026-09-08.txt).
-
-Dividere le righe di occorrenza di una stessa specie cambierebbe la selezione delle pseudo-assenze, la cross-validation e i modelli calibrati; i risultati parziali non ricostruirebbero quindi l'analisi esistente.
-
-Il raster blocking è diverso. Un modello già calibrato predice intervalli di righe o tile spaziali consecutivi, scrive ogni blocco e li combina nello stesso raster finale. Cambia la pianificazione della memoria, non i dati di occorrenza o il modello.
-
-# Metodologia di misura e interpretazione
-
-Sono stati usati:
-
-- `sacct` per stato finale, exit code, elapsed e memoria dei job e dei batch step;
-- `squeue` per stato live e scadenze;
-- `sstat` per MaxRSS live;
-- `/usr/bin/time -v` per il massimo per processo o per il comando osservato;
-- `du` per blocchi occupati su disco;
-- `df` per capacità del filesystem;
-- `gdalinfo` per la compressione del GeoTIFF;
-- `singularity exec` per versioni BIOMOD2/Terra e `terraOptions()`.
-
-I valori Slurm con suffisso `K` furono convertiti in GiB dividendo per 1.048.576.
-
-Nei job a singolo task, il MaxRSS del batch step include il processo R e i discendenti forkati. Per questo è preferito al massimo più basso del singolo processo riportato da GNU `time`.
-
-Le code dei log hanno permesso di individuare l'operazione precedente al fallimento. Le righe di debug hanno verificato la corrispondenza tra allocazione Slurm, worker R e storage. I marker degli scenari hanno verificato l'avanzamento negli otto futuri.
-
-I successivi errori BIOMOD ensemble nei job OOM non sono la causa iniziale: derivano dalle proiezioni mancanti dopo la perdita dei worker.
-
-Un tentativo di elencare direttamente i processi sui compute node fu respinto dall'autenticazione Leonardo. Nessuna affermazione sull'RSS per processo si basa su quel tentativo.
-
-`du` e `df` misurano disco, non memoria residente.
-
-## Revisione delle evidenze locali del 6 settembre 2026
-
-La revisione successiva alla campagna ha ricondotto i valori alle fonti versionate:
-
-- [`logs/sacct_r_runs_2026-09-06.csv`](../logs/sacct_r_runs_2026-09-06.csv) conserva stato, exit code, tempi, CPU allocate, `TotalCPU`, memoria e date Slurm;
-- [`logs/phase_timings_2026-09-06.csv`](../logs/phase_timings_2026-09-06.csv) conserva i tempi delle fasi e dei singoli scenari disponibili;
-- [`logs/output_validation_2026-09-06.csv`](../logs/output_validation_2026-09-06.csv) conserva conteggi, file vuoti, dimensioni e marker `_SUCCESS` degli output verificati;
-- `logs/resources_<run>.txt` conserva gli header del wrapper e i campi GNU `time -v` disponibili.
-
-Il suffisso `_N` di un array identifica il task e quindi una specie. Il wall time di `55020903_1`, per esempio, è il tempo della pipeline completa di *Achillea atrata*, mentre `55020903` identifica la campagna. La configurazione produttiva P10 usa 10 repliche da 10.000 pseudo-assenze e 5 repliche di cross-validation. Le run E5 ne usavano 5 e rimangono evidenze storiche: non vanno attribuite alla configurazione produttiva.
-
-### Warning e messaggi non fatali
-
-| Classe | Interpretazione conservata |
-|---|---|
-| Pacchetto opzionale `cito` assente | Messaggio di caricamento; nessun fallimento osservato per questa causa. |
-| `%dopar%` senza backend | Esecuzione sequenziale involontaria. |
-| `glm.fit` non converge o produce probabilità 0/1 | Richiede una verifica scientifica dei modelli e delle metriche. |
-| Fit rank-deficient | Le predizioni interessate devono essere controllate. |
-| Overflow intero, metriche mancanti o `max` senza valori | Può produrre `NA` o `-Inf`. |
-| Calibrazione GBM fallita | Alcuni modelli possono fallire mentre la run prosegue. |
-| Worker senza risultato o elementi non `SpatRaster` | Indica output parziale, spesso dopo OOM. |
-| Trasformazioni binary/filter disabilitate | Messaggio BIOMOD2 da considerare nell'interpretazione degli output ensemble. |
-
-### Errori fatali e arresti
-
-| Classe | Run rappresentative | Evidenza |
-|---|---|---|
-| OOM | `48075655_[1-5]`, `48607860_[1-5]`, `49629886`, `49630695_2`, `51739004_1`, `51739048_1` | `oom_kill` o processo ucciso. |
-| Fork senza memoria | `49842976_1`, `49843592_1` | `mcfork(): unable to fork`. |
-| Collisione con file esistente | `48325677_3`, `48418427_[3-5]` | Errore `writeRaster`. |
-| Path o filename non valido | `47574797_2`, `48873007_1`, `48873007_3` | Path assente, scrittura fallita o nome vuoto. |
-| SIGPIPE ripetuto | `47510573_2`, `47510573_3` | Errori `sendMaster` seguiti dalla cancellazione. |
-| Ensemble su output mancanti | `51739004_1`, `51739048_1` | Modelli assenti dopo la perdita dei worker. |
-| Time limit | `bc71039`, `48873007_[2,4,5]`, `51756264_1`, `51756286_1` | Arresto imposto da Slurm. |
-| Cancellazione utente | Diverse prove e campagne | Accounting Slurm e note operative. |
-| Budget esaurito prima di R | `55530303_[4-167]` | Cancellazione nel prolog amministrativo. |
-
-I campi assenti dalle fonti restano `NA`; non vengono stimati. Il successo del processo e `_SUCCESS` provano il completamento operativo, non la validità scientifica delle metriche.
-
 # Partizioni e QoS Leonardo
 
 Tutti i test descritti usavano `scripts/sbatch.sh`. Le opzioni da linea di comando sovrascrivevano CPU, limite di tempo e variabili dell'esperimento, mentre lo script forniva account, partizione, QoS, memoria, log e posta.
+
+## Worker, core e CPU fisiche
+
+Un nodo DCGP di Leonardo contiene due CPU fisiche, intese come package o socket, con 56 core fisici ciascuna. In Slurm il termine CPU dipende dalla configurazione del cluster e può indicare un core o un thread hardware. Per DCGP, CINECA descrive `--cpus-per-task=N` come l'assegnazione di `N` core fisici a un task, non di `N` intere CPU/socket. Riferimenti: <https://docs.hpc.cineca.it/hpc/leonardo.html> e <https://docs.hpc.cineca.it/hpc/hpc_scheduler.html>.
+
+Slurm non crea direttamente i worker BIOMOD2. Assegna al task un insieme di core e pubblica `SLURM_CPUS_PER_TASK`; il codice R passa quel numero a BIOMOD2 tramite `nb.cpu`. Sul backend multicore Linux, `doParallel` può avviare fino a quel numero di processi R worker. Il cpuset di Slurm limita i core utilizzabili e lo scheduler del kernel colloca o sposta i processi tra quei core. Senza un'affinità esplicita, non esiste un'associazione permanente tra un worker e un core. Con `N` worker occupati e `N` core assegnati, la capacità disponibile corrisponde approssimativamente a un worker per core; il processo R principale e il monitor condividono brevemente la stessa allocazione.
+
+`OMP_NUM_THREADS` controlla i thread OpenMP interni a ciascun worker, non il numero di worker BIOMOD2. I launcher impostano `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS` e `MKL_NUM_THREADS` a `1`, così ogni worker usa un solo thread di calcolo in questi runtime e può eseguire al massimo su un core alla volta. Se le variabili non sono definite, ogni runtime sceglie il proprio valore predefinito, spesso in base ai processori visibili. Linux distribuisce i thread dopo che la libreria li ha creati, ma non decide quanti crearne. Si può quindi ottenere parallelismo annidato, per esempio `N` worker BIOMOD2 con più thread nativi ciascuno. Una variabile definita come stringa vuota non equivale a `1`: il runtime può ignorarla, usare il valore predefinito o segnalare un valore non valido.
+
+## Partizioni e limiti
 
 | Risorsa | Ruolo e limiti annotati |
 |---|---|
@@ -991,6 +1235,121 @@ Tutti i test descritti usavano `scripts/sbatch.sh`. Le opzioni da linea di coman
 Queste risorse hanno hardware e obiettivi diversi. Non sono code intercambiabili per lo stesso workload DCGP.
 
 La RAM di nodi separati non viene combinata in modo trasparente. Un'esecuzione multinodo richiederebbe sharding esplicito per modello o scenario e ricombinazione su disco. Doveva essere considerata soltanto se lo storage ibrido avesse continuato a fallire. La campagna effettiva usa invece una specie indipendente per nodo.
+
+# Esaurimento del budget DCGP, 4 settembre 2026
+
+## Cancellazione dell'array sostitutivo
+
+Dopo la manutenzione del 2-4 settembre, l'array `55530303_[4-167%3]` ha ricevuto nodi di calcolo, ma nessuna task ha avviato lo script batch. Le 164 task sono rimaste attive da uno a sedici secondi e Slurm le ha registrate come `CANCELLED by 0` con `ExitCode 0:0`. Non è stato creato alcun file `logs/job_55530303_<task>.log`.
+
+Il commento di accounting di Slurm riporta per le task esaminate:
+
+```text
+prolog controller: insufficient or expired budget
+```
+
+La cancellazione è avvenuta nel prolog amministrativo, prima dell'esecuzione di Singularity, R o `scripts/sbatch.sh`. L'exit code zero non indica il completamento dell'analisi: nessun processo applicativo è partito, quindi nessuno ha restituito un errore. La verifica dell'output ha trovato soltanto tre directory di specie e tre marker `_SUCCESS`, relativi alle task `55020903_1`, `_2` e `_3`. L'array sostitutivo non ha completato alcuna specie con indice 4-167.
+
+Le notifiche ricevute dipendono da `--mail-type=ARRAY_TASKS`: Slurm ha inviato una mail per ciascun elemento cancellato. Il vecchio array `55020903_[4-167%3]`, che era rimasto in `JobHeldUser`, è stato cancellato manualmente il 4 settembre dopo questa diagnosi.
+
+## Stato del budget
+
+I comandi usati su Leonardo sono:
+
+```bash
+saldo -b -u <username> --dcgp
+saldo -r -u <username> -y 2026 --dcgp
+```
+
+Il primo ha riportato:
+
+```text
+periodo di validità: 12 febbraio - 12 novembre 2026
+budget totale:       100.000 ore locali
+consumo:             103.448 ore locali
+percentuale:         103,4%
+```
+
+Il report giornaliero attribuisce tutte le 103.448:48:42 ore locali a 158 job dell'utente del progetto sull'account `IscrC_SPECC`. Il progetto non era scaduto per data; aveva superato il budget assegnato.
+
+## Come CINECA contabilizza le ore
+
+CINECA misura il consumo in ore CPU effettive. La formula documentata è:
+
+```text
+BH = T * N * R * C
+```
+
+con:
+
+- `T`: tempo trascorso del job in ore;
+- `N`: numero di nodi allocati;
+- `C`: core disponibili su ogni nodo, 112 per DCGP;
+- `R`: frazione massima di nodo riservata considerando separatamente CPU, memoria e altre risorse.
+
+Il fattore `R` è il massimo tra le frazioni richieste. Per la campagna:
+
+```text
+CPU:       8 / 112      = 0,071
+memoria:   494000 / 494000 MB = 1
+R:         max(0,071, 1) = 1
+```
+
+La direttiva `--mem=0` riserva tutta la memoria allocabile del nodo. Anche con sole otto CPU, la RAM impedisce ad altri job di usare il resto del nodo e porta il costo a 112 ore locali per ogni ora di esecuzione:
+
+```text
+BH = T * 1 * 1 * 112 = T * 112
+```
+
+Conta la memoria riservata, non il solo MaxRSS osservato. Le tre task di produzione chiedevano 494.000 MB, mentre il batch step ha raggiunto circa 316 GiB per `55020903_1`, 316 GiB per `_2` e 291 GiB per `_3`. Una futura riduzione della memoria richiesta potrebbe abbassare il fattore `R`, ma deve lasciare un margine verificato rispetto ai picchi e alla variabilità tra specie.
+
+La regola completa è descritta nella documentazione CINECA: <https://docs.hpc.cineca.it/hpc/hpc_intro.html#budget-and-accounting>.
+
+## Job con il consumo maggiore
+
+La tabella usa `sacct` e applica il fattore di 112 ore locali per ora ai job che richiedevano 494.000 MB su un nodo DCGP.
+
+| Job | Stato | Tempo trascorso | Ore locali circa | Motivo del costo |
+|---|---|---:|---:|---|
+| `46403582` | `COMPLETED` | 50h18m54s | 5.635 | Nodo completo per oltre due giorni. |
+| `48325677_4` | cancellato dall'utente | 42h47m42s | 4.793 | Nodo completo rimasto allocato fino alla cancellazione. |
+| `48325677_5` | cancellato dall'utente | 42h47m42s | 4.793 | Stessa durata e stessa allocazione del task precedente. |
+| `49507005_3` | cancellato dall'utente | 38h12m41s | 4.280 | Una delle tre task concorrenti della campagna a onde. |
+| `49507005_2` | cancellato dall'utente | 38h12m37s | 4.280 | Una delle tre task concorrenti della campagna a onde. |
+| `49507005_1` | cancellato dall'utente | 38h12m21s | 4.279 | Una delle tre task concorrenti della campagna a onde. |
+| `55020903_3` | `COMPLETED` | 33h58m37s | 3.805 | Task Agrostis della campagna di produzione. |
+| `55020903_1` | `COMPLETED` | 25h36m42s | 2.869 | Task Achillea della campagna di produzione. |
+| `47574797_3` | `COMPLETED` | 22h59m26s | 2.575 | Run sequenziale con memoria completa. |
+| `48238919_3` | cancellato dall'utente | 22h40m40s | 2.540 | Il tempo già allocato resta contabilizzato. |
+
+La cancellazione non annulla il consumo precedente: un job cancellato dopo 42 ore viene fatturato per le 42 ore durante le quali ha riservato le risorse.
+
+## Perché alcuni giorni superano 10.000 ore
+
+`saldo -r` concentra il costo sul giorno associato alla conclusione del job. Il 4 luglio risultano 10.546:47:28 ore locali. Quasi tutto il consumo deriva da `48325677_4` e `_5`, circa 4.793 ore ciascuno, più due job da circa quattro ore:
+
+```text
+2 * 42,795 h * 112 = circa 9.586 ore locali
+4,492 h * 112      = circa   503 ore locali
+4,086 h * 112      = circa   458 ore locali
+```
+
+Il 17 luglio risultano 13.650:42:56 ore locali. Le tre task `49507005_1`, `_2` e `_3` contribuirono per circa 12.838 ore. Altri tre job brevi o terminati in OOM portarono il totale a circa 13.650:
+
+```text
+3 * 38,2 h * 112 = circa 12.838 ore locali
+5,42 h * 112     = circa    607 ore locali
+1,59 h * 112     = circa    178 ore locali
+0,24 h * 112     = circa     27 ore locali
+```
+
+Il campo `num.jobs=61` del 17 luglio include submission, elementi di array, dipendenze e job cancellati. Non indica 61 nodi attivi contemporaneamente. Il consumo principale proviene da sei allocazioni, soprattutto dalle tre task da oltre 38 ore.
+
+## Impatto sulla campagna completa
+
+Le prime tre specie della campagna hanno consumato insieme circa 9.076 ore locali. La media è circa 3.025 ore locali per specie. Una proiezione lineare sulle 164 specie rimanenti darebbe circa 496.000 ore locali aggiuntive. È soltanto una stima, perché durata e memoria possono variare tra specie, ma mostra che la campagna non può rientrare nel budget originario da 100.000 ore senza nuove risorse o una riduzione sostanziale del costo per specie.
+
+Prima di inviare un nuovo array occorrono un'estensione del budget e una nuova stima basata sui tre completamenti. La richiesta di memoria va scelta usando i MaxRSS misurati invece di `--mem=0`, senza ridurre il margine necessario per evitare OOM.
 
 # Workflow tra i tre host
 
@@ -1139,474 +1498,6 @@ Nel TODO corrente sono descritti così:
 - `01a03831-9d4c-7366-8a2b-fa1f748f70c1`: riordino e completamento delle attività Leonardo dopo la manutenzione del 4 settembre alle 08:00.
 
 Poiché esiste anche il TODO "rimuovere le credenziali dalle note e purgarle dalla storia Git", questi identificatori devono essere classificati prima di pubblicare il materiale. In questo quaderno restano riportati integralmente per non perdere l'informazione originale.
-
-# Prossime operazioni della campagna al 2 settembre
-
-Ordine registrato nell'handoff:
-
-1. Dopo la manutenzione, controllare `squeue`, lo stato del task 3 e `_SUCCESS` dalla finestra tmux `tesi:1:leo`.
-2. Riclonare i metadati GitHub su Leonardo preservando `data/`, `logs/` e `container/geospatial.sif`.
-3. Sincronizzare il container e gli output completati verso Spartaco.
-4. Rimuovere il vecchio array in hold soltanto dopo aver confermato che il sostitutivo copre i task 4-167.
-5. Verificare ogni specie completata con `_SUCCESS`, numero di file, dimensioni e log.
-6. Aggiornare il manifest delle run.
-
-Guardrail:
-
-- iniziare le risposte con "Enrico" e comunicare in italiano;
-- usare `tmux send-keys` per Leonardo;
-- ispezionare il pane prima di inviare comandi;
-- ripristinare il monitoraggio dei log dopo i comandi;
-- richiedere approvazione esplicita prima di cambiare o cancellare job Slurm;
-- committare soltanto file legati al task;
-- il worktree principale può contenere modifiche della tesi non correlate.
-
-Il pre-prompt associato richiedeva di leggere prima `prompt.md`, il quaderno LaTeX, `README.md` e `notes.md`, ricostruire in modo conciso stato della campagna, RAM, CPU, storage, test worker, esperimento MAXNET e prossimi passi. Specificava inoltre di:
-
-- considerare `prompt.md` l'handoff principale;
-- non lanciare job;
-- non modificare file;
-- non ripulire il worktree.
-
-# Proof of concept delle varianti R
-
-Il POC usa un solo branch e un'unica implementazione R divisa in fasi. `R/poc/main.R` le orchestra attraverso la configurazione e i tre launcher selezionano i profili: I/O e modelli sequenziali, I/O sequenziale e modelli paralleli, oppure I/O e modelli paralleli. Questa scelta evita di duplicare la pipeline e di far divergere parametri scientifici e correzioni tra varianti.
-
-## Esecuzione e test del POC
-
-```bash
-R/poc/test-dry-run.sh
-
-singularity exec --pwd /work --bind "$PWD:/work" container/geospatial.sif \
-  /work/R/poc/test-dry-run.sh
-
-singularity exec --pwd /work --bind "$PWD:/work" container/geospatial.sif \
-  Rscript /work/R/poc/test-smoke.R
-```
-
-`test-dry-run.sh` verifica i tre launcher, gli alias e gli override della configurazione, compreso il rifiuto delle richieste oltre `SLURM_CPUS_PER_TASK`. Non carica pacchetti scientifici e non legge gli input. `test-smoke.R` genera raster e presenze sintetici, esegue i tre profili e confronta la cross-validation, le metriche e gli output.
-
-Durante la preparazione dei tre profili in `R/poc/` sono stati eseguiti dry-run e smoke test sintetici nel container di produzione. Le prime esecuzioni sequenziale e parallela terminavano correttamente e scrivevano `_SUCCESS`. I TIFF avevano gli stessi nomi relativi, geometria e maschere `NA`, ma i valori differivano fino a circa 831. Le differenze comparivano già nelle metriche, nelle soglie e nei coefficienti GLM, quindi non erano dovute alla copia parallela degli output.
-
-Anche due ripetizioni completamente sequenziali producevano risultati diversi. Il confronto con I/O parallelo e modelli sequenziali ha escluso lo staging concorrente. L'ispezione della versione BIOMOD2 4.3-4-5 nel container ha mostrato che `BIOMOD_Modeling(seed.val)` non determina la partizione casuale: `bm_CrossValidation()` non riceve il seed e la funzione interna `.sample_num()` esegue `set.seed(NULL)`. Chiamare `set.seed()` prima della funzione non basta, perché il generatore viene reinizializzato al suo interno.
-
-Il POC costruisce ora una tabella casuale deterministica con la stessa proporzione di calibrazione, la salva come `CV_<specie>.csv` e la passa a BIOMOD2 tramite `CV.user.table`. Usa anche un `modeling.id` stabile. Durante le prove è emerso inoltre che BIOMOD2 4.3-4-5 fallisce con pseudo-assenze e una sola colonna CV definita dall'utente, perché una matrice viene ridotta a vettore prima della chiamata a `ncol()`. Il POC richiede quindi almeno due colonne CV per questo percorso di compatibilità.
-
-Dopo la correzione, le ripetizioni sequenziali e parallele e i confronti tra I/O sequenziale e parallelo hanno prodotto tabelle CV, metriche, struttura, geometria, maschere `NA` e valori raster identici. Il test versionato è `R/poc/test-smoke.R`. Queste prove verificano il funzionamento su dati sintetici, non le prestazioni o la validità scientifica della configurazione reale.
-
-### Spiegazione semplice del test smoke e di Snowfall
-
-`R/poc/test-smoke.R` è una prova piccola e veloce. Crea raster e presenze fittizie, esegue la stessa pipeline con i tre profili POC e confronta i risultati. Cerca errori nel collegamento tra le fasi, nell'uso dei seed, nei file prodotti, nella geometria e nei valori raster.
-
-Il test non dimostra che il workflow completo funzionerà per 167 specie e raster grandi: controlla soltanto che i pezzi principali siano coerenti su un esempio piccolo. Non è neppure un benchmark di velocità. Se passa, `_SUCCESS`, le metriche, i file TIFF, la geometria, le celle `NA` e i valori devono coincidere tra i profili confrontati.
-
-Snowfall è un livello diverso di parallelismo. Distribuisce specie diverse a processi diversi: per esempio, un processo elabora la specie A e un altro la specie B. Non è semplicemente un'opzione che rende più veloce una singola specie. BIOMOD2 può inoltre usare più worker per i modelli di ogni specie. Con due worker Snowfall e quattro worker BIOMOD2, il picco teorico è `2 × 4 = 8` worker; il POC rifiuta la configurazione se supera `SLURM_CPUS_PER_TASK`.
-
-Nel POC Snowfall è opzionale e richiede il pacchetto R `snowfall`, assente dal container di produzione. Non fa parte delle tre varianti principali e non è stato validato. Verrà considerato solo se i test del backend interno BIOMOD2 ne mostreranno la necessità.
-
-Lo smoke test non autorizza ancora l'uso produttivo. Prima di sostituire la baseline occorre eseguire i tre profili su un task Slurm per *Achillea atrata*, mantenendo fissi container, commit, seed e input, e confrontarne risultati, output e risorse. La checklist dei benchmark resta nel `README.md`.
-
-# Questions for the ecologists / Domande per gli ecologi
-
-Elenco preparato il 9 settembre 2026 per Lucia e Gabriele. Contiene soltanto decisioni che non possono essere risolte leggendo il codice o la documentazione di BIOMOD2. Le fonti BIOMOD2 locali corrispondono alla versione 4.3-4-7, mentre i log di produzione riportano la 4.3-4-5; sono state usate per chiarire il significato dei parametri, non per attribuire una motivazione scientifica alle scelte del progetto. `OPEN` indica che manca una risposta definitiva; un elemento passa ad `ANSWERED` solo quando sono registrate risposta, fonte e data.
-
-## Q1 — Provenienza e perimetro dei dati di presenza
-
-- **Stato:** `OPEN`
-- **Domanda:** Quali provenienza, periodo di osservazione, criteri di qualità e copertura geografica definiscono il dataset finale? Dobbiamo usare tutte le 2.583.359 righe delle 167 specie senza il limite storico di 100.000 occorrenze per specie, e la colonna `pseudo-absences` va interpretata come un semplice indicatore di presenza?
-- **Contesto:** la colonna `pseudo-absences` contiene soltanto il valore 1. La baseline la ignora e ricostruisce una risposta composta solo da presenze usando l'intero CSV. Lo script parallelo storico limitava invece la specie selezionata alle prime 100.000 righe. Il codice non documenta se le righe escluse fossero ridondanti, ordinate o meno affidabili.
-- **File e riga:** `data/input/full_1km_EUNIS.csv:1`; `R/base/baseline.R:29-30,72,90-92`; `R/performance/old.ensamble_modelling_parallel.R:22,83-84`.
-- **Motivo:** dimensione e selezione del campione devono derivare dal protocollo ecologico, non da un limite introdotto per ragioni computazionali.
-- **Impatto:** cambia il campione di calibrazione e può modificare modelli, metriche, tempi e memoria.
-- **Risposta:** da raccogliere.
-- **Fonte:** CSV corrente, script corrente e script parallelo storico.
-- **Data risposta:** —
-
-## Q2 — Occorrenze multiple nella stessa cella
-
-- **Stato:** `OPEN`
-- **Domanda:** Le occorrenze multiple nella stessa cella da 1 km devono essere mantenute oppure ridotte a una sola osservazione per specie e cella? Esistono correzioni concordate per autocorrelazione spaziale o bias di campionamento?
-- **Contesto:** la configurazione corrente e lo script parallelo usano `filter.raster = FALSE`, mentre lo script Snowfall usa `TRUE`. BIOMOD2 chiarisce che `TRUE` filtra più osservazioni nella stessa cella e invita a decidere il trattamento in base alla risoluzione e al disegno di campionamento.
-- **File e riga:** `R/base/config.R:41`; `R/performance/old.ensamble_modelling_parallel.R:111`; `R/performance/old.ensamble_modelling_snowfall.R:113`.
-- **Motivo:** il codice descrive due comportamenti incompatibili ma non conserva la decisione scientifica che li giustifica.
-- **Impatto:** cambia il peso delle aree campionate più intensamente e può influire su pseudo-assenze, calibrazione e validazione.
-- **Risposta:** da raccogliere.
-- **Fonte:** `docs/biomod2/R/BIOMOD_FormatingData.R:93-100`; `docs/biomod2/vignettes/vignette_dataPreparation.Rmd:128-134`; tre script in esame.
-- **Data risposta:** —
-
-## Q3 — Dati indipendenti di valutazione
-
-- **Stato:** `OPEN`
-- **Domanda:** Esiste un dataset indipendente, distinto dalle occorrenze usate per calibrare i modelli, che debba essere impiegato per la valutazione finale?
-- **Contesto:** la baseline non passa gli argomenti `eval.*`; lo script Snowfall li imposta esplicitamente a `NULL`. Le metriche disponibili derivano quindi dalla calibrazione e dalla cross-validation, non da osservazioni indipendenti.
-- **File e riga:** `R/base/baseline.R:103-113`; `R/performance/old.ensamble_modelling_snowfall.R:98-105`.
-- **Motivo:** solo Lucia e Gabriele possono confermare se tali dati esistono e se sono confrontabili con il dataset di calibrazione.
-- **Impatto:** determina quali metriche possono essere interpretate come valutazione indipendente della capacità predittiva e di trasferimento.
-- **Risposta:** da raccogliere.
-- **Fonte:** `docs/biomod2/R/BIOMOD_FormatingData.R:42-56`; `docs/biomod2/vignettes/vignette_crossValidation.Rmd:50-88`; script in esame.
-- **Data risposta:** —
-
-## Q4 — Strategia e quantità delle pseudo-assenze
-
-- **Stato:** `CLOSED`
-- **Domanda:** La configurazione scientifica definitiva deve usare selezione casuale, 10.000 pseudo-assenze per replica e quante repliche: 5 o 10? La stessa quantità deve valere per tutti gli algoritmi e per specie con numerosità diverse, mantenendo il bilanciamento predefinito tra presenze e pseudo-assenze?
-- **Contesto:** le note della riunione del 24 giugno e lo snapshot della campagna di produzione fissano 10 repliche e 10.000 pseudo-assenze per replica. Il commit `ed6837d`, scritto il 29 agosto e registrato il 1 settembre, applicò questi valori alla baseline. Il successivo refactoring `53950ba` introdusse per errore `pa_nb_rep <- 5L` nel nuovo `R/base/config.R`, lo stesso valore usato dalla configurazione sperimentale E5. Il POC ereditò lo stesso valore nel commit `a3c97ad`. Le configurazioni correnti sono state riallineate allo snapshot produttivo. Gli script sotto `R/performance/old.*` e il riferimento storico `R/base/ensamble_modelling_no_parallel.R` conservano invece i valori originari e non sono configurazioni di produzione.
-- **File e riga:** `R/base/config.R:39-41`; `R/poc/config.R:22-24`; `bd135b2:R/base_sequential_analysis_campaign_49cfdb0.R:142-144`; `R/performance/old.ensamble_modelling_parallel.R:107-109`.
-- **Motivo:** 10 repliche sono il requisito produttivo documentato. Le run E5 restano valide come esperimenti storici, ma non definiscono la configurazione scientifica corrente.
-- **Impatto:** la configurazione produttiva genera fino a 250 modelli individuali per specie, contro i 125 delle run E5. Tempi e memoria dei due gruppi non sono direttamente confrontabili.
-- **Risposta:** usare `PA.nb.rep = 10`, `PA.nb.absences = 10000`, `CV.nb.rep = 5` e `CV.perc = 0.7` nelle configurazioni correnti.
-- **Fonte:** `docs/appunti.md:224`; commit `ab7f01c`, `ed6837d`, `53950ba`, `a3c97ad` e snapshot `bd135b2:R/base_sequential_analysis_campaign_49cfdb0.R`; log `55020903_[1-3]`.
-- **Data risposta:** 9 settembre 2026
-
-## Q5 — Disegno della cross-validation
-
-- **Stato:** `OPEN`
-- **Domanda:** Confermate cinque ripetizioni con partizione casuale 70%/30%, oppure la dipendenza spaziale delle occorrenze richiede una validazione `block`, `strat`, `env` o una partizione definita dal gruppo? Dopo la validazione servono anche modelli calibrati sull'intero dataset?
-- **Contesto:** la baseline corrente e lo script parallelo usano cinque ripetizioni casuali con il 70% dei dati per la calibrazione e disabilitano i modelli sull'intero dataset; lo script Snowfall usa dieci ripetizioni e non esplicita quest'ultima scelta. BIOMOD2 offre partizioni spaziali e ambientali per valutare overfitting e trasferibilità.
-- **File e riga:** `R/base/config.R:44-49`; `R/performance/old.ensamble_modelling_parallel.R:135-141`; `R/performance/old.ensamble_modelling_snowfall.R:124-130`.
-- **Motivo:** la scelta dipende dalla distribuzione spaziale dei dati e dall'obiettivo inferenziale, non dalle sole API.
-- **Impatto:** cambia i modelli addestrati, la comparabilità delle metriche e la stima della capacità di trasferimento nello spazio e nel clima futuro.
-- **Risposta:** da raccogliere.
-- **Fonte:** `docs/biomod2/R/BIOMOD_Modeling.R:24-54`; `docs/biomod2/vignettes/vignette_crossValidation.Rmd:13-47`; script in esame.
-- **Data risposta:** —
-
-## Q6 — Algoritmi e opzioni di modellazione
-
-- **Stato:** `OPEN`
-- **Domanda:** La combinazione definitiva è GLM, GBM, ANN, FDA e MAXNET con opzioni `bigboss` per tutti gli algoritmi? Perché MAXNET ha sostituito MARS rispetto allo script Snowfall, e questa sostituzione vale per tutte le specie?
-- **Contesto:** la baseline e lo script parallelo usano MAXNET e `bigboss`; lo script Snowfall usa MARS e le vecchie opzioni predefinite. La documentazione BIOMOD2 spiega le implementazioni disponibili e che `bigboss` è un preset del team, ma non stabilisce quale combinazione sia adatta a questo studio.
-- **File e riga:** `R/base/config.R:37,43`; `R/performance/old.ensamble_modelling_parallel.R:76,117-141`; `R/performance/old.ensamble_modelling_snowfall.R:119-130`.
-- **Motivo:** il passaggio MARS/MAXNET non è motivato nei materiali del repository.
-- **Impatto:** cambia la composizione dell'ensemble, i requisiti software, gli errori osservabili e il costo di modellazione e proiezione.
-- **Risposta:** da raccogliere.
-- **Fonte:** `docs/biomod2/R/BIOMOD_Modeling.R:120-182`; `docs/biomod2/R/BIOMOD_Modeling.R:184-199`; script e configurazione in esame.
-- **Data risposta:** —
-
-## Q7 — Composizione e interpretazione degli ensemble
-
-- **Stato:** `OPEN`
-- **Domanda:** Devono essere prodotti un unico `EMmean` e un unico `EMcv` combinando tutti gli algoritmi, le pseudo-assenze e le ripetizioni con `em.by = "all"`? `EMcv` va trattato esplicitamente come misura di incertezza anziché come probabilità di presenza?
-- **Contesto:** tutti gli script richiedono `EMmean` ed `EMcv`; la baseline corrente combina tutti i modelli. BIOMOD2 definisce `EMmean` come media delle probabilità ed `EMcv` come coefficiente di variazione, su scala e con interpretazione diverse. Con `em.by = "all"`, fold di calibrazione differenti vengono fusi e la valutazione ensemble non conserva una colonna di validazione separata.
-- **File e riga:** `R/base/config.R:52`; `R/base/baseline.R:151-159`; `R/performance/old.ensamble_modelling_parallel.R:154-161`; `R/performance/old.ensamble_modelling_snowfall.R:135-142`.
-- **Motivo:** l'API descrive il calcolo, ma la scelta dell'aggregazione e l'uso scientifico dei due prodotti devono essere confermati.
-- **Impatto:** determina quanti ensemble vengono costruiti, quali modelli vengono combinati e come devono essere interpretati raster e metriche.
-- **Risposta:** da raccogliere.
-- **Fonte:** `docs/biomod2/R/BIOMOD_EnsembleModeling.R:19-24,105-154,159-228`; `docs/biomod2/vignettes/vignette_crossValidation.Rmd:70-88`.
-- **Data risposta:** —
-
-## Q8 — Metriche, soglia e trasformazioni delle proiezioni
-
-- **Stato:** `OPEN`
-- **Domanda:** Confermate AUC-ROC come criterio di selezione, la soglia 0,6 per escludere i modelli e TSS, AUC-ROC e Kappa come metriche ensemble? Quali trasformazioni binarie e filtrate devono essere considerate risultati scientifici, anziché semplici output diagnostici?
-- **Contesto:** i modelli calcolano TSS, AUC-ROC, Kappa, POD e FAR; l'ensemble seleziona con `AUCroc >= 0.6`; le proiezioni ensemble richiedono `metric.binary = "all"` e `metric.filter = "all"`. BIOMOD2 conferma che la soglia esclude i modelli con punteggio inferiore, ma non giustifica il valore 0,6 per questo studio.
-- **File e riga:** `R/base/config.R:47,53-55`; `R/base/baseline.R:156-158,210-211,274-275`; `R/performance/old.ensamble_modelling_parallel.R:159-161,217-218`.
-- **Motivo:** la selezione delle metriche e delle soglie dipende dagli obiettivi ecologici e dal compromesso tra errori di omissione e commissione.
-- **Impatto:** cambia quali modelli entrano nell'ensemble, quali raster vengono prodotti e quali risultati possono essere confrontati e pubblicati.
-- **Risposta:** da raccogliere.
-- **Fonte:** `docs/biomod2/R/BIOMOD_Modeling.R:68-77,184-249`; `docs/biomod2/R/BIOMOD_EnsembleModeling.R:26-52,127-154`; `docs/biomod2/R/BIOMOD_EnsembleForecasting.R:37-52`.
-- **Data risposta:** —
-
-## Q9 — Politica dei semi casuali
-
-- **Stato:** `OPEN`
-- **Domanda:** Le esecuzioni definitive devono usare un seme fisso? In caso affermativo, deve essere lo stesso per specie e fase oppure devono essere conservati più semi indipendenti per misurare la variabilità delle pseudo-assenze e della cross-validation?
-- **Contesto:** né la baseline corrente né i due script storici passano `seed.val`. Il commit `ed748218` introdusse temporaneamente il seme 42 nelle fasi BIOMOD2, ma la scelta non è presente nella configurazione corrente. BIOMOD2 permette di impostare il seme in formattazione, modellazione, ensemble e proiezione.
-- **File e riga:** `R/base/baseline.R:103-112,129-140,151-160,185-195`; `R/performance/old.ensamble_modelling_parallel.R:102-111,132-142`; `R/performance/old.ensamble_modelling_snowfall.R:98-113,121-131`.
-- **Motivo:** la riproducibilità tecnica non stabilisce da sola se un unico campionamento casuale sia sufficiente per l'analisi scientifica.
-- **Impatto:** determina la ripetibilità esatta delle run e la possibilità di quantificare la variabilità dovuta al campionamento.
-- **Risposta:** da raccogliere.
-- **Fonte:** commit `ed748218`; `docs/biomod2/R/BIOMOD_FormatingData.R:99-100`; `docs/biomod2/R/BIOMOD_Modeling.R:92-93`; `docs/biomod2/R/BIOMOD_EnsembleModeling.R:69-70`.
-- **Data risposta:** —
-
-## Q10 — Scenari climatici e variabili statiche
-
-- **Stato:** `OPEN`
-- **Domanda:** Confermate i cinque predittori `PC1_clim`, `PC2_clim`, `tri`, `PC1_soil` e `PC2_soil` e l'uso degli stessi raster per calibrazione e proiezione corrente? Quali GCM, SSP e orizzonti temporali costituiscono il set futuro definitivo, e TRI e suolo devono restare invariati in ogni scenario?
-- **Contesto:** la baseline corrente riusa il raster di calibrazione per la proiezione corrente, mentre i due script storici caricavano directory separate. La struttura dati contiene quattro GCM (`gfdl.esm4`, `ipsl.cm6a.lr`, `mpi.esm1.2.hr` e `mri.esm2.0`), ciascuno con `ssp370` e `ssp585`, per otto scenari. I commenti della baseline parlano ancora di cinque GCM e dieci proiezioni. Il ciclo aggiunge a ogni coppia di raster climatici futuri gli stessi raster TRI e suolo correnti; l'orizzonte temporale non è documentato nel repository.
-- **File e riga:** `R/base/config.R:30-33`; `R/base/baseline.R:43-52,59,222-223,245-246`; `R/performance/old.ensamble_modelling_parallel.R:33-50`; `R/performance/old.ensamble_modelling_snowfall.R:30-47`.
-- **Motivo:** il contenuto delle directory prova cosa è disponibile, non che il set sia scientificamente completo o definitivo.
-- **Impatto:** determina il numero e il significato delle proiezioni e l'interpretazione delle variazioni future.
-- **Risposta:** da raccogliere.
-- **Fonte:** struttura dati documentata, baseline corrente e sezione "Revisione delle evidenze locali del 6 settembre 2026" di questi appunti.
-- **Data risposta:** —
-
-## Q11 — Output scientifici da conservare
-
-- **Stato:** `OPEN`
-- **Domanda:** Qual è il set minimo di output da conservare per analisi, revisione e pubblicazione: modelli salvati, metriche, importanza delle variabili, `EMmean`, `EMcv`, trasformazioni binarie o filtrate, clamping mask e quali raster dei modelli individuali?
-- **Contesto:** la baseline proietta tutti i modelli, produce tutte le trasformazioni richieste e costruisce le clamping mask, ma non richiede il calcolo dell'importanza delle variabili. Per una sola specie validata, le proiezioni individuali occupano circa 6,6 GiB contro circa 700 MiB degli ensemble; eliminare file senza una regola scientifica potrebbe impedire controlli o rianalisi.
-- **File e riga:** `R/base/config.R:57`; `R/base/baseline.R:185-213,255-277`.
-- **Motivo:** BIOMOD2 definisce gli artefatti, ma non quali siano necessari per gli obiettivi DISTAV e per la riproducibilità dello studio.
-- **Impatto:** determina spazio richiesto, trasferimenti, possibilità di ricalcolare gli ensemble e verificabilità dei risultati.
-- **Risposta:** da raccogliere.
-- **Fonte:** `docs/appunti.md:822-851`; `docs/biomod2/R/BIOMOD_Modeling.R:75-77`; `docs/biomod2/R/BIOMOD_Projection.R:32-56`; `docs/biomod2/R/BIOMOD_EnsembleForecasting.R:37-52`.
-- **Data risposta:** —
-
-# Attività aperte consolidate
-
-## Validazione scientifica
-
-- Il controllo del 2026-09-08 nel container di produzione ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali.
-- Tutte le 2.583.359 coordinate rientrano nell'estensione dei raster e coincidono con i centri delle celle entro una tolleranza di `1e-9` gradi; non è necessaria una riproiezione.
-- Il controllo è documentato nella tesi; comandi e output sono in [`logs/crs_validation_2026-09-08.txt`](../logs/crs_validation_2026-09-08.txt).
-- Controllare warning GLM, MAXNET, overflow interi, metriche mancanti e warning ensemble.
-- Verificare se `scale.models=FALSE` serve ancora esplicitamente.
-- Convertire gli output di valutazione da testo a CSV.
-- Verificare gli acronimi GCM e SSP.
-- Correggere il commento storico 5 GCM/10 scenari se confermato che i dati restano 4/8.
-- Estrarre e documentare metriche, incluse TSS e AUC/ROC.
-- Definire quali raster individuali conservare oltre a ensemble, metriche e metadati.
-- Misurare le dimensioni dell'output di più specie prima di stimare lo storage totale.
-- Eseguire l'analisi hotspot, provare approcci paralleli e vettorizzati e documentare metodo, risultati, statistiche e limiti.
-
-## Campagna Leonardo
-
-- Usare i risultati da 4, 6 e 8 worker per scegliere e documentare una configurazione.
-- Validare il test da 16 worker F/F e i suoi output prima di usarlo come evidenza.
-- Mantenere il disegno una specie per task e al massimo tre nodi concorrenti.
-- Decidere come gestire le specie fallite: raccolta errori, retry selettivo o arresto delle onde successive.
-- Valutare shortest-job-first senza presentarlo come risparmio di costo totale.
-- Registrare makespan, CPU-hours, MaxRSS, stato per specie, timing per fase e validazione output.
-- Valutare uno script di monitoraggio Slurm per array e log.
-- Verificare i task completati della campagna di produzione e aggiornare il manifest.
-
-## Ottimizzazione del workflow
-
-- Completare il confronto MAXNET blockwise sul raster completo con runtime, MaxRSS e uguaglianza degli output.
-- Estendere il test a tutti i modelli e scenari necessari.
-- Aggiornare `tests/expected_output_foreach_species.txt` soltanto se il contratto degli output cambia intenzionalmente.
-- Scrivere una test suite per il codice in `R/`, usando `tests/test_output.R` se una revisione conferma che è una base utile e corretta.
-- Verificare se la separazione dello script cambia memoria, parallelismo o riproducibilità.
-- Misurare la contesa I/O con più worker.
-- Ridurre ricalcoli e copie soltanto quando le misure lo giustificano.
-- Passare il conteggio CPU Slurm a R tramite `BIOMOD_NCPU`.
-- Aggiungere timestamp alle istruzioni e fasi rilevanti nei log R.
-- Valutare il rilascio della RAM tra le fasi.
-- Non usare automaticamente il disco senza misurarne l'effetto.
-- Decidere se pulire `data/output/` prima di ogni run e automatizzare l'eliminazione di output obsoleti se necessario.
-- Considerare `snowfall` soltanto se i test del backend interno BIOMOD2 lo richiedono ancora.
-- Non passare a sharding multinodo prima di aver esaurito e misurato le soluzioni blockwise e per-specie.
-
-## Infrastruttura e studio
-
-- Completare e verificare il workflow rsync/rclone/scp tra computer locale, Serviicola, Leonardo e Spartaco.
-- Documentare l'intero login CINECA da Linux.
-- Decidere tra Forgejo e workflow rsync per dati grandi.
-- Rimuovere credenziali dalle note e purgarle dalla storia Git.
-- Studiare le operazioni Git lente sul filesystem HPC e valutare un trattamento diverso dei file grandi.
-- Chiarire `message`, `print`, `cat` e `printf` in R.
-- Finire `workflow-leo.sh`.
-- Consolidare i vecchi script ensemble soltanto dopo averne capito le differenze.
-- Verificare con Lucia i codici CINECA `IsCd6_SPECC` e `IscrC_SPECC`.
-- Configurare formatter e LSP R, eventualmente con pre-commit.
-- Tenere il Makefile come wrapper minimo ed estenderlo solo per comandi ricorrenti.
-- Valutare CUDA in Rocker e SonarQube solo se diventano bisogni concreti.
-- Ridurre l'output della definizione del container a errori e warning.
-- Se necessario a settembre, chiedere ulteriori risorse CINECA.
-- Rivedere SIMD/AVX e la nota di Mitchell Hashimoto.
-- Completare gli esercizi HPC elencati in `R/tmp/hello-world.R`.
-- Considerare `broom` soltanto se serve per estrarre metriche.
-- Chiarire l'idea "supermarket scheduling" prima di trasformarla in requisito.
-- Determinare se il sistema può eseguire Doom.
-
-# Piano della tesi
-
-## Tesi di lavoro
-
-La tesi riguarda l'esecuzione e la misurazione su HPC di un workflow R/BIOMOD2 per Species Distribution Models. Il confronto principale riguarda la rappresentazione dei raster di proiezione e il numero di worker. I risultati scientifici devono restare separati dalle ottimizzazioni ancora sperimentali.
-
-## Struttura proposta
-
-1. **Introduction and motivation**: contesto ecoinformatico, problema computazionale, obiettivi e contributi.
-2. **Background**: SDM, dati di presenza, raster ambientali, pseudo-assenze, ensemble e scenari climatici.
-3. **Related work**: da scrivere dopo aver scelto riferimenti pertinenti. Le citazioni attuali nel `.bib` provengono in gran parte da un altro progetto e non vanno riusate automaticamente.
-4. **Requirements analysis**: requisiti scientifici, funzionali, di riproducibilità, risorse e gestione degli errori.
-5. **Design**: pipeline per specie, separazione calibrazione/proiezione, isolamento output e job array Slurm.
-6. **Implementation**: R, BIOMOD2, Terra, Singularity, Leonardo e controlli introdotti.
-7. **Experiments**: domande, configurazioni, metriche, confronto storage e worker.
-8. **Discussion**: interpretazione, limiti, warning scientifici, generalizzabilità e compromessi RAM/I/O.
-9. **Conclusions and future work**: risultati conclusivi e lavoro necessario per completare la campagna.
-10. **Appendix**: frammenti di codice selezionati solo se aiutano la riproducibilità.
-
-## Materiale già utilizzabile
-
-- Dataset: 2.583.359 presenze, 167 specie, 1 km².
-- Workflow: GLM, GBM, ANN, FDA, MAXNET; due ensemble; un ambiente corrente; otto scenari futuri.
-- Storage: F/F completato a circa 261 GiB; F/T fallito durante la clamping mask.
-- Worker: 4, 6 e 8 completati su *A. atrata*; 16 F/F notificato completo ma da validare; 32 F/F fallito OOM.
-- MAXNET blockwise: 226.775 celle valide, NA identici e differenza assoluta massima zero; mancano raster completo, RAM, tempi e output.
-
-## Regole di scrittura
-
-- Separare risultato osservato, interpretazione e ipotesi.
-- Indicare specie, configurazione, job, unità e numero di ripetizioni.
-- Non presentare il registro sperimentale come risultato scientifico definitivo.
-- Usare citazioni pertinenti e verificate.
-- Non riempire il testo con riferimenti non collegati al progetto.
-- Mantenere la tesi concisa e assertiva quando si passerà dagli appunti alla stesura.
-- Non promettere il completamento della campagna prima della validazione.
-- Scrivere e revisionare i capitoli usando risultati verificati; il prossimo checkpoint LaTeX segue almeno un esperimento UniGe con configurazione, output e risorse controllati.
-- Non attribuire all'infrastruttura capacità hardware non ancora usate sperimentalmente.
-- Confermare titolo, struttura, abstract e contenuto scientifico con i relatori.
-- Sostituire i placeholder per relatore, correlatore, esaminatore e dedica.
-- Decidere se l'abstract resta nel main o in `Chapters/abstract.tex`.
-- Aggiungere figure e tabelle soltanto con dati e didascalie verificabili.
-- Scegliere formato e template delle slide.
-- Preparare una presentazione tecnica di circa un'ora e una non tecnica di circa 15 minuti.
-- Considerare compilazione LaTeX automatica soltanto quando la struttura è stabile.
-- Aggiungere un comando LaTeX per commenti e note rosse.
-- Ricordare i suggerimenti del professore presenti in fondo a `docs/thesis/main.tex`.
-
-# Regola storica di gestione delle note
-
-L'organizzazione precedente prevedeva:
-
-- `prompt.md` come handoff operativo principale;
-- `docs/thesis/Chapters/notes.tex` come quaderno grezzo per misure, job, risultati e interpretazioni da verificare; durante quel riordino non doveva essere spostato né riscritto;
-- `session-2026-07-03.md` come memoria della sessione iniziale, senza sostituire il quaderno;
-- il TODO del `README.md` per attività future e decisioni operative sintetiche;
-- `thesis-plan.md` per collegare i risultati ai capitoli;
-- `docs/hpc-course/hpc notes.md` per gli appunti generali del corso HPC, separati dal progetto;
-- `docs/slides/todo.txt` per note operative sulle slide già riflesse nel TODO.
-
-Soltanto il materiale verificato, riscritto e approvato esplicitamente doveva passare negli altri capitoli LaTeX.
-
-Dopo l'archiviazione, questo `appunti.md` diventa il punto unico per il materiale storico della cartella `work-in-progress`, ma non trasforma automaticamente le osservazioni in risultati scientifici definitivi.
-
-## Matrice di copertura delle fonti archiviate
-
-Questa matrice permette di rintracciare nel documento consolidato il contenuto dei file rimossi. Lo stato `COPERTO` significa che dati, decisioni, dubbi e riferimenti specifici della fonte sono riportati nelle sezioni indicate, anche quando sono stati tradotti o accorpati per evitare duplicazioni.
-
-| Fonte rimossa | Stato | Sezioni di destinazione |
-|---|---|---|
-| `campaign-snapshot.md` | COPERTO | "Fase 9: campagna di produzione", sottosezione "Snapshot dello script". |
-| `new-prompt.txt` | COPERTO | "Fase 9", "Modello operativo worktree, tmux e agent". |
-| `notes.md` | COPERTO | "Mappa dei riferimenti e dei nomi", "Regola storica di gestione delle note". |
-| `notes.tex` | COPERTO | "Contesto scientifico", fasi 1-8, inventario delle run, storage, MAXNET, spazio disco, misure, QoS e piano della tesi. |
-| `notes.tex.bak` | COPERTO | "Fase 6: campagna a onde e confronto controllato dello storage" e sezioni sullo storage. |
-| `pre-prompt.txt` | COPERTO | "Prossime operazioni della campagna al 2 settembre". |
-| `prompt.md` | COPERTO | "Fase 9", "Workflow tra i tre host", "Prossime operazioni della campagna al 2 settembre" e aggiornamento documentale del 4 settembre. |
-| `README.md` | COPERTO | "Regola storica di gestione delle note". |
-| `run-manifest.md` | COPERTO | "Stato consolidato al 4 settembre" e "Esaurimento del budget DCGP". |
-| `session-2026-07-03.md` | COPERTO | Fasi 3-5 e "Modalità sequenziale più prudente annotata il 3 luglio". |
-| `thesis-plan.md` | COPERTO | "Contesto scientifico e obiettivo del lavoro" e "Piano della tesi". |
-| `right-now-todo/review/1.runtime-and-resource-summary.md` | COPERTO | `README.md` per il confronto pubblico E5; fasi 5-9, inventario delle run, storage e metodologia in questi appunti per il dettaglio. |
-| `right-now-todo/review/2.local-log-metadata.md` | COPERTO | Inventario delle run e "Revisione delle evidenze locali del 6 settembre 2026"; i dati grezzi restano nei CSV sotto `logs/`. |
-
-# Esaurimento del budget DCGP, 4 settembre 2026
-
-## Cancellazione dell'array sostitutivo
-
-Dopo la manutenzione del 2-4 settembre, l'array `55530303_[4-167%3]` ha ricevuto nodi di calcolo, ma nessuna task ha avviato lo script batch. Le 164 task sono rimaste attive da uno a sedici secondi e Slurm le ha registrate come `CANCELLED by 0` con `ExitCode 0:0`. Non è stato creato alcun file `logs/job_55530303_<task>.log`.
-
-Il commento di accounting di Slurm riporta per le task esaminate:
-
-```text
-prolog controller: insufficient or expired budget
-```
-
-La cancellazione è avvenuta nel prolog amministrativo, prima dell'esecuzione di Singularity, R o `scripts/sbatch.sh`. L'exit code zero non indica il completamento dell'analisi: nessun processo applicativo è partito, quindi nessuno ha restituito un errore. La verifica dell'output ha trovato soltanto tre directory di specie e tre marker `_SUCCESS`, relativi alle task `55020903_1`, `_2` e `_3`. L'array sostitutivo non ha completato alcuna specie con indice 4-167.
-
-Le notifiche ricevute dipendono da `--mail-type=ARRAY_TASKS`: Slurm ha inviato una mail per ciascun elemento cancellato. Il vecchio array `55020903_[4-167%3]`, che era rimasto in `JobHeldUser`, è stato cancellato manualmente il 4 settembre dopo questa diagnosi.
-
-## Stato del budget
-
-I comandi usati su Leonardo sono:
-
-```bash
-saldo -b -u <username> --dcgp
-saldo -r -u <username> -y 2026 --dcgp
-```
-
-Il primo ha riportato:
-
-```text
-periodo di validità: 12 febbraio - 12 novembre 2026
-budget totale:       100.000 ore locali
-consumo:             103.448 ore locali
-percentuale:         103,4%
-```
-
-Il report giornaliero attribuisce tutte le 103.448:48:42 ore locali a 158 job dell'utente del progetto sull'account `IscrC_SPECC`. Il progetto non era scaduto per data; aveva superato il budget assegnato.
-
-## Come CINECA contabilizza le ore
-
-CINECA misura il consumo in ore CPU effettive. La formula documentata è:
-
-```text
-BH = T * N * R * C
-```
-
-con:
-
-- `T`: tempo trascorso del job in ore;
-- `N`: numero di nodi allocati;
-- `C`: core disponibili su ogni nodo, 112 per DCGP;
-- `R`: frazione massima di nodo riservata considerando separatamente CPU, memoria e altre risorse.
-
-Il fattore `R` è il massimo tra le frazioni richieste. Per la campagna:
-
-```text
-CPU:       8 / 112      = 0,071
-memoria:   494000 / 494000 MB = 1
-R:         max(0,071, 1) = 1
-```
-
-La direttiva `--mem=0` riserva tutta la memoria allocabile del nodo. Anche con sole otto CPU, la RAM impedisce ad altri job di usare il resto del nodo e porta il costo a 112 ore locali per ogni ora di esecuzione:
-
-```text
-BH = T * 1 * 1 * 112 = T * 112
-```
-
-Conta la memoria riservata, non il solo MaxRSS osservato. Le tre task di produzione chiedevano 494.000 MB, mentre il batch step ha raggiunto circa 316 GiB per `55020903_1`, 316 GiB per `_2` e 291 GiB per `_3`. Una futura riduzione della memoria richiesta potrebbe abbassare il fattore `R`, ma deve lasciare un margine verificato rispetto ai picchi e alla variabilità tra specie.
-
-La regola completa è descritta nella documentazione CINECA: <https://docs.hpc.cineca.it/hpc/hpc_intro.html#budget-and-accounting>.
-
-## Job con il consumo maggiore
-
-La tabella usa `sacct` e applica il fattore di 112 ore locali per ora ai job che richiedevano 494.000 MB su un nodo DCGP.
-
-| Job | Stato | Tempo trascorso | Ore locali circa | Motivo del costo |
-|---|---|---:|---:|---|
-| `46403582` | `COMPLETED` | 50h18m54s | 5.635 | Nodo completo per oltre due giorni. |
-| `48325677_4` | cancellato dall'utente | 42h47m42s | 4.793 | Nodo completo rimasto allocato fino alla cancellazione. |
-| `48325677_5` | cancellato dall'utente | 42h47m42s | 4.793 | Stessa durata e stessa allocazione del task precedente. |
-| `49507005_3` | cancellato dall'utente | 38h12m41s | 4.280 | Una delle tre task concorrenti della campagna a onde. |
-| `49507005_2` | cancellato dall'utente | 38h12m37s | 4.280 | Una delle tre task concorrenti della campagna a onde. |
-| `49507005_1` | cancellato dall'utente | 38h12m21s | 4.279 | Una delle tre task concorrenti della campagna a onde. |
-| `55020903_3` | `COMPLETED` | 33h58m37s | 3.805 | Task Agrostis della campagna di produzione. |
-| `55020903_1` | `COMPLETED` | 25h36m42s | 2.869 | Task Achillea della campagna di produzione. |
-| `47574797_3` | `COMPLETED` | 22h59m26s | 2.575 | Run sequenziale con memoria completa. |
-| `48238919_3` | cancellato dall'utente | 22h40m40s | 2.540 | Il tempo già allocato resta contabilizzato. |
-
-La cancellazione non annulla il consumo precedente: un job cancellato dopo 42 ore viene fatturato per le 42 ore durante le quali ha riservato le risorse.
-
-## Perché alcuni giorni superano 10.000 ore
-
-`saldo -r` concentra il costo sul giorno associato alla conclusione del job. Il 4 luglio risultano 10.546:47:28 ore locali. Quasi tutto il consumo deriva da `48325677_4` e `_5`, circa 4.793 ore ciascuno, più due job da circa quattro ore:
-
-```text
-2 * 42,795 h * 112 = circa 9.586 ore locali
-4,492 h * 112      = circa   503 ore locali
-4,086 h * 112      = circa   458 ore locali
-```
-
-Il 17 luglio risultano 13.650:42:56 ore locali. Le tre task `49507005_1`, `_2` e `_3` contribuirono per circa 12.838 ore. Altri tre job brevi o terminati in OOM portarono il totale a circa 13.650:
-
-```text
-3 * 38,2 h * 112 = circa 12.838 ore locali
-5,42 h * 112     = circa    607 ore locali
-1,59 h * 112     = circa    178 ore locali
-0,24 h * 112     = circa     27 ore locali
-```
-
-Il campo `num.jobs=61` del 17 luglio include submission, elementi di array, dipendenze e job cancellati. Non indica 61 nodi attivi contemporaneamente. Il consumo principale proviene da sei allocazioni, soprattutto dalle tre task da oltre 38 ore.
-
-## Impatto sulla campagna completa
-
-Le prime tre specie della campagna hanno consumato insieme circa 9.076 ore locali. La media è circa 3.025 ore locali per specie. Una proiezione lineare sulle 164 specie rimanenti darebbe circa 496.000 ore locali aggiuntive. È soltanto una stima, perché durata e memoria possono variare tra specie, ma mostra che la campagna non può rientrare nel budget originario da 100.000 ore senza nuove risorse o una riduzione sostanziale del costo per specie.
-
-Prima di inviare un nuovo array occorrono un'estensione del budget e una nuova stima basata sui tre completamenti. La richiesta di memoria va scelta usando i MaxRSS misurati invece di `--mem=0`, senza ridurre il margine necessario per evitare OOM.
 
 # Verifica, pulizia e riallineamento documentale del 4 settembre 2026
 
@@ -1766,3 +1657,181 @@ Dopo la verifica del ripristino, Enrico ha autorizzato la cancellazione di quatt
 ## Stato Git lasciato dalla sessione
 
 Al termine di quella sessione, tutte le modifiche tracciabili prodotte o mantenute dovevano essere committate. `docs/work-in-progress/appunti.md` era stato escluso intenzionalmente ed era rimasto non tracciato in attesa di una review dedicata.
+# Prossime operazioni della campagna al 2 settembre
+
+Ordine registrato nell'handoff:
+
+1. Dopo la manutenzione, controllare `squeue`, lo stato del task 3 e `_SUCCESS` dalla finestra tmux `tesi:1:leo`.
+2. Riclonare i metadati GitHub su Leonardo preservando `data/`, `logs/` e `container/geospatial.sif`.
+3. Sincronizzare il container e gli output completati verso Spartaco.
+4. Rimuovere il vecchio array in hold soltanto dopo aver confermato che il sostitutivo copre i task 4-167.
+5. Verificare ogni specie completata con `_SUCCESS`, numero di file, dimensioni e log.
+6. Aggiornare il manifest delle run.
+
+Guardrail:
+
+- iniziare le risposte con "Enrico" e comunicare in italiano;
+- usare `tmux send-keys` per Leonardo;
+- ispezionare il pane prima di inviare comandi;
+- ripristinare il monitoraggio dei log dopo i comandi;
+- richiedere approvazione esplicita prima di cambiare o cancellare job Slurm;
+- committare soltanto file legati al task;
+- il worktree principale può contenere modifiche della tesi non correlate.
+
+Il pre-prompt associato richiedeva di leggere prima `prompt.md`, il quaderno LaTeX, `README.md` e `notes.md`, ricostruire in modo conciso stato della campagna, RAM, CPU, storage, test worker, esperimento MAXNET e prossimi passi. Specificava inoltre di:
+
+- considerare `prompt.md` l'handoff principale;
+- non lanciare job;
+- non modificare file;
+- non ripulire il worktree.
+
+# Attività aperte consolidate
+
+## Validazione scientifica
+
+- Il controllo del 2026-09-08 nel container di produzione ha confermato EPSG:4326 e la stessa geometria per tutti i 18 raster ambientali.
+- Tutte le 2.583.359 coordinate rientrano nell'estensione dei raster e coincidono con i centri delle celle entro una tolleranza di `1e-9` gradi; non è necessaria una riproiezione.
+- Il controllo è documentato nella tesi; comandi e output sono in [`logs/crs_validation_2026-09-08.txt`](../logs/crs_validation_2026-09-08.txt).
+- Controllare warning GLM, MAXNET, overflow interi, metriche mancanti e warning ensemble.
+- Verificare se `scale.models=FALSE` serve ancora esplicitamente.
+- Convertire gli output di valutazione da testo a CSV.
+- Verificare gli acronimi GCM e SSP.
+- Correggere il commento storico 5 GCM/10 scenari se confermato che i dati restano 4/8.
+- Estrarre e documentare metriche, incluse TSS e AUC/ROC.
+- Definire quali raster individuali conservare oltre a ensemble, metriche e metadati.
+- Misurare le dimensioni dell'output di più specie prima di stimare lo storage totale.
+- Eseguire l'analisi hotspot, provare approcci paralleli e vettorizzati e documentare metodo, risultati, statistiche e limiti.
+
+## Campagna Leonardo
+
+- Revalidare il riferimento F/F a 8 worker dopo il refactor prima di mantenerlo come default produttivo; non scegliere 16 worker senza nuove misure del margine di memoria.
+- Mantenere il disegno una specie per task e al massimo tre nodi concorrenti.
+- Decidere come gestire le specie fallite: `_FAIL` per gli errori intercettabili, contesto dell'errore, retry selettivo o arresto delle onde successive.
+- Valutare shortest-job-first senza presentarlo come risparmio di costo totale.
+- Registrare makespan, CPU-hours, MaxRSS, stato per specie, timing per fase e validazione output.
+- Valutare un monitor Slurm di solo avviso basato su `sstat` live e `sacct` finale, senza cancellazione o reinvio automatico.
+- Chiedere a CINECA se siano disponibili la terminazione dell'intero step dopo OOM e il throttling cgroup-v2 `memory.high`.
+- Verificare i task completati della campagna di produzione e aggiornare il manifest.
+
+## Ottimizzazione del workflow
+
+- Completare il confronto MAXNET blockwise sul raster completo con runtime, MaxRSS e uguaglianza degli output.
+- Dopo il test MAXNET completo, misurare un budget Terra per processo (`memmax`, `memfrac`, `threads`, `tempdir`) modificando una sola impostazione per run; valutare un limite dell'heap R soltanto in seguito.
+- Estendere il test a tutti i modelli e scenari necessari.
+- Aggiornare `tests/expected_output_foreach_species.txt` soltanto se il contratto degli output cambia intenzionalmente.
+- Scrivere una test suite per il codice in `R/`, usando `tests/test_output.R` se una revisione conferma che è una base utile e corretta.
+- Verificare se la separazione dello script cambia memoria, parallelismo o riproducibilità.
+- Misurare la contesa I/O con più worker.
+- Ridurre ricalcoli e copie soltanto quando le misure lo giustificano.
+- Aggiungere timestamp alle istruzioni e fasi rilevanti nei log R.
+- Valutare il rilascio della RAM tra le fasi.
+- Non usare automaticamente il disco senza misurarne l'effetto.
+- Decidere se pulire `data/output/` prima di ogni run e automatizzare l'eliminazione di output obsoleti se necessario.
+- Considerare `snowfall` soltanto se i test del backend interno BIOMOD2 lo richiedono ancora.
+- Non passare a sharding multinodo prima di aver esaurito e misurato le soluzioni blockwise e per-specie.
+
+## Infrastruttura e studio
+
+- Completare e verificare il workflow rsync/rclone/scp tra computer locale, Serviicola, Leonardo e Spartaco.
+- Documentare l'intero login CINECA da Linux.
+- Decidere tra Forgejo e workflow rsync per dati grandi.
+- Rimuovere credenziali dalle note e purgarle dalla storia Git.
+- Studiare le operazioni Git lente sul filesystem HPC e valutare un trattamento diverso dei file grandi.
+- Chiarire `message`, `print`, `cat` e `printf` in R.
+- Finire `workflow-leo.sh`.
+- Consolidare i vecchi script ensemble soltanto dopo averne capito le differenze.
+- Verificare con Lucia i codici CINECA `IsCd6_SPECC` e `IscrC_SPECC`.
+- Configurare formatter e LSP R, eventualmente con pre-commit.
+- Tenere il Makefile come wrapper minimo ed estenderlo solo per comandi ricorrenti.
+- Valutare CUDA in Rocker e SonarQube solo se diventano bisogni concreti.
+- Ridurre l'output della definizione del container a errori e warning.
+- Se necessario a settembre, chiedere ulteriori risorse CINECA.
+- Rivedere SIMD/AVX e la nota di Mitchell Hashimoto.
+- Completare gli esercizi HPC elencati in `R/tmp/hello-world.R`.
+- Considerare `broom` soltanto se serve per estrarre metriche.
+- Chiarire l'idea "supermarket scheduling" prima di trasformarla in requisito.
+- Determinare se il sistema può eseguire Doom.
+
+# Piano della tesi
+
+## Tesi di lavoro
+
+La tesi riguarda l'esecuzione e la misurazione su HPC di un workflow R/BIOMOD2 per Species Distribution Models. Il confronto principale riguarda la rappresentazione dei raster di proiezione e il numero di worker. I risultati scientifici devono restare separati dalle ottimizzazioni ancora sperimentali.
+
+## Struttura proposta
+
+1. **Introduction and motivation**: contesto ecoinformatico, problema computazionale, obiettivi e contributi.
+2. **Background**: SDM, dati di presenza, raster ambientali, pseudo-assenze, ensemble e scenari climatici.
+3. **Related work**: da scrivere dopo aver scelto riferimenti pertinenti. Le citazioni attuali nel `.bib` provengono in gran parte da un altro progetto e non vanno riusate automaticamente.
+4. **Requirements analysis**: requisiti scientifici, funzionali, di riproducibilità, risorse e gestione degli errori.
+5. **Design**: pipeline per specie, separazione calibrazione/proiezione, isolamento output e job array Slurm.
+6. **Implementation**: R, BIOMOD2, Terra, Singularity, Leonardo e controlli introdotti.
+7. **Experiments**: domande, configurazioni, metriche, confronto storage e worker.
+8. **Discussion**: interpretazione, limiti, warning scientifici, generalizzabilità e compromessi RAM/I/O.
+9. **Conclusions and future work**: risultati conclusivi e lavoro necessario per completare la campagna.
+10. **Appendix**: frammenti di codice selezionati solo se aiutano la riproducibilità.
+
+## Materiale già utilizzabile
+
+- Dataset: 2.583.359 presenze, 167 specie, 1 km².
+- Workflow: GLM, GBM, ANN, FDA, MAXNET; due ensemble; un ambiente corrente; otto scenari futuri.
+- Storage: F/F completato a circa 261 GiB; F/T fallito durante la clamping mask.
+- Worker: 4, 6 e 8 completati su *A. atrata*; 16 F/F notificato completo ma da validare; 32 F/F fallito OOM.
+- MAXNET blockwise: 226.775 celle valide, NA identici e differenza assoluta massima zero; mancano raster completo, RAM, tempi e output.
+
+## Regole di scrittura
+
+- Separare risultato osservato, interpretazione e ipotesi.
+- Indicare specie, configurazione, job, unità e numero di ripetizioni.
+- Non presentare il registro sperimentale come risultato scientifico definitivo.
+- Usare citazioni pertinenti e verificate.
+- Non riempire il testo con riferimenti non collegati al progetto.
+- Mantenere la tesi concisa e assertiva quando si passerà dagli appunti alla stesura.
+- Non promettere il completamento della campagna prima della validazione.
+- Scrivere e revisionare i capitoli usando risultati verificati; il prossimo checkpoint LaTeX segue almeno un esperimento UniGe con configurazione, output e risorse controllati.
+- Non attribuire all'infrastruttura capacità hardware non ancora usate sperimentalmente.
+- Confermare titolo, struttura, abstract e contenuto scientifico con i relatori.
+- Sostituire i placeholder per relatore, correlatore, esaminatore e dedica.
+- Decidere se l'abstract resta nel main o in `Chapters/abstract.tex`.
+- Aggiungere figure e tabelle soltanto con dati e didascalie verificabili.
+- Scegliere formato e template delle slide.
+- Preparare una presentazione tecnica di circa un'ora e una non tecnica di circa 15 minuti.
+- Considerare compilazione LaTeX automatica soltanto quando la struttura è stabile.
+- Aggiungere un comando LaTeX per commenti e note rosse.
+- Ricordare i suggerimenti del professore presenti in fondo a `docs/thesis/main.tex`.
+
+# Regola storica di gestione delle note
+
+L'organizzazione precedente prevedeva:
+
+- `prompt.md` come handoff operativo principale;
+- `docs/thesis/Chapters/notes.tex` come quaderno grezzo per misure, job, risultati e interpretazioni da verificare; durante quel riordino non doveva essere spostato né riscritto;
+- `session-2026-07-03.md` come memoria della sessione iniziale, senza sostituire il quaderno;
+- il TODO del `README.md` per attività future e decisioni operative sintetiche;
+- `thesis-plan.md` per collegare i risultati ai capitoli;
+- `docs/hpc-course/hpc notes.md` per gli appunti generali del corso HPC, separati dal progetto;
+- `docs/slides/todo.txt` per note operative sulle slide già riflesse nel TODO.
+
+Soltanto il materiale verificato, riscritto e approvato esplicitamente doveva passare negli altri capitoli LaTeX.
+
+Dopo l'archiviazione, questo `appunti.md` diventa il punto unico per il materiale storico della cartella `work-in-progress`, ma non trasforma automaticamente le osservazioni in risultati scientifici definitivi.
+
+## Matrice di copertura delle fonti archiviate
+
+Questa matrice permette di rintracciare nel documento consolidato il contenuto dei file rimossi. Lo stato `COPERTO` significa che dati, decisioni, dubbi e riferimenti specifici della fonte sono riportati nelle sezioni indicate, anche quando sono stati tradotti o accorpati per evitare duplicazioni.
+
+| Fonte rimossa | Stato | Sezioni di destinazione |
+|---|---|---|
+| `campaign-snapshot.md` | COPERTO | "Fase 9: campagna di produzione", sottosezione "Snapshot dello script". |
+| `new-prompt.txt` | COPERTO | "Fase 9", "Modello operativo worktree, tmux e agent". |
+| `notes.md` | COPERTO | "Mappa dei riferimenti e dei nomi", "Regola storica di gestione delle note". |
+| `notes.tex` | COPERTO | "Contesto scientifico", fasi 1-8, inventario delle run, storage, MAXNET, spazio disco, misure, QoS e piano della tesi. |
+| `notes.tex.bak` | COPERTO | "Fase 6: campagna a onde e confronto controllato dello storage" e sezioni sullo storage. |
+| `pre-prompt.txt` | COPERTO | "Prossime operazioni della campagna al 2 settembre". |
+| `prompt.md` | COPERTO | "Fase 9", "Workflow tra i tre host", "Prossime operazioni della campagna al 2 settembre" e aggiornamento documentale del 4 settembre. |
+| `README.md` | COPERTO | "Regola storica di gestione delle note". |
+| `run-manifest.md` | COPERTO | "Stato consolidato al 4 settembre" e "Esaurimento del budget DCGP". |
+| `session-2026-07-03.md` | COPERTO | Fasi 3-5 e "Modalità sequenziale più prudente annotata il 3 luglio". |
+| `thesis-plan.md` | COPERTO | "Contesto scientifico e obiettivo del lavoro" e "Piano della tesi". |
+| `right-now-todo/review/1.runtime-and-resource-summary.md` | COPERTO | `README.md` per il confronto pubblico E5; fasi 5-9, inventario delle run, storage e metodologia in questi appunti per il dettaglio. |
+| `right-now-todo/review/2.local-log-metadata.md` | COPERTO | Inventario delle run e "Revisione delle evidenze locali del 6 settembre 2026"; i dati grezzi restano nei CSV sotto `logs/`. |
