@@ -1,9 +1,3 @@
-# Historical reference recovered from commit 890f4c5 (17 December 2025).
-# This is the earliest tracked version; its DISTAV provenance still needs confirmation.
-# Despite its filename, it creates a 10-worker cluster and passes nb.cpu = 10.
-# It is therefore not a sequential baseline and must not be executed unchanged as one.
-# Keep the historical body below unchanged; derive executable baselines in a separate file.
-
 library(biomod2)
 library(raster)
 library(terra)
@@ -14,11 +8,13 @@ library(randomForest)
 library(Hmisc)
 library(plyr)
 # library(maptools)
-library(doParallel)
+# library(doParallel)
 library(profvis)
 
-cl <- makeCluster(10)
-registerDoParallel(cl)
+# cl <- makeCluster(10)
+# registerDoParallel(cl)
+
+npcpu <- 1
 
 
 ####################################
@@ -144,7 +140,7 @@ p2 <- profvis({
     metric.eval = c("TSS", "ROC", "KAPPA", "POD", "FAR"),
     scale.models = FALSE,
     CV.do.full.models = FALSE,
-    nb.cpu = 10,
+    nb.cpu = npcpu,
     do.progress = T
   )
 })
@@ -164,7 +160,7 @@ p3 <- profvis({
     metric.select = c("ROC"),
     metric.select.thresh = c(0.6),
     metric.eval = c("TSS", "ROC", "KAPPA"),
-    nb.cpu = 10
+    nb.cpu = npcpu
   )
 })
 
@@ -203,7 +199,7 @@ p4 <- profvis({
     new.env = cur_proj,
     models.chosen = "all",
     build.clamping.mask = T,
-    nb.cpu = 10
+    nb.cpu = npcpu
   )
 })
 
@@ -221,7 +217,7 @@ myBiomodEMProj <- BIOMOD_EnsembleForecasting(
   models.chosen = "all",
   metric.binary = "all",
   metric.filter = "all",
-  nb.cpu = 10
+  nb.cpu = npcpu
 )
 
 end.time <- Sys.time()
@@ -263,7 +259,7 @@ for (k in 1:nf) {
       new.env = fut_proj,
       models.chosen = "all",
       build.clamping.mask = T,
-      nb.cpu = 10
+      nb.cpu = npcpu
     )
 
 
@@ -275,7 +271,7 @@ for (k in 1:nf) {
       models.chosen = "all",
       metric.binary = "all",
       metric.filter = "all",
-      nb.cpu = 10
+      nb.cpu = npcpu
     )
   })
 }
