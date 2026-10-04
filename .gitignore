@@ -59,14 +59,12 @@ rsconnect/
 
 # container 
 *.sif
+
+# misc
 /docs/thesis/assets/branding/*-eps-converted-to.pdf
-
-.vscode/sessions/
-
 data/input/full_*
-data/output/*
-!data/output/*.txt
-!data/output/full_species_counts.csv
-data/output_campaign_pa10/
-data/output_*/
 secrets/
+*.tif
+!*.zstd.tif
+!*.models.out
+*.projection.out
