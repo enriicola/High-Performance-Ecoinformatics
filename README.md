@@ -27,6 +27,10 @@ make slides      # compile the slides
 make leogin      # connect to CINECA's Leonardo
 make sshpartaco  # connect to Spartaco
 make unigin      # connect to the UniGe cluster
+make rrun
+make execcap
+make splitman
+...
 ```
 
 ## Workers, cores and physical CPUs
@@ -101,6 +105,9 @@ Each future scenario used the model/projection worker count for its individual p
 - [ ] gdal compression:
   - [ ] https://kokoalberti.com/articles/geotiff-compression-optimization-guide/
   - [ ] https://gdal.org/en/stable/drivers/raster/gtiff.html
+
+- [ ] implement rrun.sh
+- [ ] implement execcap.sh
 
 - [ ] usare foreach::registerDoSEQ() solo se esegui le fasi R in modo ibrido (alcune seq alcune par, in modo da forzare le eventuali sessioni ereditate da source(...) sequenziali ad essere veramente seq)
 - [ ] does it make sense to have the actual biomod2 code on every non-serviicola computer? keeping in mind that i downloaded on serviicola for develpment and llm porpuses, i don't this is useful to be downloaded also on the other computers
